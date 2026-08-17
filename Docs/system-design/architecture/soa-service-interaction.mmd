@@ -1,0 +1,96 @@
+flowchart LR
+
+    %% =========================
+    %% CLIENT
+    %% =========================
+
+    Client["React Web Client"]
+
+    %% =========================
+    %% CORE API
+    %% =========================
+
+    API["Node.js + Express.js<br/>REST API"]
+
+    Auth["Authentication & User Management"]
+    Marketplace["Marketplace & Listing"]
+    Search["Search & Filtering"]
+    Rental["Rental & Transaction"]
+    Admin["Admin & Analytics"]
+    Payment["Payment / Receipt"]
+
+    Client -->|"HTTPS / REST"| API
+
+    API --> Auth
+    API --> Marketplace
+    API --> Search
+    API --> Rental
+    API --> Admin
+    API --> Payment
+
+    %% =========================
+    %% AI SERVICE
+    %% =========================
+
+    AI["AI Service<br/>FastAPI"]
+
+    Groq["Groq API"]
+
+    Marketplace -->|"REST / JSON"| AI
+    AI -->|"API Request"| Groq
+    Groq -->|"AI Response"| AI
+    AI -->|"Suggestions / Price / Condition"| Marketplace
+
+    %% =========================
+    %% MATCHING
+    %% =========================
+
+    Matching["Semantic Matching Service"]
+
+    Marketplace -->|"Listing / Wanted Post"| Matching
+
+    %% =========================
+    %% EVENT BUS
+    %% =========================
+
+    Redis["Redis<br/>Pub/Sub / Streams"]
+
+    Matching -->|"Match Event"| Redis
+    Rental -->|"Rental Reminder Event"| Redis
+    Admin -->|"Moderation Event"| Redis
+
+    %% =========================
+    %% NOTIFICATION
+    %% =========================
+
+    Notification["Notification Processing"]
+
+    Redis -->|"Subscribe"| Notification
+
+    Notification -->|"Real-Time Event"| Socket["Socket.io"]
+    Notification -->|"Email / Push"| External["Email / Push Provider"]
+
+    Socket <-->|"WebSocket / Real-Time"| Client
+
+    %% =========================
+    %% DATABASE
+    %% =========================
+
+    DB["MongoDB Atlas"]
+
+    Auth -->|"Read / Write"| DB
+    Marketplace -->|"Read / Write"| DB
+    Search -->|"Query"| DB
+    Rental -->|"Read / Write"| DB
+    Admin -->|"Read / Write"| DB
+    Payment -->|"Read / Write"| DB
+    Matching -->|"Read / Write"| DB
+
+    %% =========================
+    %% PAYMENT
+    %% =========================
+
+    Gateway["External Payment Gateway"]
+
+    Payment -->|"API Request"| Gateway
+    Gateway -->|"Payment Result"| Payment

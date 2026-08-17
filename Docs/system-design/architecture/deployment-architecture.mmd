@@ -1,0 +1,93 @@
+flowchart TB
+
+    %% =========================
+    %% USERS
+    %% =========================
+
+    Student["Student"]
+    Admin["Administrator"]
+
+    %% =========================
+    %% INTERNET / CLIENT
+    %% =========================
+
+    Browser["Web Browser"]
+
+    Student --> Browser
+    Admin --> Browser
+
+    %% =========================
+    %% FRONTEND HOSTING
+    %% =========================
+
+    subgraph FrontendHosting["Frontend Deployment"]
+        Frontend["React.js Application"]
+        FrontendHost["Vercel / Netlify"]
+    end
+
+    Browser --> FrontendHost
+    FrontendHost --> Frontend
+
+    %% =========================
+    %% BACKEND DEPLOYMENT
+    %% =========================
+
+    subgraph BackendHosting["Backend Deployment"]
+        API["Node.js + Express.js REST API"]
+        AI["Python + FastAPI AI Service"]
+        Scheduler["node-cron / BullMQ"]
+    end
+
+    Frontend -->|"HTTPS / REST"| API
+    API --> AI
+    API --> Scheduler
+
+    %% =========================
+    %% EVENT INFRASTRUCTURE
+    %% =========================
+
+    subgraph EventInfrastructure["Event / Real-Time Infrastructure"]
+        Redis["Redis Pub/Sub / Streams"]
+        Socket["Socket.io"]
+    end
+
+    API --> Redis
+    API --> Socket
+    AI --> API
+    Redis --> Socket
+
+    %% =========================
+    %% DATABASE
+    %% =========================
+
+    subgraph DatabaseInfrastructure["Database Infrastructure"]
+        Mongo["MongoDB Atlas"]
+    end
+
+    API --> Mongo
+    AI --> Mongo
+
+    %% =========================
+    %% FILE STORAGE
+    %% =========================
+
+    subgraph StorageInfrastructure["Cloud Storage"]
+        Storage["Cloudinary / AWS S3"]
+    end
+
+    API --> Storage
+    AI --> Storage
+
+    %% =========================
+    %% EXTERNAL SERVICES
+    %% =========================
+
+    subgraph ExternalServices["External / Third-Party Services"]
+        Groq["Groq API"]
+        Payment["External Payment Gateway"]
+        Notify["Email / Push Provider"]
+    end
+
+    AI --> Groq
+    API --> Payment
+    API --> Notify
