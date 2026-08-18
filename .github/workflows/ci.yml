@@ -1,0 +1,39 @@
+name: CampusConnect CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  repository-check:
+    name: Repository Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check repository structure
+        run: |
+          echo "CampusConnect CI pipeline started."
+          echo "Checking repository structure..."
+
+          test -d .github
+          test -d Docs
+
+          echo "Repository structure check passed."
+
+      - name: Check documentation
+        run: |
+          test -f Docs/CampusConnect_Project_Plan.pdf
+          test -f Docs/CampusConnect_ProjectProposal.pdf
+          test -f Docs/Gantt_Timeline.xlsx
+
+          echo "Documentation check passed."
+
+      - name: CI status
+        run: echo "CampusConnect CI pipeline passed successfully."
