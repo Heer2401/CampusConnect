@@ -1,0 +1,65 @@
+flowchart TB
+    subgraph CLIENT["Client Layer"]
+        WEB["React.js Web App<br/>(Student + Admin Views)<br/>Redux/Context, React Router"]
+    end
+
+    subgraph EDGE["Delivery / Hosting"]
+        CDN["Vercel / Netlify<br/>(Frontend Hosting)"]
+    end
+
+    subgraph BACKEND["Application Layer - Render / AWS EC2 / Heroku"]
+        API["Node.js + Express REST API<br/>Auth . Listings . Rentals . Admin<br/>Rate Limiter . Error Handler . Audit Logger"]
+        SOCKET["Socket.io Server<br/>In-app Chat + Live Notifications"]
+        SCHED["Scheduler<br/>node-cron / BullMQ<br/>Rental reminders, semester nudges"]
+    end
+
+    subgraph AI["AI Service Layer - FastAPI (Python)"]
+        AISVC["AI Listing Service<br/>Category/Condition Detection<br/>Price Estimation (Groq API)"]
+        MATCH["Matching Service<br/>Semantic Matching (Embeddings)<br/>Wanted-Post <-> Listing"]
+        OCR["OCR Service<br/>Tesseract.js / Google Vision<br/>+ pHash Duplicate Detection"]
+    end
+
+    subgraph EVENT["Messaging / Event Layer"]
+        REDIS["Redis Pub/Sub<br/>Match Events . Rental Reminders<br/>Moderation Events"]
+    end
+
+    subgraph DATA["Data Layer"]
+        MONGO[("MongoDB Atlas<br/>Users, Listings, Transactions,<br/>Chats, Reports")]
+    end
+
+    subgraph EXT["External Services"]
+        PAY["Payment Gateway API"]
+        CLOUD["Cloudinary / AWS S3<br/>Image & Document Storage"]
+        MAIL["Nodemailer (SMTP) /<br/>FCM Push"]
+    end
+
+    subgraph DEVOPS["DevOps"]
+        CI["GitHub + CI/CD Pipeline<br/>Automated Build & Test"]
+    end
+
+    WEB -->|HTTPS/REST| CDN --> API
+    WEB <-->|WebSocket| SOCKET
+
+    API -->|REST calls| AISVC
+    API -->|REST calls| MATCH
+    API -->|REST calls| OCR
+
+    API --> MONGO
+    API --> CLOUD
+    API --> PAY
+    API --> MAIL
+
+    API -->|publish events| REDIS
+    MATCH -->|publish match events| REDIS
+    REDIS -->|consume| SOCKET
+    REDIS -->|consume| MAIL
+    SCHED -->|publish reminder events| REDIS
+    SCHED --> MONGO
+
+    AISVC --> MONGO
+    MATCH --> MONGO
+    OCR --> CLOUD
+
+    CI -.deploys.-> API
+    CI -.deploys.-> AISVC
+    CI -.deploys.-> CDN

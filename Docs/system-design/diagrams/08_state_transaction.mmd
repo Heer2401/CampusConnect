@@ -1,0 +1,20 @@
+stateDiagram-v2
+    [*] --> Requested : Rental request submitted (FR-5.1)
+    [*] --> Pending : Buy/Exchange initiated
+
+    Requested --> Approved : Owner approves
+    Requested --> Cancelled : Owner rejects
+
+    Approved --> Active : QR handover verified (FR-5.3)
+    Active --> Completed : Item returned before/at due date
+    Active --> Disputed : Late return / item issue reported
+
+    Pending --> Paid : Payment completed (funds held)
+    Paid --> Completed : Buyer + Seller both confirm receipt (FR-1.7, AC-8)
+    Paid --> Disputed : Confirmation mismatch / report filed
+
+    Disputed --> Completed : Admin resolves in favor of completion
+    Disputed --> Cancelled : Admin resolves as cancelled/refunded
+
+    Completed --> [*]
+    Cancelled --> [*]

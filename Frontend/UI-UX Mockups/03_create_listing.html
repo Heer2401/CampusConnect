@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><link rel="stylesheet" href="style.css"></head>
+<body>
+  <div class="topbar">
+    <div class="brand"><span class="dot"></span>CampusConnect</div>
+    <nav><span>Browse</span><span class="active">New Listing</span><span>Chats</span><span>Rentals</span><span>Sustainability</span></nav>
+    <div class="user"><div class="avatar">AP</div>Ananya P.</div>
+  </div>
+  <div class="page">
+    <h1>Create a New Listing</h1>
+    <p class="muted">Upload a photo and let AI pre-fill the details — you can edit anything before publishing.</p>
+    <div class="grid2" style="margin-top:20px;">
+      <div class="card">
+        <div style="border:2px dashed #c7d2e0;border-radius:10px;height:220px;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#7d8aa3;">
+          <div style="font-size:28px;">⬆️</div>
+          <div>Drag photos here or click to upload</div>
+        </div>
+        <div class="card" style="background:#f5f3ff;margin-top:16px;border-left:4px solid #7c3aed;">
+          <b style="color:#5b21b6;">✨ AI Suggestion applied</b>
+          <p class="muted">Category, condition & price auto-filled from photo. FastAPI + Groq vision model.</p>
+        </div>
+        <button class="btn btn-secondary" style="margin-top:14px;width:100%;">Run OCR Duplicate Check (Notes/PYQs)</button>
+      </div>
+      <div class="card">
+        <label>Title</label><input value="Used Calculus Textbook (8th Ed.)" />
+        <label>Category <span class="pill pill-blue" style="margin-left:6px;">AI</span></label><input value="Textbooks" />
+        <label>Condition <span class="pill pill-blue" style="margin-left:6px;">AI</span></label><input value="Good" />
+        <label>Listing Type</label><input value="Sell / Rent" />
+        <label>Estimated Price <span class="pill pill-blue" style="margin-left:6px;">AI</span></label><input value="₹450" />
+        <label>Description</label><textarea rows="3">Lightly used, all pages intact, no markings.</textarea>
+        <div style="display:flex; gap:10px; margin-top:20px;">
+          <button class="btn btn-secondary">Save Draft</button>
+          <button class="btn btn-primary">Publish Listing</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</body></html>

@@ -1,0 +1,693 @@
+openapi: 3.0.3
+info:
+  title: CampusConnect API
+  description: >
+    REST API for CampusConnect - A Smart Campus Exchange Platform.
+    Covers Authentication, Marketplace/Listings, AI Services, Search/Chat/Notifications,
+    Rentals/Transactions, and Admin/Analytics modules.
+  version: "1.0.0"
+servers:
+  - url: https://api.campusconnect.app/v1
+    description: Production
+  - url: https://staging-api.campusconnect.app/v1
+    description: Staging
+
+tags:
+  - name: Auth
+  - name: Users
+  - name: Listings
+  - name: Categories
+  - name: WantedPosts
+  - name: AI
+  - name: Search
+  - name: Chat
+  - name: Notifications
+  - name: Rentals
+  - name: Transactions
+  - name: Reviews
+  - name: Admin
+  - name: Reports
+  - name: Sustainability
+  - name: Platform
+
+paths:
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new student account (FR-1.1)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, universityEmail, password]
+              properties:
+                name: { type: string }
+                universityEmail: { type: string, format: email }
+                password: { type: string, format: password }
+      responses:
+        '201': { description: Account created, pending email verification }
+        '400': { description: Invalid or non-university email }
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Authenticate user and issue JWT (FR-1.2)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [universityEmail, password]
+              properties:
+                universityEmail: { type: string }
+                password: { type: string }
+      responses:
+        '200':
+          description: JWT access + refresh token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken: { type: string }
+                  refreshToken: { type: string }
+        '401': { description: Invalid credentials }
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh an expired access token
+      responses:
+        '200': { description: New access token issued }
+
+  /users/me:
+    get:
+      tags: [Users]
+      summary: Get current user's profile (FR-1.4)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: User profile }
+    patch:
+      tags: [Users]
+      summary: Update profile (name, program/year, contact preferences)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Profile updated }
+
+  /users/me/payment-methods:
+    get:
+      tags: [Users]
+      summary: List saved payment methods (FR-1.6)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Array of payment methods }
+    post:
+      tags: [Users]
+      summary: Add a payment method
+      security: [{ bearerAuth: [] }]
+      responses:
+        '201': { description: Payment method saved }
+
+  /users/{id}/reviews:
+    get:
+      tags: [Reviews]
+      summary: Get ratings/reviews received by a user (FR-1.5)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: List of reviews }
+
+  /listings:
+    get:
+      tags: [Listings]
+      summary: Browse/search listings with filters (FR-2.4)
+      parameters:
+        - name: category
+          in: query
+          schema: { type: string }
+        - name: minPrice
+          in: query
+          schema: { type: number }
+        - name: maxPrice
+          in: query
+          schema: { type: number }
+        - name: condition
+          in: query
+          schema: { type: string }
+        - name: listingType
+          in: query
+          schema: { type: string, enum: [sell, rent, exchange, giveaway] }
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+      responses:
+        '200': { description: Paginated listing results }
+    post:
+      tags: [Listings]
+      summary: Create a new listing (FR-2.1)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ListingInput' }
+      responses:
+        '201': { description: Listing created }
+
+  /listings/{id}:
+    get:
+      tags: [Listings]
+      summary: Get listing detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Listing detail }
+    patch:
+      tags: [Listings]
+      summary: Edit a listing (owner only) (FR-2.1)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Listing updated }
+    delete:
+      tags: [Listings]
+      summary: Delete a listing (owner only)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '204': { description: Listing deleted }
+
+  /listings/{id}/images:
+    post:
+      tags: [Listings]
+      summary: Upload one or more images for a listing (FR-2.3)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                files:
+                  type: array
+                  items: { type: string, format: binary }
+      responses:
+        '200': { description: Image URLs returned }
+
+  /listings/ai-suggest:
+    post:
+      tags: [AI, Listings]
+      summary: Get AI-generated listing suggestions from an image (FR-2.5, FR-3.1, FR-3.2)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                imageUrl: { type: string }
+      responses:
+        '200':
+          description: Suggested category, condition, and estimated price
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  category: { type: string }
+                  condition: { type: string }
+                  estimatedPrice: { type: number }
+        '503': { description: AI service unavailable - client should fall back to manual entry (NFR-6.1) }
+
+  /listings/{id}/ocr-check:
+    post:
+      tags: [AI, Listings]
+      summary: Run OCR duplicate-detection on an uploaded notes/PYQ document (FR-3.4)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Duplicate-detection result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  isDuplicate: { type: boolean }
+                  matchedListingId: { type: string, nullable: true }
+                  similarity: { type: number }
+
+  /categories:
+    get:
+      tags: [Categories]
+      summary: List item categories
+      responses:
+        '200': { description: Array of categories }
+    post:
+      tags: [Categories]
+      summary: Create a category (admin only) (FR-2.2, FR-6.3)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '201': { description: Category created }
+
+  /categories/{id}:
+    patch:
+      tags: [Categories]
+      summary: Edit a category (admin only)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Category updated }
+    delete:
+      tags: [Categories]
+      summary: Remove a category (admin only)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '204': { description: Category removed }
+
+  /wanted-posts:
+    get:
+      tags: [WantedPosts]
+      summary: List open wanted posts
+      responses:
+        '200': { description: Array of wanted posts }
+    post:
+      tags: [WantedPosts]
+      summary: Create a wanted post (US-05)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '201': { description: Wanted post created }
+
+  /wanted-posts/{id}:
+    delete:
+      tags: [WantedPosts]
+      summary: Close/withdraw a wanted post
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '204': { description: Wanted post closed }
+
+  /search:
+    get:
+      tags: [Search]
+      summary: Keyword search across active listings (FR-4.1)
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: { type: string }
+        - name: sort
+          in: query
+          schema: { type: string, enum: [relevance, price_asc, price_desc, newest] }
+      responses:
+        '200': { description: Search results }
+
+  /search/saved:
+    get:
+      tags: [Search]
+      summary: List the user's saved searches (FR-4.2)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Array of saved searches }
+    post:
+      tags: [Search]
+      summary: Save a search with filters (FR-4.2)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '201': { description: Saved search created }
+
+  /wishlist:
+    get:
+      tags: [Search]
+      summary: Get the user's wishlist (FR-4.3)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Array of wishlisted listings }
+    post:
+      tags: [Search]
+      summary: Add a listing to wishlist
+      security: [{ bearerAuth: [] }]
+      responses:
+        '201': { description: Added to wishlist }
+
+  /chat/threads:
+    get:
+      tags: [Chat]
+      summary: List chat threads for current user
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Array of chat threads }
+    post:
+      tags: [Chat]
+      summary: Start a chat thread with a listing owner (FR-4.4)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '201': { description: Thread created }
+
+  /chat/threads/{id}/messages:
+    get:
+      tags: [Chat]
+      summary: Get message history for a thread
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Array of messages }
+    post:
+      tags: [Chat]
+      summary: Send a message (also emitted via Socket.io "message" event)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '201': { description: Message sent }
+
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: Get notifications for current user (FR-4.5)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Array of notifications }
+
+  /notifications/{id}/read:
+    patch:
+      tags: [Notifications]
+      summary: Mark a notification as read
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Notification marked read }
+
+  /rentals:
+    get:
+      tags: [Rentals]
+      summary: Get rental dashboard (active, pending, history) (FR-5.5)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Rentals grouped by status }
+    post:
+      tags: [Rentals]
+      summary: Submit a rental request (FR-5.1)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                listingId: { type: string }
+                startDate: { type: string, format: date }
+                dueDate: { type: string, format: date }
+      responses:
+        '201': { description: Rental request created (status=requested) }
+
+  /rentals/{id}/approve:
+    patch:
+      tags: [Rentals]
+      summary: Owner approves a rental request (FR-5.2)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Rental approved; QR code generated }
+
+  /rentals/{id}/verify-handover:
+    post:
+      tags: [Rentals]
+      summary: Verify QR code at physical handover (FR-5.3, AC-5)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                qrCode: { type: string }
+      responses:
+        '200': { description: Handover verified; status set to active }
+        '400': { description: Invalid or already-used QR code }
+
+  /rentals/{id}/complete:
+    patch:
+      tags: [Rentals]
+      summary: Mark item returned / rental completed
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Rental marked completed }
+
+  /transactions:
+    post:
+      tags: [Transactions]
+      summary: Initiate a buy/exchange/giveaway transaction (FR-2.7)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '201': { description: Transaction created (state=pending) }
+
+  /transactions/{id}/pay:
+    post:
+      tags: [Transactions]
+      summary: Process payment for a transaction (FR-1.6)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Payment processed; funds held pending receipt confirmation }
+
+  /transactions/{id}/confirm-receipt:
+    post:
+      tags: [Transactions]
+      summary: Buyer or seller confirms item receipt (FR-1.7, AC-8)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Confirmation recorded; transaction completed once both parties confirm }
+
+  /reviews:
+    post:
+      tags: [Reviews]
+      summary: Submit a rating/review after a completed transaction (FR-1.5)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '201': { description: Review submitted }
+
+  /sustainability/me:
+    get:
+      tags: [Sustainability]
+      summary: Get personal sustainability dashboard data (FR-1.8)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Money saved, items reused, CO2 impact
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  moneySaved: { type: number }
+                  itemsReused: { type: integer }
+                  co2ImpactKg: { type: number }
+
+  /reports:
+    post:
+      tags: [Reports]
+      summary: Report an inappropriate listing or user (FR-6.4)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '201': { description: Report filed }
+
+  /admin/listings/pending:
+    get:
+      tags: [Admin]
+      summary: Get listings pending moderation approval (FR-6.1)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Array of pending listings }
+
+  /admin/listings/{id}/approve:
+    patch:
+      tags: [Admin]
+      summary: Approve a pending listing
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Listing approved and published }
+
+  /admin/listings/{id}/reject:
+    patch:
+      tags: [Admin]
+      summary: Reject a pending listing (AC-7)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string }
+      responses:
+        '200': { description: Listing rejected; moderation notification sent to submitter }
+
+  /admin/users:
+    get:
+      tags: [Admin]
+      summary: List/manage user accounts (FR-6.2)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Array of users }
+
+  /admin/users/{id}/suspend:
+    patch:
+      tags: [Admin]
+      summary: Suspend a user account
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: User suspended }
+
+  /admin/disputes:
+    get:
+      tags: [Admin]
+      summary: View open disputes/reports (FR-6.4)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Array of disputes }
+
+  /admin/disputes/{id}/resolve:
+    patch:
+      tags: [Admin]
+      summary: Resolve a dispute (US-18)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Dispute resolved }
+
+  /admin/analytics:
+    get:
+      tags: [Admin]
+      summary: Get marketplace analytics (demand trends, active users, listing volume) (FR-6.5)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Analytics summary }
+
+  /health:
+    get:
+      tags: [Platform]
+      summary: Health-check / uptime endpoint for each major service (FR-7.4)
+      responses:
+        '200': { description: Service healthy }
+
+  /audit-logs:
+    get:
+      tags: [Platform]
+      summary: Query audit log records (admin only) (FR-7.1)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Array of audit log entries }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ListingInput:
+      type: object
+      required: [title, categoryId, condition, listingType]
+      properties:
+        title: { type: string }
+        description: { type: string }
+        categoryId: { type: string }
+        condition: { type: string, enum: [new, like_new, good, fair, poor] }
+        listingType: { type: string, enum: [sell, rent, exchange, giveaway] }
+        price: { type: number }
+        images:
+          type: array
+          items: { type: string }

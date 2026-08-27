@@ -1,0 +1,93 @@
+flowchart LR
+    subgraph FE["Frontend - React SPA"]
+        FE1["Auth & Profile UI"]
+        FE2["Marketplace UI<br/>(Browse/Listing/Category)"]
+        FE3["Chat & Notification UI"]
+        FE4["Rental Dashboard UI"]
+        FE5["Admin Dashboard UI"]
+        FE6["Sustainability UI"]
+    end
+
+    subgraph CORE["Platform Core (Dev Barot)"]
+        C1["Auth Middleware / RBAC Guard"]
+        C2["Rate Limiter"]
+        C3["Global Error Handler"]
+        C4["Audit Logger"]
+        C5["Health Check Endpoints"]
+        C6["Config / Secrets Manager"]
+    end
+
+    subgraph M1["Auth & User Module (Dhrumil Doshi)"]
+        M1A["Auth Service"]
+        M1B["Profile Service"]
+        M1C["Payment & Receipt Service"]
+        M1D["Sustainability Service"]
+        M1E["Ratings & Reputation Service"]
+    end
+
+    subgraph M2["Marketplace & Listing Module (Nishka Shah)"]
+        M2A["Listing CRUD Service"]
+        M2B["Category Service"]
+        M2C["Image Upload Service"]
+    end
+
+    subgraph M3["AI & Intelligent Services (Heer Mehta)"]
+        M3A["AI Listing Assistant"]
+        M3B["Price Estimator"]
+        M3C["Semantic Matching Engine"]
+        M3D["OCR Duplicate Detector"]
+    end
+
+    subgraph M4["Search, Chat & Notification Module (Heer Shah)"]
+        M4A["Search & Filter Service"]
+        M4B["Saved Search / Wishlist Service"]
+        M4C["Chat Service (Socket.io)"]
+        M4D["Notification Dispatcher"]
+    end
+
+    subgraph M5["Rental & Transaction Module (Charmi Bhayani)"]
+        M5A["Rental Request Service"]
+        M5B["Transaction State Manager"]
+        M5C["QR Handover Service"]
+        M5D["Reminder Scheduler"]
+    end
+
+    subgraph M6["Admin & Analytics Module (Kajal Varlani)"]
+        M6A["Listing Moderation Service"]
+        M6B["User Management Service"]
+        M6C["Dispute Resolution Service"]
+        M6D["Analytics & Reporting Service"]
+    end
+
+    subgraph M7["Database, DevOps & QA (Deep Boghara)"]
+        M7A["MongoDB Data Access Layer"]
+        M7B["CI/CD Pipeline"]
+        M7C["Test Automation Framework"]
+    end
+
+    FE1 --> C1 --> M1A
+    FE2 --> C1 --> M2A
+    FE3 --> C1 --> M4A
+    FE4 --> C1 --> M5A
+    FE5 --> C1 --> M6A
+    FE6 --> C1 --> M1D
+
+    M2A --> M3A
+    M2A --> M3D
+    M4A --> M3C
+    M3C --> M4D
+    M5D --> M4D
+    M6C --> M4D
+    M1C --> M5B
+    M2A --> M5A
+
+    M1A --> M7A
+    M2A --> M7A
+    M3A --> M7A
+    M4A --> M7A
+    M5A --> M7A
+    M6A --> M7A
+
+    C4 --> M7A
+    C2 -.guards.-> M1A
+    C3 -.wraps.-> M2A

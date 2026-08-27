@@ -1,0 +1,215 @@
+erDiagram
+    USER ||--o{ LISTING : "sells"
+    USER ||--o{ WANTED_POST : "posts"
+    USER ||--o{ PAYMENT_METHOD : "stores"
+    USER ||--o{ RENTAL : "rents (as renter)"
+    USER ||--o{ TRANSACTION : "buys"
+    USER ||--o{ REVIEW : "writes"
+    USER ||--o{ REVIEW : "receives"
+    USER ||--o{ MESSAGE : "sends"
+    USER ||--o{ NOTIFICATION : "receives"
+    USER ||--o{ SAVED_SEARCH : "saves"
+    USER ||--o{ WISHLIST_ITEM : "adds"
+    USER ||--o{ REPORT : "files"
+    USER ||--o{ AUDIT_LOG : "performs"
+    USER ||--|| SUSTAINABILITY_STAT : "has"
+
+    CATEGORY ||--o{ LISTING : "classifies"
+    CATEGORY ||--o{ WANTED_POST : "classifies"
+
+    LISTING ||--o{ MATCH_EVENT : "matched by"
+    WANTED_POST ||--o{ MATCH_EVENT : "generates"
+
+    LISTING ||--o{ TRANSACTION : "sold via"
+    LISTING ||--o{ RENTAL : "rented via"
+    LISTING ||--o{ CHAT_THREAD : "discussed in"
+    LISTING ||--o{ WISHLIST_ITEM : "saved as"
+
+    TRANSACTION ||--|| RECEIPT : "confirmed by"
+    TRANSACTION ||--o{ REVIEW : "rated via"
+
+    RENTAL ||--o{ RENTAL_REMINDER : "triggers"
+
+    CHAT_THREAD ||--o{ MESSAGE : "contains"
+
+    USER {
+        ObjectId id PK
+        string universityEmail UK
+        string passwordHash
+        string name
+        string role "student|admin"
+        string program
+        string year
+        float ratingAvg
+        int ratingCount
+        boolean verified
+        datetime createdAt
+    }
+
+    PAYMENT_METHOD {
+        ObjectId id PK
+        ObjectId userId FK
+        string provider
+        string token
+        boolean isDefault
+        datetime createdAt
+    }
+
+    CATEGORY {
+        ObjectId id PK
+        string name
+        ObjectId parentId FK
+        boolean requiresModeration
+    }
+
+    LISTING {
+        ObjectId id PK
+        ObjectId sellerId FK
+        ObjectId categoryId FK
+        string title
+        string description
+        string condition
+        string listingType "sell|rent|exchange|giveaway"
+        number price
+        string status "draft|pending|active|sold|rejected"
+        array images
+        boolean aiAssisted
+        datetime createdAt
+    }
+
+    WANTED_POST {
+        ObjectId id PK
+        ObjectId userId FK
+        ObjectId categoryId FK
+        string title
+        string description
+        string status "open|matched|closed"
+        datetime createdAt
+    }
+
+    MATCH_EVENT {
+        ObjectId id PK
+        ObjectId wantedPostId FK
+        ObjectId listingId FK
+        float matchScore
+        boolean notified
+        datetime createdAt
+    }
+
+    TRANSACTION {
+        ObjectId id PK
+        ObjectId listingId FK
+        ObjectId buyerId FK
+        ObjectId sellerId FK
+        string type "buy|exchange|giveaway"
+        string state "pending|paid|completed|cancelled|disputed"
+        number amount
+        datetime createdAt
+    }
+
+    RECEIPT {
+        ObjectId id PK
+        ObjectId transactionId FK
+        boolean buyerConfirmed
+        boolean sellerConfirmed
+        datetime confirmedAt
+    }
+
+    RENTAL {
+        ObjectId id PK
+        ObjectId listingId FK
+        ObjectId renterId FK
+        ObjectId ownerId FK
+        date startDate
+        date dueDate
+        string status "requested|approved|active|completed|cancelled|disputed"
+        string qrCode
+        datetime createdAt
+    }
+
+    RENTAL_REMINDER {
+        ObjectId id PK
+        ObjectId rentalId FK
+        string channel "inapp|email|push"
+        datetime sentAt
+    }
+
+    REVIEW {
+        ObjectId id PK
+        ObjectId transactionId FK
+        ObjectId reviewerId FK
+        ObjectId revieweeId FK
+        int rating
+        string comment
+        datetime createdAt
+    }
+
+    CHAT_THREAD {
+        ObjectId id PK
+        ObjectId listingId FK
+        array participantIds
+        datetime createdAt
+    }
+
+    MESSAGE {
+        ObjectId id PK
+        ObjectId threadId FK
+        ObjectId senderId FK
+        string content
+        datetime sentAt
+        datetime readAt
+    }
+
+    NOTIFICATION {
+        ObjectId id PK
+        ObjectId userId FK
+        string type "match|message|reminder|moderation"
+        object payload
+        boolean read
+        datetime createdAt
+    }
+
+    SAVED_SEARCH {
+        ObjectId id PK
+        ObjectId userId FK
+        string query
+        object filters
+        datetime createdAt
+    }
+
+    WISHLIST_ITEM {
+        ObjectId id PK
+        ObjectId userId FK
+        ObjectId listingId FK
+        datetime createdAt
+    }
+
+    REPORT {
+        ObjectId id PK
+        ObjectId reporterId FK
+        string targetType "listing|user"
+        ObjectId targetId
+        string reason
+        string status "open|resolved|dismissed"
+        ObjectId resolvedBy FK
+        datetime createdAt
+    }
+
+    AUDIT_LOG {
+        ObjectId id PK
+        ObjectId actorId FK
+        string action
+        string targetType
+        ObjectId targetId
+        object metadata
+        datetime createdAt
+    }
+
+    SUSTAINABILITY_STAT {
+        ObjectId id PK
+        ObjectId userId FK
+        number moneySaved
+        int itemsReused
+        number co2ImpactKg
+        datetime updatedAt
+    }

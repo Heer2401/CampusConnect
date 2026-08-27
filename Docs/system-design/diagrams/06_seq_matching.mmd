@@ -1,0 +1,32 @@
+sequenceDiagram
+    actor S1 as Student A (wanted post)
+    actor S2 as Student B (lister)
+    participant FE as React Client
+    participant API as Express API
+    participant MATCH as Matching Service (FastAPI)
+    participant REDIS as Redis Pub/Sub
+    participant NOTIF as Notification Dispatcher
+    participant SOCK as Socket.io
+    participant DB as MongoDB
+
+    S1->>FE: Create wanted post
+    FE->>API: POST /wanted-posts
+    API->>DB: save WantedPost (status=open)
+
+    S2->>FE: Publish new listing
+    FE->>API: POST /listings
+    API->>DB: save Listing
+    API->>MATCH: POST /match/evaluate {listingId}
+    MATCH->>DB: fetch open wanted posts
+    MATCH->>MATCH: compute semantic similarity (embeddings)
+    alt match found above threshold
+        MATCH->>DB: create MatchEvent
+        MATCH->>REDIS: publish match.found {wantedPostId, listingId}
+        REDIS->>NOTIF: consume match.found
+        NOTIF->>DB: create Notification for Student A
+        NOTIF->>SOCK: emit notification (if online)
+        SOCK-->>FE: real-time notification
+        NOTIF-->>S1: email/push (if offline)
+    else no match
+        MATCH-->>API: no matches
+    end

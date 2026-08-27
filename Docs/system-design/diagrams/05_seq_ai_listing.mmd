@@ -1,0 +1,26 @@
+sequenceDiagram
+    actor S as Student
+    participant FE as React Client
+    participant API as Express API
+    participant AI as FastAPI AI Service
+    participant CLOUD as Cloudinary/S3
+    participant DB as MongoDB
+
+    S->>FE: Upload item photo
+    FE->>CLOUD: Upload image
+    CLOUD-->>FE: imageUrl
+    FE->>API: POST /listings/ai-suggest {imageUrl}
+    API->>AI: POST /ai/suggest-listing {imageUrl}
+    alt AI service available
+        AI-->>API: {category, condition, estimatedPrice}
+        API-->>FE: Suggested fields (editable)
+    else AI service unavailable / timeout
+        AI--x API: timeout / error
+        API-->>FE: fallback = manual entry (NFR-6.1)
+    end
+    S->>FE: Review / edit suggested fields
+    FE->>API: POST /listings {title, category, condition, price, images}
+    API->>DB: insert Listing (status=pending/active)
+    DB-->>API: listing created
+    API-->>FE: 201 Created (listing)
+    FE-->>S: Listing published confirmation

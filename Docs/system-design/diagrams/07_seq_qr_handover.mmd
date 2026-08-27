@@ -1,0 +1,40 @@
+sequenceDiagram
+    actor R as Renter
+    actor O as Owner
+    participant FE as React Client
+    participant API as Express API
+    participant DB as MongoDB
+    participant SCHED as Scheduler (node-cron)
+    participant REDIS as Redis Pub/Sub
+    participant NOTIF as Notification Dispatcher
+
+    R->>FE: Request rental (item, due date)
+    FE->>API: POST /rentals {listingId, dueDate}
+    API->>DB: create Rental (status=requested)
+    O->>FE: Approve rental request
+    FE->>API: PATCH /rentals/:id/approve
+    API->>DB: update status=approved
+    API->>API: generate unique QR code (qrcode npm)
+    API-->>FE: QR code payload
+
+    Note over R,O: At physical handover
+    O->>FE: Show QR code
+    R->>FE: Scan QR code
+    FE->>API: POST /rentals/:id/verify-handover {qrCode}
+    API->>DB: validate QR uniqueness + rental id
+    alt valid & unused
+        API->>DB: update status=active, startDate=now
+        API-->>FE: 200 OK - handover confirmed
+    else invalid/used
+        API-->>FE: 400 Error - invalid/used QR code
+    end
+
+    SCHED->>DB: scan for rentals nearing dueDate
+    SCHED->>REDIS: publish rental.reminder {rentalId}
+    REDIS->>NOTIF: consume rental.reminder
+    NOTIF->>R: reminder notification (in-app/email)
+
+    R->>FE: Return item / confirm return
+    FE->>API: PATCH /rentals/:id/complete
+    API->>DB: update status=completed
+    API->>DB: stop further reminders for this rental

@@ -1,0 +1,175 @@
+classDiagram
+    class User {
+        +ObjectId id
+        +String universityEmail
+        +String passwordHash
+        +String name
+        +Role role
+        +Float ratingAvg
+        +Boolean verified
+        +register()
+        +login()
+        +updateProfile()
+        +addPaymentMethod()
+    }
+
+    class Listing {
+        +ObjectId id
+        +ObjectId sellerId
+        +String title
+        +String description
+        +Category category
+        +String condition
+        +ListingType listingType
+        +Number price
+        +ListingStatus status
+        +String[] images
+        +create()
+        +edit()
+        +delete()
+        +requestAISuggestion()
+        +transitionToRental()
+    }
+
+    class Category {
+        +ObjectId id
+        +String name
+        +ObjectId parentId
+        +Boolean requiresModeration
+    }
+
+    class WantedPost {
+        +ObjectId id
+        +ObjectId userId
+        +String title
+        +String description
+        +WantedStatus status
+        +create()
+        +close()
+    }
+
+    class MatchEvent {
+        +ObjectId id
+        +ObjectId wantedPostId
+        +ObjectId listingId
+        +Float matchScore
+        +publish()
+    }
+
+    class Transaction {
+        +ObjectId id
+        +ObjectId listingId
+        +ObjectId buyerId
+        +ObjectId sellerId
+        +TransactionState state
+        +Number amount
+        +initiate()
+        +markPaid()
+        +confirmReceipt()
+        +complete()
+        +cancel()
+    }
+
+    class Rental {
+        +ObjectId id
+        +ObjectId listingId
+        +ObjectId renterId
+        +Date dueDate
+        +RentalStatus status
+        +String qrCode
+        +requestRental()
+        +approve()
+        +generateQRCode()
+        +verifyHandover()
+        +markReturned()
+    }
+
+    class Review {
+        +ObjectId id
+        +ObjectId transactionId
+        +ObjectId reviewerId
+        +ObjectId revieweeId
+        +Int rating
+        +submit()
+    }
+
+    class ChatThread {
+        +ObjectId id
+        +ObjectId listingId
+        +ObjectId[] participantIds
+        +sendMessage()
+        +getHistory()
+    }
+
+    class Message {
+        +ObjectId id
+        +ObjectId threadId
+        +ObjectId senderId
+        +String content
+        +Date sentAt
+    }
+
+    class Notification {
+        +ObjectId id
+        +ObjectId userId
+        +NotificationType type
+        +Object payload
+        +Boolean read
+        +dispatch()
+        +markRead()
+    }
+
+    class AIListingService {
+        +suggestListing(image)
+        +estimatePrice(listing)
+    }
+
+    class MatchingService {
+        +findMatches(wantedPost)
+        +computeSimilarity(a, b)
+    }
+
+    class OCRService {
+        +extractText(document)
+        +checkDuplicate(document)
+    }
+
+    class AdminAction {
+        +ObjectId id
+        +ObjectId adminId
+        +String actionType
+        +approveListing()
+        +rejectListing()
+        +resolveDispute()
+        +suspendUser()
+    }
+
+    class AuditLog {
+        +ObjectId id
+        +ObjectId actorId
+        +String action
+        +Object metadata
+        +record()
+    }
+
+    User "1" --> "many" Listing : sells
+    User "1" --> "many" WantedPost : posts
+    User "1" --> "many" Transaction : buys
+    User "1" --> "many" Rental : rents
+    User "1" --> "many" Review : writes
+    User "1" --> "many" Notification : receives
+    Listing "many" --> "1" Category
+    WantedPost "1" --> "many" MatchEvent
+    Listing "1" --> "many" MatchEvent
+    Listing "1" --> "many" Transaction
+    Listing "1" --> "many" Rental
+    Listing "1" --> "1" ChatThread
+    ChatThread "1" --> "many" Message
+    Transaction "1" --> "many" Review
+    Rental --> Notification : triggers
+    MatchEvent --> Notification : triggers
+    AIListingService --> Listing : enriches
+    MatchingService --> MatchEvent : generates
+    OCRService --> Listing : validates
+    AdminAction --> Listing : moderates
+    AdminAction --> AuditLog : logged in

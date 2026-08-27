@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><link rel="stylesheet" href="style.css"></head>
+<body>
+  <div class="topbar">
+    <div class="brand"><span class="dot"></span>CampusConnect Admin</div>
+    <nav><span class="active">Overview</span><span>Listing Approval</span><span>Users</span><span>Disputes</span><span>Analytics</span></nav>
+    <div class="user"><div class="avatar">KV</div>Kajal V.</div>
+  </div>
+  <div class="page">
+    <div class="grid3" style="margin-bottom:20px;">
+      <div class="stat-card"><div class="muted">Pending Approvals</div><div class="stat-num">12</div></div>
+      <div class="stat-card"><div class="muted">Active Users</div><div class="stat-num">1,204</div></div>
+      <div class="stat-card"><div class="muted">Open Disputes</div><div class="stat-num">3</div></div>
+    </div>
+    <div class="card">
+      <h2>Pending Listing Approvals</h2>
+      <table>
+        <tr><th>Listing</th><th>Submitted By</th><th>Category</th><th>Date</th><th>Action</th></tr>
+        <tr>
+          <td>Mini Fridge</td><td>Karan M.</td><td>Electronics</td><td>Aug 15</td>
+          <td><button class="btn btn-success" style="padding:6px 12px;font-size:12px;">Approve</button>
+              <button class="btn btn-danger" style="padding:6px 12px;font-size:12px;">Reject</button></td>
+        </tr>
+        <tr>
+          <td>Chemistry Notes Set</td><td>Ila D.</td><td>Notes/PYQ</td><td>Aug 16</td>
+          <td><button class="btn btn-success" style="padding:6px 12px;font-size:12px;">Approve</button>
+              <button class="btn btn-danger" style="padding:6px 12px;font-size:12px;">Reject</button></td>
+        </tr>
+        <tr>
+          <td>Bicycle</td><td>Farhan S.</td><td>Vehicles</td><td>Aug 16</td>
+          <td><button class="btn btn-success" style="padding:6px 12px;font-size:12px;">Approve</button>
+              <button class="btn btn-danger" style="padding:6px 12px;font-size:12px;">Reject</button></td>
+        </tr>
+      </table>
+    </div>
+    <div class="grid2" style="margin-top:20px;">
+      <div class="card">
+        <h2>Listing Volume (last 4 weeks)</h2>
+        <div style="display:flex; align-items:flex-end; gap:14px; height:120px;">
+          <div style="width:36px;background:#93c5fd;height:60%;border-radius:4px 4px 0 0;"></div>
+          <div style="width:36px;background:#60a5fa;height:75%;border-radius:4px 4px 0 0;"></div>
+          <div style="width:36px;background:#3b82f6;height:55%;border-radius:4px 4px 0 0;"></div>
+          <div style="width:36px;background:#1d4ed8;height:90%;border-radius:4px 4px 0 0;"></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Open Disputes</h2>
+        <p><span class="pill pill-yellow">Pending</span> Item not returned — Rental #1042</p>
+        <p style="margin-top:10px;"><span class="pill pill-yellow">Pending</span> Payment mismatch — Txn #3391</p>
+        <p style="margin-top:10px;"><span class="pill pill-gray">Escalated</span> Inappropriate listing report</p>
+      </div>
+    </div>
+  </div>
+</body></html>
