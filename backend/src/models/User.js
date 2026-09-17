@@ -26,6 +26,19 @@ const userSchema = new mongoose.Schema({
   reputation: {
     rating: { type: Number, default: 0 },
     reviewsCount: { type: Number, default: 0 },
+  },
+  status: {
+    type: String,
+    enum: ['Active', 'Suspended'],
+    default: 'Active',
+  },
+  isVerified: {
+    type: Boolean,
+    default: false,
+  },
+  suspensionReason: {
+    type: String,
+    default: null,
   }
 }, { timestamps: true });
 
