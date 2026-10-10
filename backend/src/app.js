@@ -16,6 +16,8 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
+app.use('/api/v1/categories', require('./routes/categoryRoutes'));
+app.use('/api/v1/listings', require('./routes/listingRoutes'));
 
 // Error Middleware
 app.use(errorHandler);
