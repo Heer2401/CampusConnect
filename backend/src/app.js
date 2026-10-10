@@ -17,6 +17,10 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 
+// Charmi Bhayani — Rental & Transaction Management
+app.use('/api/rentals', require('./routes/rentalRoutes'));
+app.use('/api/transactions', require('./routes/transactionRoutes'));
+
 // Error Middleware
 app.use(errorHandler);
 
