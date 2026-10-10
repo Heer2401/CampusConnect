@@ -1,39 +1,77 @@
-name: CampusConnect CI
+name: CampusConnect CI Pipeline
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   pull_request:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
-  repository-check:
-    name: Repository Check
+  # ── JOB 1: Documentation & Structure Verification ─────────
+  docs-check:
+    name: Docs & Structure Check
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Check repository structure
         run: |
-          echo "CampusConnect CI pipeline started."
-          echo "Checking repository structure..."
-
           test -d .github
           test -d Docs
-
           echo "Repository structure check passed."
 
-      - name: Check documentation
+      - name: Check documentation files
         run: |
           test -f Docs/CampusConnect_Project_Plan.pdf
           test -f Docs/CampusConnect_ProjectProposal.pdf
           test -f Docs/Gantt_Timeline.xlsx
-
           echo "Documentation check passed."
 
-      - name: CI status
-        run: echo "CampusConnect CI pipeline passed successfully."
+  # ── JOB 2: Backend Node.js Build & Unit Tests ─────────────
+  backend-tests:
+    name: Backend Build & Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js (v20)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'backend/package-lock.json'
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          npm ci
+
+      - name: Run backend unit tests
+        run: |
+          cd backend
+          npm test
+
+  # ── JOB 3: AI FastAPI Microservice Syntax Check ────────────
+  ai-service:
+    name: AI Service (Python) Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python (v3.11)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          cd ai
+          pip install -r requirements.txt
+
+      - name: Verify Python syntax
+        run: |
+          cd ai
+          python -m py_compile main.py
