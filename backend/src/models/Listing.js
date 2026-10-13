@@ -62,7 +62,8 @@ const listingSchema = new mongoose.Schema({
   images: [{
     url: String,
     thumbnailUrl: String,
-    publicId: String, // or key
+    publicId: String,
+    key: String,
     width: Number,
     height: Number,
     isPrimary: Boolean,

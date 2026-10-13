@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node src/server.js",
     "test": "node --test src/tests/*.test.js",
-    "seed:admin": "node src/utils/seedAdminData.js"
+    "test:marketplace": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/marketplace --runInBand",
+    "seed:admin": "node src/utils/seedAdminData.js",
+    "seed:categories": "node src/utils/seedCategories.js"
   },
   "keywords": [],
   "author": "",

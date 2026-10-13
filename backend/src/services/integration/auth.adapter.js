@@ -7,6 +7,9 @@ const requireAuth = (req, res, next) => {
   if (process.env.NODE_ENV !== 'production' && req.headers['x-dev-user']) {
     try {
       req.user = JSON.parse(req.headers['x-dev-user']);
+      if (req.user && req.user.id && !req.user._id) {
+        req.user._id = req.user.id;
+      }
       return next();
     } catch (e) {
       console.error('Invalid x-dev-user header');
@@ -20,6 +23,9 @@ const optionalAuth = async (req, res, next) => {
   if (process.env.NODE_ENV !== 'production' && req.headers['x-dev-user']) {
     try {
       req.user = JSON.parse(req.headers['x-dev-user']);
+      if (req.user && req.user.id && !req.user._id) {
+        req.user._id = req.user.id;
+      }
       return next();
     } catch (e) {}
   }

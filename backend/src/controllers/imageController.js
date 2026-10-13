@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Listing = require('../models/Listing');
 const storage = require('../services/storage');
 
@@ -13,10 +14,15 @@ const checkMagicBytes = (buffer, mimetype) => {
 
 const uploadImages = async (req, res, next) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, error: { code: 400, message: 'Invalid ID' } });
+    }
+
     const listing = await Listing.findOne({ _id: req.params.id, isDeleted: false });
     if (!listing) return res.status(404).json({ success: false, error: { code: 404, message: 'Listing not found' } });
 
-    if (listing.owner.toString() !== req.user._id.toString()) {
+    const currentUserId = (req.user._id || req.user.id)?.toString();
+    if (listing.owner.toString() !== currentUserId) {
       return res.status(403).json({ success: false, error: { code: 403, message: 'Forbidden' } });
     }
 
@@ -63,10 +69,15 @@ const uploadImages = async (req, res, next) => {
 const deleteImage = async (req, res, next) => {
   try {
     const { id, imageId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, error: { code: 400, message: 'Invalid ID' } });
+    }
+
     const listing = await Listing.findOne({ _id: id, isDeleted: false });
     if (!listing) return res.status(404).json({ success: false, error: { code: 404, message: 'Listing not found' } });
 
-    if (listing.owner.toString() !== req.user._id.toString()) {
+    const currentUserId = (req.user._id || req.user.id)?.toString();
+    if (listing.owner.toString() !== currentUserId) {
       return res.status(403).json({ success: false, error: { code: 403, message: 'Forbidden' } });
     }
 
@@ -92,11 +103,16 @@ const deleteImage = async (req, res, next) => {
 const reorderImages = async (req, res, next) => {
   try {
     const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, error: { code: 400, message: 'Invalid ID' } });
+    }
+
     const { order, primaryImageId } = req.body; // order is array of imageIds
     const listing = await Listing.findOne({ _id: id, isDeleted: false });
     if (!listing) return res.status(404).json({ success: false, error: { code: 404, message: 'Listing not found' } });
 
-    if (listing.owner.toString() !== req.user._id.toString()) {
+    const currentUserId = (req.user._id || req.user.id)?.toString();
+    if (listing.owner.toString() !== currentUserId) {
       return res.status(403).json({ success: false, error: { code: 403, message: 'Forbidden' } });
     }
 
