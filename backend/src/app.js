@@ -19,6 +19,10 @@ app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/v1/categories', require('./routes/categoryRoutes'));
 app.use('/api/v1/listings', require('./routes/listingRoutes'));
 
+// Charmi Bhayani — Rental & Transaction Management
+app.use('/api/rentals', require('./routes/rentalRoutes'));
+app.use('/api/transactions', require('./routes/transactionRoutes'));
+
 // Error Middleware
 app.use(errorHandler);
 

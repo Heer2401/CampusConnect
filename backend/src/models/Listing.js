@@ -86,11 +86,25 @@ const listingSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true,
+    alias: 'seller',
   },
   status: {
     type: String,
-    enum: ['draft', 'pending_approval', 'active', 'reserved', 'sold', 'rented', 'exchanged', 'given_away', 'rejected', 'archived'],
+    enum: ['draft', 'pending', 'pending_approval', 'approved', 'active', 'reserved', 'sold', 'rented', 'exchanged', 'given_away', 'rejected', 'archived'],
     default: 'draft',
+  },
+  rejectionReason: {
+    type: String,
+    default: null,
+  },
+  moderatedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null,
+  },
+  moderatedAt: {
+    type: Date,
+    default: null,
   },
   moderation: {
     reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
@@ -111,7 +125,11 @@ const listingSchema = new mongoose.Schema({
   deletedAt: {
     type: Date,
   }
-}, { timestamps: true });
+}, { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } });
+
+listingSchema.virtual('seller')
+  .get(function() { return this.owner; })
+  .set(function(v) { this.owner = v; });
 
 listingSchema.index({ status: 1, createdAt: -1 });
 listingSchema.index({ category: 1, status: 1 });
