@@ -56,7 +56,7 @@ export const BrowseListingsPage = () => {
   return (
     <div className="page">
       {/* Top Search & Actions */}
-      <div style={{ display: 'flex', gap: 14, marginBottom: 16 }}>
+      <div className="browse-header">
         <form onSubmit={handleSearchSubmit} style={{ display: 'flex', flex: 1, gap: 10 }}>
           <input
             placeholder="Search items, e.g. 'calculus textbook' or 'table lamp'"
@@ -104,7 +104,7 @@ export const BrowseListingsPage = () => {
       </div>
 
       {/* Main Browse Layout */}
-      <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+      <div className="browse-layout">
         {/* Left Sidebar Filters */}
         <ListingFilters
           filters={currentFilters}

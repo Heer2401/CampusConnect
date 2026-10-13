@@ -375,3 +375,58 @@ h2 {
   gap: 8px;
   font-size: 14px;
 }
+
+/* Responsive Breakpoints & Mobile Enhancements */
+.browse-header {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.browse-layout {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+@media (max-width: 860px) {
+  .browse-layout {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .sidebar {
+    width: 100% !important;
+  }
+  .browse-header {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .page {
+    padding: 16px 12px;
+  }
+  .topbar {
+    padding: 12px 14px;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .topbar nav {
+    gap: 14px;
+    font-size: 13px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .btn {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+  .card {
+    padding: 14px;
+  }
+  .modal-content {
+    padding: 18px;
+    width: 95%;
+  }
+}
+
