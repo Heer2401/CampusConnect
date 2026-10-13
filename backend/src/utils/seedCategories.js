@@ -23,7 +23,7 @@ const seedCategories = async () => {
     await Category.findOneAndUpdate(
       { slug: cat.slug },
       { $set: cat },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
   }
   console.log('Categories seeded successfully');

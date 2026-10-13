@@ -7,6 +7,7 @@
     "start": "node src/server.js",
     "test": "node --test src/tests/*.test.js",
     "test:marketplace": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/marketplace --runInBand",
+    "smoke:marketplace": "node tests/marketplace/smoke.js",
     "seed:admin": "node src/utils/seedAdminData.js",
     "seed:categories": "node src/utils/seedCategories.js"
   },

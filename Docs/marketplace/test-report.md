@@ -94,3 +94,38 @@
 - **Rental Seam:** `services/integration/rental.hook.js` exports `getRentableListing(id)` and `markStatus(id, status)`.
 - **AI Seam:** `services/integration/ai.hook.js` exports `getListingSuggestions(draft)`.
 - **Storage Seam:** `services/storage/` seamlessly switches between `local` and `cloudinary` storage drivers.
+
+---
+
+## 4. Frontend Component Tests & End-to-End Smoke Test
+
+### Frontend Component Tests (`Vitest` + React Testing Library)
+- **Suite:** `Frontend/src/features/marketplace/__tests__/`
+- **Total Tests:** 5 passed, 0 failed (100% pass rate)
+  - `ListingCard.test.jsx`:
+    - Renders sell listings with price, condition, category, and type badges.
+    - Renders rent listings showing rental rate, period, and deposit badge.
+    - Renders giveaway listings with FREE badge and zero price.
+  - `ListingForm.test.jsx`:
+    - Renders all core listing fields and loads categories.
+    - Dynamically toggles fields based on selected `listingType` (e.g. shows rental rate/period only when `rent` is active, shows `exchangeFor` only for `exchange`).
+
+### End-to-End Smoke Test (`backend/tests/marketplace/smoke.js`)
+- **Automated Execution:** `npm run smoke:marketplace`
+- **Test Steps & Results:**
+  1. `[1/7] In-memory database connected` — MongoDB Memory Server started.
+  2. `[2/7] Seeded categories: 14 categories created` — idempotent seeding verified.
+  3. `[3/7] Created test user and generated JWT token` — authenticated context verified.
+  4. `[4/7] Backend HTTP server listening` — dynamic port binding.
+  5. `[5/7] Created 4 listing types via HTTP POST:`
+     - Sell listing: ID created, Price = ₹450
+     - Rent listing: ID created, Rate = ₹25/week, Deposit = ₹150
+     - Exchange listing: ID created, Target = 'Algorithms notes or textbook'
+     - Giveaway listing: ID created, Price = ₹0
+  6. `[6/7] Public Browse & Filtering:`
+     - `GET /api/v1/listings?listingType=sell&sort=newest` returned exactly the created sell listing.
+  7. `[7/7] Update & Soft-Delete:`
+     - `PATCH /api/v1/listings/:id` updated price to ₹400.
+     - `DELETE /api/v1/listings/:id` verified soft deletion (`isDeleted: true`).
+- **Smoke Test Outcome:** 100% Passed.
+
