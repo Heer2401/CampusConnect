@@ -27,6 +27,16 @@ function emitRentalEvent(io, userId, payload) {
 
   // ── Integration point for Heer Shah ──────────────────────────────────
   // Agreed event structure — do NOT change without coordinating with Heer Shah
+  const Notification = require('../models/Notification');
+  Notification.create({
+    userId,
+    type: 'rental_reminder',
+    title: payload.type === 'RENTAL_OVERDUE' ? 'Rental Overdue' : 'Rental Due Soon',
+    message: payload.message,
+    relatedId: payload.rentalId,
+    relatedModel: 'Rental'
+  }).catch((err) => console.error('[RentalReminder] Error saving notification:', err.message));
+
   if (io) {
     io.to(`user:${userId.toString()}`).emit('notification', payload);
   }
