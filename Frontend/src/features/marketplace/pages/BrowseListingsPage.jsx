@@ -13,6 +13,7 @@ export const BrowseListingsPage = () => {
     category: searchParams.get('category') || '',
     listingType: searchParams.get('listingType') || '',
     condition: searchParams.get('condition') || '',
+    status: searchParams.get('status') || '',
     minPrice: searchParams.get('minPrice') || '',
     maxPrice: searchParams.get('maxPrice') || '',
     sort: searchParams.get('sort') || 'newest',
@@ -24,6 +25,7 @@ export const BrowseListingsPage = () => {
   const [searchInput, setSearchInput] = useState(currentFilters.q);
 
   useEffect(() => {
+    setSearchInput(searchParams.get('q') || '');
     setFilters(currentFilters);
   }, [searchParams]);
 
@@ -66,11 +68,72 @@ export const BrowseListingsPage = () => {
           <button type="submit" className="btn btn-secondary">
             Search
           </button>
+          {searchInput && (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => {
+                setSearchInput('');
+                updateUrlParams({ q: '', page: 1 });
+              }}
+              title="Clear search input"
+            >
+              ✕
+            </button>
+          )}
         </form>
         <Link to="/listings/new" className="btn btn-primary">
           + New Listing
         </Link>
       </div>
+
+      {/* Active Filters Summary & Clear All */}
+      {(currentFilters.q || currentFilters.category || currentFilters.listingType || currentFilters.condition || currentFilters.status || currentFilters.minPrice || currentFilters.maxPrice) && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+          <span className="muted" style={{ fontSize: 13 }}>Active Filters:</span>
+          {currentFilters.q && (
+            <span className="pill pill-blue" style={{ cursor: 'pointer' }} onClick={() => updateUrlParams({ q: '', page: 1 })}>
+              "{currentFilters.q}" ✕
+            </span>
+          )}
+          {currentFilters.category && (
+            <span className="pill pill-blue" style={{ cursor: 'pointer' }} onClick={() => updateUrlParams({ category: '', page: 1 })}>
+              {categories.find(c => c._id === currentFilters.category)?.name || 'Category'} ✕
+            </span>
+          )}
+          {currentFilters.listingType && (
+            <span className="pill pill-green" style={{ cursor: 'pointer' }} onClick={() => updateUrlParams({ listingType: '', page: 1 })}>
+              Type: {currentFilters.listingType} ✕
+            </span>
+          )}
+          {currentFilters.status && (
+            <span className="pill pill-purple" style={{ cursor: 'pointer' }} onClick={() => updateUrlParams({ status: '', page: 1 })}>
+              Status: {currentFilters.status} ✕
+            </span>
+          )}
+          {currentFilters.condition && (
+            <span className="pill pill-yellow" style={{ cursor: 'pointer' }} onClick={() => updateUrlParams({ condition: '', page: 1 })}>
+              Condition: {currentFilters.condition} ✕
+            </span>
+          )}
+          {(currentFilters.minPrice || currentFilters.maxPrice) && (
+            <span className="pill pill-gray" style={{ cursor: 'pointer' }} onClick={() => updateUrlParams({ minPrice: '', maxPrice: '', page: 1 })}>
+              ₹{currentFilters.minPrice || 0} - ₹{currentFilters.maxPrice || '∞'} ✕
+            </span>
+          )}
+          <button
+            type="button"
+            className="btn btn-secondary"
+            style={{ padding: '2px 8px', fontSize: 12 }}
+            onClick={() => {
+              setSearchInput('');
+              setSearchParams(new URLSearchParams());
+            }}
+          >
+            Clear All Filters
+          </button>
+        </div>
+      )}
 
       {/* Quick Category / Type Chips */}
       <div style={{ marginBottom: 18, display: 'flex', flexWrap: 'wrap' }}>

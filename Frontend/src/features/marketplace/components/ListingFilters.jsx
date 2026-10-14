@@ -12,6 +12,7 @@ export const ListingFilters = ({ filters = {}, onChange, categories = [] }) => {
       condition: '',
       minPrice: '',
       maxPrice: '',
+      status: '',
       sort: 'newest',
     });
   };
@@ -54,6 +55,18 @@ export const ListingFilters = ({ filters = {}, onChange, categories = [] }) => {
         <option value="rent">Rent</option>
         <option value="exchange">Exchange</option>
         <option value="giveaway">Giveaway</option>
+      </select>
+
+      <label htmlFor="filter-status">Availability</label>
+      <select
+        id="filter-status"
+        value={filters.status || ''}
+        onChange={(e) => handleChange('status', e.target.value)}
+      >
+        <option value="">Active (Available)</option>
+        <option value="reserved">Reserved</option>
+        <option value="rented">Rented</option>
+        <option value="sold">Sold</option>
       </select>
 
       <label htmlFor="filter-condition">Condition</label>
