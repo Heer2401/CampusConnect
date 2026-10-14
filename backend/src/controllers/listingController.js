@@ -96,7 +96,7 @@ const getListings = async (req, res, next) => {
     const limit = Math.min(parseInt(req.query.limit, 10) || 12, 50);
     const skip = (page - 1) * limit;
 
-    const filter = { status: 'active', isDeleted: false };
+    const filter = { status: req.query.status || 'active', isDeleted: false };
 
     if (req.query.category) {
       if (mongoose.Types.ObjectId.isValid(req.query.category)) {
