@@ -4,6 +4,8 @@ import { listingsApi } from '../api/listingsApi';
 import { useAuth } from '../hooks/useAuth';
 import { StatusBadge } from '../components/StatusBadge';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { WishlistButton } from '../../search_communication/components/WishlistButton';
+import { chatApi } from '../../search_communication/api/chatApi';
 
 export const ListingDetailPage = () => {
   const { id } = useParams();
@@ -45,6 +47,25 @@ export const ListingDetailPage = () => {
       setActionNotice(err.message || 'Failed to delete listing');
       setIsDeleting(false);
       setShowDeleteModal(false);
+    }
+  };
+
+  const handleContactSeller = async () => {
+    try {
+      if (!user) {
+        setActionNotice('Please log in to chat with the seller');
+        return;
+      }
+      if (isOwner) {
+        setActionNotice('You are the owner of this listing');
+        return;
+      }
+      const res = await chatApi.createOrGetThread(listing._id, listing.owner?._id);
+      if (res.data?._id) {
+        navigate(`/chat?thread=${res.data._id}`);
+      }
+    } catch (err) {
+      setActionNotice(err.message || 'Could not initiate chat with seller');
     }
   };
 
@@ -217,7 +238,10 @@ export const ListingDetailPage = () => {
               </span>
               <h1 style={{ fontSize: 24, marginTop: 6 }}>{listing.title}</h1>
             </div>
-            <StatusBadge status={listing.status} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <WishlistButton listingId={listing._id} showLabel={true} />
+              <StatusBadge status={listing.status} />
+            </div>
           </div>
 
           {/* Pricing Section */}
@@ -356,7 +380,7 @@ export const ListingDetailPage = () => {
                 <button
                   type="button"
                   className="btn btn-secondary"
-                  onClick={() => handleActionClick('Chat with Seller')}
+                  onClick={handleContactSeller}
                 >
                   Contact Seller
                 </button>
