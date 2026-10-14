@@ -24,6 +24,8 @@ app.use('/api/v1/search', require('./routes/searchRoutes'));
 app.use('/api/search', require('./routes/searchRoutes'));
 app.use('/api/v1/wishlist', require('./routes/wishlistRoutes'));
 app.use('/api/wishlist', require('./routes/wishlistRoutes'));
+app.use('/api/v1/chat', require('./routes/chatRoutes'));
+app.use('/api/chat', require('./routes/chatRoutes'));
 
 // Charmi Bhayani — Rental & Transaction Management
 app.use('/api/rentals', require('./routes/rentalRoutes'));
