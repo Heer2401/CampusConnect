@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { WishlistButton } from '../../search_communication/components/WishlistButton';
 
 const conditionMap = {
   new: 'New',
@@ -61,7 +62,10 @@ export const ListingCard = ({ listing }) => {
   return (
     <Link to={`/listings/${_id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
       <div className="card" style={{ height: '100%', display: 'flex', flexDirection: 'column', transition: 'transform 0.15s ease, box-shadow 0.15s ease' }}>
-        <div className="listing-img">
+        <div className="listing-img" style={{ position: 'relative' }}>
+          <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 2 }}>
+            <WishlistButton listingId={_id} />
+          </div>
           {imageUrl ? (
             <img src={imageUrl} alt={title} loading="lazy" />
           ) : (
