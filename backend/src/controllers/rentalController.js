@@ -15,7 +15,7 @@ const Rental = require('../models/Rental');
 const Listing = require('../models/Listing');
 const RentalReminder = require('../models/RentalReminder');
 const QRCode = require('qrcode');
-const { v4: uuidv4 } = require('uuid');
+const { randomUUID: uuidv4 } = require('crypto');
 
 /* ─────────────────────────────────────────────────────────────────────────
    ALLOWED STATUS TRANSITIONS
