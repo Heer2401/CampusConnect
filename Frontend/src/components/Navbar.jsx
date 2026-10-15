@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { User, CreditCard, Leaf, LogOut, ShoppingBag, Heart, MessageSquare, ShieldCheck } from 'lucide-react';
+import { User, CreditCard, Leaf, LogOut, ShoppingBag, Heart, MessageSquare, ShieldCheck, Package } from 'lucide-react';
 import { NotificationBell } from '../features/search_communication/components/NotificationBell';
 
 export default function Navbar() {
@@ -48,6 +48,14 @@ export default function Navbar() {
             >
               <MessageSquare size={16} />
               Chat
+            </NavLink>
+
+            <NavLink
+              to="/rentals"
+              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+            >
+              <Package size={16} />
+              Rentals
             </NavLink>
 
             <NavLink

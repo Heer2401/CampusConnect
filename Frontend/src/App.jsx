@@ -24,6 +24,9 @@ import { ChatPage } from './features/search_communication/pages/ChatPage';
 import { WishlistPage } from './features/search_communication/pages/WishlistPage';
 import AdminDashboard from './components/admin/AdminDashboard';
 
+// Charmi Bhayani — Rental & Transaction Management
+import RentalDashboardPage from './features/rental/pages/RentalDashboardPage';
+
 function RootRedirect() {
   const { user } = useAuth();
   return user ? <Navigate to="/marketplace" replace /> : <Navigate to="/login" replace />;
@@ -125,6 +128,16 @@ export default function App() {
                       element={
                         <ProtectedRoute>
                           <WishlistPage />
+                        </ProtectedRoute>
+                      }
+                    />
+
+                    {/* Rental & Transaction Dashboard */}
+                    <Route
+                      path="/rentals"
+                      element={
+                        <ProtectedRoute>
+                          <RentalDashboardPage />
                         </ProtectedRoute>
                       }
                     />
