@@ -42,7 +42,7 @@ router.patch('/users/:id/status', protect, adminOnly, updateUserStatus);
 // ----------------------------------------
 // Category Management Routes (FR-6.3)
 // ----------------------------------------
-router.get('/categories', getCategories); // Can be viewed publicly or by admin
+router.get('/categories', protect, adminOnly, getCategories);
 router.post('/categories', protect, adminOnly, createCategory);
 router.put('/categories/:id', protect, adminOnly, updateCategory);
 router.delete('/categories/:id', protect, adminOnly, deleteCategory);
@@ -50,7 +50,7 @@ router.delete('/categories/:id', protect, adminOnly, deleteCategory);
 // ----------------------------------------
 // Dispute & Report Routes (FR-6.4)
 // ----------------------------------------
-router.post('/disputes', protect, createDispute); // Any authenticated student/admin can report
+router.post('/disputes', protect, adminOnly, createDispute);
 router.get('/disputes', protect, adminOnly, getDisputes);
 router.get('/disputes/:id', protect, adminOnly, getDisputeById);
 router.patch('/disputes/:id/resolve', protect, adminOnly, resolveDispute);

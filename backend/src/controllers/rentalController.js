@@ -15,7 +15,7 @@ const Rental = require('../models/Rental');
 const Listing = require('../models/Listing');
 const RentalReminder = require('../models/RentalReminder');
 const QRCode = require('qrcode');
-const { v4: uuidv4 } = require('uuid');
+const { randomUUID: uuidv4 } = require('crypto');
 
 /* ─────────────────────────────────────────────────────────────────────────
    ALLOWED STATUS TRANSITIONS
@@ -269,6 +269,27 @@ const updateRentalStatus = async (req, res, next) => {
 
       // Schedule reminders for renter
       await scheduleReminders(rental);
+
+      // Notify renter
+      const { sendNotification } = require('../services/notificationService');
+      sendNotification(req.app, {
+        userId: rental.renterId,
+        type: 'transaction_update',
+        title: 'Rental Request Approved',
+        message: 'Your rental request has been approved! Meet the owner for physical QR handover.',
+        relatedId: rental._id,
+        relatedModel: 'Rental'
+      });
+    } else if (status === 'cancelled') {
+      const { sendNotification } = require('../services/notificationService');
+      sendNotification(req.app, {
+        userId: isOwner ? rental.renterId : rental.ownerId,
+        type: 'transaction_update',
+        title: 'Rental Request Cancelled',
+        message: isOwner ? 'The owner cancelled the rental request.' : 'The renter cancelled their rental request.',
+        relatedId: rental._id,
+        relatedModel: 'Rental'
+      });
     }
 
     await rental.save();

@@ -135,11 +135,17 @@ const seedAdminData = async () => {
     console.log('\nSeed completed successfully! Admin test credentials:');
     console.log('Email: admin@university.edu | Password: Password123!');
 
-    await mongoose.connection.close();
-    process.exit(0);
+    if (require.main === module) {
+      await mongoose.connection.close();
+      process.exit(0);
+    }
+    return { success: true };
   } catch (error) {
     console.error('Seeding error:', error);
-    process.exit(1);
+    if (require.main === module) {
+      process.exit(1);
+    }
+    throw error;
   }
 };
 

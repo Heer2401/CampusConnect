@@ -9,8 +9,9 @@ const connectDB = async () => {
     console.log(`MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
     console.error(`MongoDB Connection Error: ${error.message}`);
-    console.error(`👉 Please ensure local MongoDB is running, or paste your MongoDB Atlas URI in backend/.env: MONGO_URI=mongodb+srv://...`);
+    console.warn('Backend server running. Connect MongoDB/Atlas on MONGO_URI for live data persistence.');
   }
 };
 
 module.exports = connectDB;
+
