@@ -39,7 +39,6 @@ app.use('/api/rentals', require('./routes/rentalRoutes'));
 app.use('/api/transactions', require('./routes/transactionRoutes'));
 
 // Static serving for React Frontend (Kajal Varlani - FR-6.1 to FR-6.5)
-const path = require('path');
 const fs = require('fs');
 const distPath = path.join(__dirname, '../../Frontend/dist');
 if (fs.existsSync(distPath)) {
