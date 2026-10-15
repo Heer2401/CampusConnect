@@ -28,6 +28,7 @@ const {
 // ----------------------------------------
 // Listing Moderation Routes (FR-6.1)
 // ----------------------------------------
+router.get('/listings', protect, adminOnly, getPendingListings);
 router.get('/listings/pending', protect, adminOnly, getPendingListings);
 router.patch('/listings/:id/approve', protect, adminOnly, approveListing);
 router.patch('/listings/:id/reject', protect, adminOnly, rejectListing);
@@ -60,4 +61,18 @@ router.patch('/disputes/:id/resolve', protect, adminOnly, resolveDispute);
 // ----------------------------------------
 router.get('/analytics/overview', protect, adminOnly, getDashboardAnalytics);
 
+// ----------------------------------------
+// Test / Demo Database Seed Route
+// ----------------------------------------
+router.post('/seed', protect, adminOnly, async (req, res, next) => {
+  try {
+    const seedAdminData = require('../utils/seedAdminData');
+    await seedAdminData();
+    res.json({ success: true, message: 'Database seeded successfully with admin records' });
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = router;
+
