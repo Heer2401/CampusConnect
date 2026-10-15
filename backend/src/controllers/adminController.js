@@ -69,6 +69,21 @@ const approveListing = async (req, res, next) => {
 
     await listing.save();
 
+    try {
+      const { sendNotification } = require('../services/notificationService');
+      const ownerId = listing.owner || listing.seller;
+      if (ownerId) {
+        sendNotification(req.app, {
+          userId: ownerId,
+          type: 'listing_approved',
+          title: 'Listing Approved',
+          message: `Your listing "${listing.title}" has been approved and published.`,
+          relatedId: listing._id,
+          relatedModel: 'Listing'
+        });
+      }
+    } catch (e) {}
+
     res.json({
       success: true,
       message: 'Listing approved successfully',
@@ -102,6 +117,21 @@ const rejectListing = async (req, res, next) => {
     listing.moderatedAt = new Date();
 
     await listing.save();
+
+    try {
+      const { sendNotification } = require('../services/notificationService');
+      const ownerId = listing.owner || listing.seller;
+      if (ownerId) {
+        sendNotification(req.app, {
+          userId: ownerId,
+          type: 'listing_rejected',
+          title: 'Listing Moderation Update',
+          message: `Your listing "${listing.title}" was rejected: ${reason}`,
+          relatedId: listing._id,
+          relatedModel: 'Listing'
+        });
+      }
+    } catch (e) {}
 
     res.json({
       success: true,

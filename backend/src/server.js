@@ -20,19 +20,12 @@ const io = new Server(server, {
   }
 });
 
-io.on('connection', (socket) => {
-  console.log(`User connected: ${socket.id}`);
+// Attach io instance to express app for controller access
+app.set('io', io);
 
-  // Allow clients to join their personal room for targeted notifications
-  socket.on('join', (userId) => {
-    socket.join(`user:${userId}`);
-    console.log(`Socket ${socket.id} joined room user:${userId}`);
-  });
-  
-  socket.on('disconnect', () => {
-    console.log(`User disconnected: ${socket.id}`);
-  });
-});
+// Initialize authenticated Socket.io service for Chat & Notifications
+const { initSocketServer } = require('./services/socketService');
+initSocketServer(io);
 
 // Charmi Bhayani — Start rental reminder scheduler
 startRentalScheduler(io);

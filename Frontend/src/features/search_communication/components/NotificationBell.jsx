@@ -1,0 +1,244 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useNotifications } from '../context/NotificationContext';
+
+const getNotificationIcon = (type) => {
+  switch (type) {
+    case 'chat_message':
+      return '💬';
+    case 'rental_reminder':
+      return '⏰';
+    case 'listing_approved':
+      return '✅';
+    case 'listing_rejected':
+      return '❌';
+    case 'match_found':
+      return '✨';
+    case 'price_alert':
+      return '🏷️';
+    case 'transaction_update':
+      return '💳';
+    default:
+      return '📢';
+  }
+};
+
+const formatTimeAgo = (dateStr) => {
+  if (!dateStr) return '';
+  const now = new Date();
+  const date = new Date(dateStr);
+  const diffSec = Math.floor((now - date) / 1000);
+
+  if (diffSec < 60) return 'Just now';
+  if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
+  if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`;
+  return `${Math.floor(diffSec / 86400)}d ago`;
+};
+
+export const NotificationBell = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const { notifications, unreadCount, loading, markAsRead, markAllAsRead } = useNotifications();
+  const dropdownRef = useRef(null);
+  const navigate = useNavigate();
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+
+  const handleNotificationClick = async (notif) => {
+    if (!notif.isRead) {
+      await markAsRead(notif._id);
+    }
+    setIsOpen(false);
+
+    // Contextual navigation
+    if (notif.type === 'chat_message' && notif.relatedId) {
+      navigate(`/chat?thread=${notif.relatedId}`);
+    } else if (['listing_approved', 'listing_rejected', 'price_alert'].includes(notif.type) && notif.relatedId) {
+      navigate(`/listings/${notif.relatedId}`);
+    } else if (notif.type === 'rental_reminder') {
+      navigate('/my-listings');
+    }
+  };
+
+  return (
+    <div ref={dropdownRef} style={{ position: 'relative', display: 'inline-block' }}>
+      {/* Bell Button */}
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        aria-label="Notifications"
+        style={{
+          background: 'transparent',
+          border: 'none',
+          color: '#cbd5e1',
+          cursor: 'pointer',
+          padding: '6px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          position: 'relative',
+          borderRadius: '50%',
+          transition: 'color 0.15s ease'
+        }}
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+          <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+        </svg>
+
+        {unreadCount > 0 && (
+          <span
+            style={{
+              position: 'absolute',
+              top: 2,
+              right: 2,
+              background: '#ef4444',
+              color: '#ffffff',
+              borderRadius: '999px',
+              fontSize: 10,
+              fontWeight: 700,
+              minWidth: 16,
+              height: 16,
+              padding: '0 4px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: '2px solid #12294d'
+            }}
+          >
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
+        )}
+      </button>
+
+      {/* Dropdown Menu */}
+      {isOpen && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 'calc(100% + 8px)',
+            right: 0,
+            width: 360,
+            maxHeight: 460,
+            background: '#ffffff',
+            borderRadius: 12,
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+            border: '1px solid #e2e8f0',
+            zIndex: 1000,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }}
+        >
+          {/* Header */}
+          <div
+            style={{
+              padding: '12px 16px',
+              borderBottom: '1px solid #f1f5f9',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              background: '#fafbfc'
+            }}
+          >
+            <div style={{ fontWeight: 600, fontSize: 14, color: '#1e293b' }}>
+              Notifications {unreadCount > 0 && <span className="pill pill-blue" style={{ fontSize: 11, marginLeft: 6 }}>{unreadCount} new</span>}
+            </div>
+            {unreadCount > 0 && (
+              <button
+                type="button"
+                onClick={markAllAsRead}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#2563eb',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  padding: 0
+                }}
+              >
+                Mark all as read
+              </button>
+            )}
+          </div>
+
+          {/* List */}
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+            {loading && notifications.length === 0 ? (
+              <div style={{ padding: 30, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                Loading notifications...
+              </div>
+            ) : notifications.length === 0 ? (
+              <div style={{ padding: '40px 20px', textAlign: 'center', color: '#64748b' }}>
+                <div style={{ fontSize: 32, marginBottom: 8 }}>🔔</div>
+                <div style={{ fontWeight: 600, fontSize: 14 }}>No notifications yet</div>
+                <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
+                  You'll be alerted here for chat messages, rental updates, and saved listings.
+                </p>
+              </div>
+            ) : (
+              notifications.map((notif) => (
+                <div
+                  key={notif._id}
+                  onClick={() => handleNotificationClick(notif)}
+                  style={{
+                    padding: '12px 16px',
+                    borderBottom: '1px solid #f8fafc',
+                    display: 'flex',
+                    gap: 12,
+                    cursor: 'pointer',
+                    background: notif.isRead ? '#ffffff' : '#f0f7ff',
+                    transition: 'background 0.15s ease'
+                  }}
+                >
+                  <div style={{ fontSize: 20, flexShrink: 0, marginTop: 2 }}>
+                    {getNotificationIcon(notif.type)}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                      <span style={{ fontWeight: notif.isRead ? 600 : 700, fontSize: 13, color: '#1e293b' }}>
+                        {notif.title}
+                      </span>
+                      <span style={{ fontSize: 11, color: '#94a3b8' }}>
+                        {formatTimeAgo(notif.createdAt)}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: 12, color: '#475569', marginTop: 3, lineHeight: 1.35 }}>
+                      {notif.message}
+                    </p>
+                  </div>
+                  {!notif.isRead && (
+                    <div
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        background: '#2563eb',
+                        flexShrink: 0,
+                        alignSelf: 'center'
+                      }}
+                    />
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
