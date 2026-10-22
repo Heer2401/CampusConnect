@@ -7,7 +7,9 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "test": "node --test src/tests/*.test.js",
-    "seed:admin": "node src/utils/seedAdminData.js"
+    "seed:admin": "node src/utils/seedAdminData.js",
+    "seed:categories": "node src/utils/seedCategories.js",
+    "seed:all": "node src/utils/seedAllData.js"
   },
   "keywords": [],
   "author": "",

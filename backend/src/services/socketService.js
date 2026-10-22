@@ -55,6 +55,11 @@ function initSocketServer(io) {
   });
 
   io.on('connection', (socket) => {
+    if (!socket.user || !socket.user._id) {
+      console.warn('[Socket] Connection without valid user, disconnecting.');
+      socket.disconnect(true);
+      return;
+    }
     const userId = socket.user._id.toString();
     console.log(`[Socket] Authenticated user connected: ${userId} (socket: ${socket.id})`);
 
