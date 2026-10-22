@@ -81,6 +81,15 @@ export default function App() {
                         </ProtectedRoute>
                       }
                     />
+                    {/* AI Listing Generator — Heer Patel (alias: /create → /marketplace/create) */}
+                    <Route
+                      path="/create"
+                      element={
+                        <ProtectedRoute>
+                          <CreateListingPage />
+                        </ProtectedRoute>
+                      }
+                    />
                     <Route
                       path="/marketplace/create"
                       element={
@@ -105,6 +114,7 @@ export default function App() {
                         </ProtectedRoute>
                       }
                     />
+                    {/* AI Draft Review — Heer Patel */}
                     <Route
                       path="/my-listings"
                       element={
@@ -144,7 +154,7 @@ export default function App() {
 
                     {/* Admin Dashboard */}
                     <Route
-                      path="/admin"
+                      path="/admin/*"
                       element={
                         <ProtectedRoute>
                           <AdminDashboard />

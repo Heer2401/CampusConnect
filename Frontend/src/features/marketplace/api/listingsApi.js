@@ -59,6 +59,25 @@ export const listingsApi = {
     return res.data;
   },
 
+  suggestFromImage: async (image, options = '') => {
+    const opts = typeof options === 'string' ? { description: options } : (options || {});
+    const formData = new FormData();
+    formData.append('image', image);
+    if (opts.description) formData.append('description', opts.description);
+    if (opts.nameOrBrand || opts.brand || opts.name) {
+      formData.append('nameOrBrand', opts.nameOrBrand || opts.brand || opts.name);
+    }
+    if (opts.age) formData.append('age', opts.age);
+    if (opts.condition) formData.append('condition', opts.condition);
+
+    const res = await apiClient('/listings/ai-suggest', {
+      method: 'POST',
+      body: formData,
+      isFormData: true,
+    });
+    return res.data;
+  },
+
   deleteImage: async (listingId, imageId) => {
     const res = await apiClient(`/listings/${listingId}/images/${imageId}`, {
       method: 'DELETE',

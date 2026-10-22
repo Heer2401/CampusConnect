@@ -73,7 +73,9 @@ const createListing = async (req, res, next) => {
     }
 
     const autoApprove = process.env.LISTING_AUTO_APPROVE === 'true';
-    data.status = autoApprove ? 'active' : 'pending_approval';
+    if (data.status !== 'draft') {
+      data.status = autoApprove ? 'active' : 'pending_approval';
+    }
 
     if (data.listingType === 'giveaway') {
       data.price = 0;
@@ -161,6 +163,7 @@ const getMyListings = async (req, res, next) => {
     const userId = req.user._id || req.user.id;
     const filter = { owner: userId, isDeleted: false };
     if (req.query.status) filter.status = req.query.status;
+    if (req.query.isAiGenerated === 'true') filter['aiMeta.isAiGenerated'] = true;
 
     const total = await Listing.countDocuments(filter);
     const listings = await Listing.find(filter)

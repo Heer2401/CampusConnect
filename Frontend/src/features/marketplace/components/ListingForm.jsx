@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useCategories } from '../hooks/useCategories';
+import { listingsApi } from '../api/listingsApi';
 import { ImageUploader } from './ImageUploader';
 
-const showAiSuggestionSlot = import.meta.env.VITE_FEATURE_AI_SUGGESTIONS === 'true';
+const showAiSuggestionSlot = import.meta.env.VITE_FEATURE_AI_SUGGESTIONS !== 'false';
 
 export const ListingForm = ({
   initialValues = {},
@@ -31,6 +32,70 @@ export const ListingForm = ({
 
   const [pendingFiles, setPendingFiles] = useState([]);
   const [errors, setErrors] = useState({});
+  const [isSuggesting, setIsSuggesting] = useState(false);
+  const [aiMessage, setAiMessage] = useState('');
+  const [aiSource, setAiSource] = useState('');
+  const [aiBrand, setAiBrand] = useState('');
+  const [aiAge, setAiAge] = useState('');
+  const [aiConditionHint, setAiConditionHint] = useState('');
+  const [aiMetadata, setAiMetadata] = useState(null);
+  const [showAiHints, setShowAiHints] = useState(false);
+
+  const handleAiSuggestion = async () => {
+    if (!pendingFiles.length) {
+      setAiMessage('Add a photo first to get listing suggestions.');
+      return;
+    }
+    setIsSuggesting(true);
+    setAiMessage('');
+    try {
+      const suggestion = await listingsApi.suggestFromImage(pendingFiles[0], {
+        description,
+        nameOrBrand: aiBrand,
+        age: aiAge,
+        condition: aiConditionHint,
+      });
+
+      if (suggestion.title) setTitle(suggestion.title);
+      if (suggestion.description) setDescription(suggestion.description);
+      if (suggestion.condition) {
+        const normalizedCondition = suggestion.condition.toLowerCase().replace(/\s+/g, '_');
+        if (['new', 'like_new', 'good', 'fair', 'poor'].includes(normalizedCondition)) {
+          setCondition(normalizedCondition);
+        }
+      }
+      if (suggestion.categoryId) {
+        setCategory(suggestion.categoryId);
+      } else if (suggestion.category) {
+        const matchedCategory = categories.find((item) =>
+          item.name.toLowerCase() === suggestion.category.toLowerCase()
+          || item.slug?.toLowerCase() === suggestion.category.toLowerCase()
+        );
+        if (matchedCategory) setCategory(matchedCategory._id);
+      }
+      if (suggestion.tags && Array.isArray(suggestion.tags) && suggestion.tags.length > 0) {
+        const combined = Array.from(new Set([...tags, ...suggestion.tags])).slice(0, 8);
+        setTags(combined);
+      }
+      if (listingType === 'sell' && Number(suggestion.estimated_price) > 0) {
+        setPrice(String(Math.round(Number(suggestion.estimated_price))));
+      }
+      setAiSource(suggestion.source || 'AI');
+      setAiMetadata(suggestion.ai_metadata || { source: suggestion.source || 'AI', generatedAt: new Date().toISOString() });
+      setAiMessage(
+        suggestion.category && !categories.some((item) =>
+          item.name.toLowerCase() === suggestion.category.toLowerCase()
+          || item.slug?.toLowerCase() === suggestion.category.toLowerCase()
+        )
+          ? `Suggestions filled in! Category “${suggestion.category}” isn't in your category list, so please select one manually.`
+          : 'Suggestions filled in! Review and edit them before saving or publishing.'
+      );
+    } catch (error) {
+      setAiMessage(error.message || 'AI suggestions are unavailable. You can continue filling the form manually.');
+    } finally {
+      setIsSuggesting(false);
+    }
+  };
 
   const handleTypeChange = (newType) => {
     setListingType(newType);
@@ -132,6 +197,14 @@ export const ListingForm = ({
       payload.price = 0;
     }
 
+    if (aiMetadata || aiSource) {
+      payload.aiMeta = {
+        isAiGenerated: true,
+        source: aiSource || 'AI',
+        ...(aiMetadata || {}),
+      };
+    }
+
     onSubmit(payload, pendingFiles);
   };
 
@@ -150,7 +223,7 @@ export const ListingForm = ({
             disabled={isSubmitting}
           />
 
-          {/* AI Suggestion Slot (Behind Feature Flag) */}
+          {/* AI listing suggestions */}
           {showAiSuggestionSlot && (
             <div
               className="card"
@@ -161,10 +234,84 @@ export const ListingForm = ({
                 padding: '14px 16px'
               }}
             >
-              <b style={{ color: '#5b21b6' }}>✨ AI Suggestions</b>
-              <p className="muted" style={{ marginTop: 4 }}>
-                Photo analysis hook ready for Groq Vision service integration.
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <b style={{ color: '#5b21b6' }}>✨ AI Listing Generator {aiSource && <small>({aiSource})</small>}</b>
+                <button
+                  type="button"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#6d28d9',
+                    fontSize: 12,
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    padding: 0
+                  }}
+                  onClick={() => setShowAiHints(prev => !prev)}
+                >
+                  {showAiHints ? 'Hide optional hints' : '+ Add optional hints'}
+                </button>
+              </div>
+              <p className="muted" style={{ marginTop: 4, marginBottom: 10, fontSize: 13 }}>
+                Upload a photo to automatically draft title, category, description, and condition.
               </p>
+
+              {showAiHints && (
+                <div style={{ marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <input
+                    type="text"
+                    placeholder="Brand / Model (optional hint, e.g. Casio FX-991EX)"
+                    value={aiBrand}
+                    onChange={(e) => setAiBrand(e.target.value)}
+                    style={{ fontSize: 13, padding: '6px 10px', background: '#fff' }}
+                  />
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                    <input
+                      type="text"
+                      placeholder="Age / Usage (e.g. 6 mos, 1 yr)"
+                      value={aiAge}
+                      onChange={(e) => setAiAge(e.target.value)}
+                      style={{ fontSize: 13, padding: '6px 10px', background: '#fff' }}
+                    />
+                    <select
+                      value={aiConditionHint}
+                      onChange={(e) => setAiConditionHint(e.target.value)}
+                      style={{ fontSize: 13, padding: '6px 10px', background: '#fff' }}
+                    >
+                      <option value="">Condition hint (optional)</option>
+                      <option value="new">New</option>
+                      <option value="like_new">Like New</option>
+                      <option value="good">Good</option>
+                      <option value="fair">Fair</option>
+                      <option value="poor">Poor</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={handleAiSuggestion}
+                disabled={isSubmitting || isSuggesting || categoriesLoading}
+                style={{ width: '100%', justifyContent: 'center' }}
+              >
+                {isSuggesting ? 'Analyzing photo with AI…' : 'Generate Details with AI'}
+              </button>
+              {aiMessage && (
+                <p
+                  className="muted"
+                  role="status"
+                  style={{
+                    marginTop: 8,
+                    fontSize: 13,
+                    color: aiMessage.includes('unavailable') ? '#b91c1c' : '#4338ca',
+                    fontWeight: 500
+                  }}
+                >
+                  {aiMessage}
+                </p>
+              )}
             </div>
           )}
         </div>

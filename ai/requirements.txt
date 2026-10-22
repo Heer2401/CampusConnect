@@ -1,3 +1,11 @@
 fastapi
 uvicorn
 pydantic
+httpx
+python-dotenv
+python-multipart
+pypdf
+Pillow
+pytesseract
+PyMuPDF
+redis

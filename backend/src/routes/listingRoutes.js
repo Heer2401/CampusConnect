@@ -17,7 +17,9 @@ const {
   reorderImages
 } = require('../controllers/imageController');
 const upload = require('../middlewares/uploadMiddleware');
+const { suggestListing } = require('../controllers/aiController');
 
+router.post('/ai-suggest', requireAuth, upload.single('image'), suggestListing);
 router.post('/', requireAuth, createListing);
 router.get('/', getListings);
 router.get('/mine', requireAuth, getMyListings);
