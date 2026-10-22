@@ -4,6 +4,7 @@ import { listingsApi } from '../api/listingsApi';
 import { useAuth } from '../hooks/useAuth';
 import { StatusBadge } from '../components/StatusBadge';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import '../marketplace.css';
 import { WishlistButton } from '../../search_communication/components/WishlistButton';
 import { chatApi } from '../../search_communication/api/chatApi';
 
@@ -42,7 +43,7 @@ export const ListingDetailPage = () => {
       setIsDeleting(true);
       await listingsApi.deleteListing(id);
       setShowDeleteModal(false);
-      navigate('/browse');
+      navigate('/marketplace');
     } catch (err) {
       setActionNotice(err.message || 'Failed to delete listing');
       setIsDeleting(false);
@@ -76,7 +77,7 @@ export const ListingDetailPage = () => {
 
   if (loading) {
     return (
-      <div className="page">
+      <div className="marketplace-page page">
         <div className="card" style={{ padding: 40, textAlign: 'center' }}>
           Loading listing details...
         </div>
@@ -86,10 +87,10 @@ export const ListingDetailPage = () => {
 
   if (error || !listing) {
     return (
-      <div className="page">
+      <div className="marketplace-page page">
         <div className="card" style={{ padding: 40, textAlign: 'center' }}>
           <p style={{ color: '#dc2626', marginBottom: 16 }}>{error || 'Listing not found'}</p>
-          <Link to="/browse" className="btn btn-secondary">
+          <Link to="/marketplace" className="btn btn-secondary">
             Back to Browse
           </Link>
         </div>
@@ -153,7 +154,7 @@ export const ListingDetailPage = () => {
   };
 
   return (
-    <div className="page">
+    <div className="marketplace-page page">
       {/* Notice Banner */}
       {actionNotice && (
         <div className="toast">
@@ -360,7 +361,7 @@ export const ListingDetailPage = () => {
             {isOwner ? (
               <>
                 <Link
-                  to={`/listings/${listing._id}/edit`}
+                  to={`/marketplace/edit/${listing._id}`}
                   className="btn btn-secondary"
                   style={{ flex: 1, textAlign: 'center' }}
                 >

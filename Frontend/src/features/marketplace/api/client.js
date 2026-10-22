@@ -1,8 +1,8 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
 
 export const apiClient = async (endpoint, { method = 'GET', body, headers = {}, isFormData = false } = {}) => {
-  const token = localStorage.getItem('token');
-  const devUser = localStorage.getItem('devUser');
+  const token = localStorage.getItem('token') || localStorage.getItem('cc_token');
+  const devUser = localStorage.getItem('devUser') || localStorage.getItem('cc_user');
 
   const defaultHeaders = {};
   if (!isFormData) {

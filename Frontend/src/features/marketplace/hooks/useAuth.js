@@ -2,25 +2,28 @@ import { useState, useEffect } from 'react';
 
 // TODO(auth): Swap this fallback hook with the team's shared AuthContext once Dhrumil's auth module merges.
 export const useAuth = () => {
-  const [token, setToken] = useState(() => localStorage.getItem('token') || '');
+  const [token, setToken] = useState(() => localStorage.getItem('token') || localStorage.getItem('cc_token') || '');
   const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem('user');
+    const saved = localStorage.getItem('user') || localStorage.getItem('cc_user');
     if (saved) {
       try { return JSON.parse(saved); } catch (e) {}
     }
-    // Dev default user for local testing
-    return {
-      _id: '64f1a2b3c4d5e6f7a8b9c099',
-      name: 'Nishka Shah',
-      email: 'nishka@campus.edu',
-      role: 'Student'
-    };
+    // Dev default user for local testing only
+    if (import.meta.env.DEV) {
+      return {
+        _id: '6acdfd0719912f0a2a3b070a',
+        name: 'Nishka Shah',
+        email: 'nishka@campus.edu',
+        role: 'Student'
+      };
+    }
+    return null;
   });
 
   useEffect(() => {
-    if (!token && user) {
+    if (import.meta.env.DEV && !token && user) {
       // In dev environment, set x-dev-user header automatically if no JWT token exists
-      localStorage.setItem('devUser', JSON.stringify({ id: user._id, role: user.role, name: user.name }));
+      localStorage.setItem('devUser', JSON.stringify({ id: user._id || user.id, role: user.role, name: user.name || user.profile?.name }));
     }
   }, [token, user]);
 

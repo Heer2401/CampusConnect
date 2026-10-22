@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { listingsApi } from '../api/listingsApi';
 import { StatusBadge } from '../components/StatusBadge';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import '../marketplace.css';
 
 export const MyListingsPage = () => {
   const [listings, setListings] = useState([]);
@@ -43,13 +44,13 @@ export const MyListingsPage = () => {
   };
 
   return (
-    <div className="page">
+    <div className="marketplace-page page">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div>
           <h1>My Listings</h1>
           <p className="muted">Manage and track your posted campus items across all statuses.</p>
         </div>
-        <Link to="/listings/new" className="btn btn-primary">
+        <Link to="/marketplace/create" className="btn btn-primary">
           + Create New Listing
         </Link>
       </div>
@@ -91,7 +92,7 @@ export const MyListingsPage = () => {
           <p className="muted" style={{ marginBottom: 16 }}>
             {statusFilter ? `You have no listings with status "${statusFilter}".` : 'You have not created any listings yet.'}
           </p>
-          <Link to="/listings/new" className="btn btn-primary">
+          <Link to="/marketplace/create" className="btn btn-primary">
             Create Your First Listing
           </Link>
         </div>
@@ -138,7 +139,7 @@ export const MyListingsPage = () => {
                         </div>
                         <div>
                           <Link
-                            to={`/listings/${item._id}`}
+                            to={`/marketplace/${item._id}`}
                             style={{ fontWeight: 600, color: '#1f2937', textDecoration: 'none' }}
                           >
                             {item.title}
@@ -159,7 +160,7 @@ export const MyListingsPage = () => {
                     <td className="muted">{new Date(item.createdAt).toLocaleDateString()}</td>
                     <td style={{ paddingRight: 20, textAlign: 'right' }}>
                       <div style={{ display: 'inline-flex', gap: 8 }}>
-                        <Link to={`/listings/${item._id}/edit`} className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: 12 }}>
+                        <Link to={`/marketplace/edit/${item._id}`} className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: 12 }}>
                           Edit
                         </Link>
                         <button

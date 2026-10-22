@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { listingsApi } from '../api/listingsApi';
 import { ListingForm } from '../components/ListingForm';
+import '../marketplace.css';
 
 export const EditListingPage = () => {
   const { id } = useParams();
@@ -43,7 +44,7 @@ export const EditListingPage = () => {
       }
 
       setToastMessage('Listing updated successfully!');
-      setTimeout(() => navigate(`/listings/${id}`), 1000);
+      setTimeout(() => navigate(`/marketplace/${id}`), 1000);
     } catch (err) {
       setErrorMessage(err.message || 'Failed to update listing');
       setIsSubmitting(false);
@@ -70,7 +71,7 @@ export const EditListingPage = () => {
 
   if (loading) {
     return (
-      <div className="page">
+      <div className="marketplace-page page">
         <div className="card" style={{ padding: 40, textAlign: 'center' }}>
           Loading listing details...
         </div>
@@ -80,7 +81,7 @@ export const EditListingPage = () => {
 
   if (errorMessage && !listing) {
     return (
-      <div className="page">
+      <div className="marketplace-page page">
         <div className="card" style={{ background: '#fef2f2', border: '1px solid #fecaca' }}>
           <p style={{ color: '#b91c1c' }}>{errorMessage}</p>
         </div>
@@ -89,7 +90,7 @@ export const EditListingPage = () => {
   }
 
   return (
-    <div className="page">
+    <div className="marketplace-page page">
       <h1>Edit Listing</h1>
       <p className="muted" style={{ marginBottom: 20 }}>
         Update listing details, pricing, conditions, or photos.

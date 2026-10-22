@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { listingsApi } from '../api/listingsApi';
 import { ListingForm } from '../components/ListingForm';
+import '../marketplace.css';
 
 export const CreateListingPage = () => {
   const navigate = useNavigate();
@@ -23,13 +24,13 @@ export const CreateListingPage = () => {
           await listingsApi.uploadImages(newListing._id, pendingFiles);
         } catch (imgError) {
           setToastMessage('Listing created, but image upload encountered an error. You can re-upload photos in Edit.');
-          setTimeout(() => navigate(`/listings/${newListing._id}`), 2500);
+          setTimeout(() => navigate(`/marketplace/${newListing._id}`), 2500);
           return;
         }
       }
 
       setToastMessage('Listing created successfully!');
-      setTimeout(() => navigate(`/listings/${newListing._id}`), 1000);
+      setTimeout(() => navigate(`/marketplace/${newListing._id}`), 1000);
     } catch (err) {
       setErrorMessage(err.message || 'Failed to create listing');
       setIsSubmitting(false);
@@ -37,7 +38,7 @@ export const CreateListingPage = () => {
   };
 
   return (
-    <div className="page">
+    <div className="marketplace-page page">
       <h1>Create a New Listing</h1>
       <p className="muted" style={{ marginBottom: 20 }}>
         Post items to buy, sell, rent, exchange, or giveaway with fellow campus students.
