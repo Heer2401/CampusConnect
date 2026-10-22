@@ -180,7 +180,7 @@ export default function AdminDashboard() {
   const pendingCount = listings.filter(l => l.status === 'pending').length;
 
   return (
-    <div className="app-container">
+    <div className="app-container admin-theme">
       {/* Top Navbar */}
       <header className="topbar">
         <div className="brand-section">
