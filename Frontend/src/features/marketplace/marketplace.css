@@ -1,0 +1,397 @@
+﻿/* ======================================================== */
+/* CampusConnect — Marketplace & Listing Management Styles  */
+/* Module Owner: Nishka Shah (Student ID: 202512035)        */
+/* Scoped strictly to .marketplace-page container           */
+/* ======================================================== */
+
+.marketplace-page {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 24px 28px;
+  color: #1f2937;
+  font-family: inherit;
+}
+
+/* Card Containers */
+.marketplace-page .card {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  padding: 20px;
+  color: #1f2937;
+  border: 1px solid #e5e7eb;
+}
+
+/* Buttons */
+.marketplace-page a.btn,
+.marketplace-page button.btn,
+.marketplace-page .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  line-height: 1.25;
+}
+
+.marketplace-page a.btn:hover,
+.marketplace-page button.btn:hover,
+.marketplace-page .btn:hover {
+  text-decoration: none;
+}
+
+.marketplace-page .btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.marketplace-page .btn-primary {
+  background: #1d4ed8;
+  color: #ffffff;
+  border: 1px solid #1d4ed8;
+}
+
+.marketplace-page .btn-primary:hover:not(:disabled) {
+  background: #1e40af;
+  color: #ffffff;
+}
+
+.marketplace-page .btn-secondary {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+
+.marketplace-page .btn-secondary:hover:not(:disabled) {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.marketplace-page .btn-accent {
+  background: #0ea5e9;
+  color: #ffffff;
+}
+
+.marketplace-page .btn-danger {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+}
+
+.marketplace-page .btn-danger:hover:not(:disabled) {
+  background: #fecaca;
+}
+
+.marketplace-page .btn-success {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+/* Category & Type Filter Chips */
+.marketplace-page .chip {
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  font-size: 13px;
+  margin-right: 8px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  display: inline-block;
+  user-select: none;
+  transition: all 0.15s ease;
+  color: #374151;
+  font-weight: 500;
+}
+
+.marketplace-page .chip:hover {
+  background: #f8fafc;
+  border-color: #9ca3af;
+}
+
+.marketplace-page .chip.active {
+  background: #12294d;
+  color: #ffffff;
+  border-color: #12294d;
+}
+
+.marketplace-page .chip-tag {
+  background: #e2e8f0;
+  color: #334155;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Pills & Badges */
+.marketplace-page .pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
+  text-transform: capitalize;
+}
+
+.marketplace-page .pill-blue {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.marketplace-page .pill-green {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.marketplace-page .pill-yellow {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.marketplace-page .pill-gray {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.marketplace-page .pill-purple {
+  background: #f3e8ff;
+  color: #6b21a8;
+}
+
+.marketplace-page .pill-red {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Sidebar Filter Panel */
+.marketplace-page .sidebar {
+  width: 250px;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  height: fit-content;
+  color: #1f2937;
+  border: 1px solid #e5e7eb;
+}
+
+.marketplace-page .sidebar h2 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+/* Form Controls Inside Marketplace */
+.marketplace-page input,
+.marketplace-page select,
+.marketplace-page textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #111827;
+  background: #ffffff;
+  font-family: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
+}
+
+.marketplace-page input:focus,
+.marketplace-page select:focus,
+.marketplace-page textarea:focus {
+  outline: none;
+  border-color: #1d4ed8;
+  box-shadow: 0 0 0 2px rgba(29, 78, 216, 0.15);
+}
+
+.marketplace-page input.error,
+.marketplace-page select.error,
+.marketplace-page textarea.error {
+  border-color: #dc2626;
+}
+
+.marketplace-page .error-text {
+  color: #dc2626;
+  font-size: 12px;
+  margin-top: 4px;
+  display: block;
+}
+
+.marketplace-page label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  display: block;
+  margin-bottom: 6px;
+  margin-top: 14px;
+}
+
+.marketplace-page .sidebar label:first-of-type,
+.marketplace-page .card label:first-child {
+  margin-top: 6px;
+}
+
+.marketplace-page h1 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 6px;
+}
+
+.marketplace-page h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 12px;
+}
+
+.marketplace-page .muted {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+/* Layout Grids */
+.marketplace-page .grid3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+
+@media (max-width: 900px) {
+  .marketplace-page .grid3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .marketplace-page .grid3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.marketplace-page .grid2 {
+  display: grid;
+  grid-template-columns: 1.2fr 1.8fr;
+  gap: 20px;
+}
+
+@media (max-width: 860px) {
+  .marketplace-page .grid2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Listing Card Image Container */
+.marketplace-page .listing-img {
+  height: 150px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #e0e7ff, #ede9fe);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6366f1;
+  font-size: 13px;
+  overflow: hidden;
+  position: relative;
+}
+
+.marketplace-page .listing-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Modal Dialog */
+.marketplace-page .modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+
+.marketplace-page .modal-content {
+  background: #ffffff;
+  color: #1f2937;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 440px;
+  width: 90%;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+}
+
+/* Toast */
+.marketplace-page .toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: #12294d;
+  color: #ffffff;
+  padding: 12px 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+/* Header & Browse Layout */
+.marketplace-page .browse-header {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.marketplace-page .browse-layout {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+@media (max-width: 860px) {
+  .marketplace-page .browse-layout {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .marketplace-page .sidebar {
+    width: 100%;
+    margin-bottom: 16px;
+  }
+  .marketplace-page .browse-header {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .marketplace-page {
+    padding: 16px 12px;
+  }
+  .marketplace-page .btn {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+  .marketplace-page .card {
+    padding: 14px;
+  }
+  .marketplace-page .modal-content {
+    padding: 18px;
+    width: 95%;
+  }
+}

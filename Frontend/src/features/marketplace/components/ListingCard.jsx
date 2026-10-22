@@ -60,7 +60,7 @@ export const ListingCard = ({ listing }) => {
   const conditionLabel = conditionMap[condition] || condition || 'Good';
 
   return (
-    <Link to={`/listings/${_id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+    <Link to={`/marketplace/${_id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
       <div className="card" style={{ height: '100%', display: 'flex', flexDirection: 'column', transition: 'transform 0.15s ease, box-shadow 0.15s ease' }}>
         <div className="listing-img" style={{ position: 'relative' }}>
           <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 2 }}>

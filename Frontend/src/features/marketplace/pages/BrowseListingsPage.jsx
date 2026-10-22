@@ -4,6 +4,7 @@ import { useListings } from '../hooks/useListings';
 import { useCategories } from '../hooks/useCategories';
 import { ListingGrid } from '../components/ListingGrid';
 import { ListingFilters } from '../components/ListingFilters';
+import '../marketplace.css';
 
 export const BrowseListingsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -56,7 +57,7 @@ export const BrowseListingsPage = () => {
   };
 
   return (
-    <div className="page">
+    <div className="marketplace-page page">
       {/* Top Search & Actions */}
       <div className="browse-header">
         <form onSubmit={handleSearchSubmit} style={{ display: 'flex', flex: 1, gap: 10 }}>
@@ -82,7 +83,7 @@ export const BrowseListingsPage = () => {
             </button>
           )}
         </form>
-        <Link to="/listings/new" className="btn btn-primary">
+        <Link to="/marketplace/create" className="btn btn-primary">
           + New Listing
         </Link>
       </div>

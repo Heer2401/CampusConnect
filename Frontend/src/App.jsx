@@ -20,6 +20,7 @@ import { CreateListingPage } from './features/marketplace/pages/CreateListingPag
 import { EditListingPage } from './features/marketplace/pages/EditListingPage';
 import { ListingDetailPage } from './features/marketplace/pages/ListingDetailPage';
 import { MyListingsPage } from './features/marketplace/pages/MyListingsPage';
+import './features/marketplace/marketplace.css';
 import { ChatPage } from './features/search_communication/pages/ChatPage';
 import { WishlistPage } from './features/search_communication/pages/WishlistPage';
 import AdminDashboard from './components/admin/AdminDashboard';
@@ -99,6 +100,18 @@ export default function App() {
                       }
                     />
                     <Route
+                      path="/listings/new"
+                      element={
+                        <ProtectedRoute>
+                          <CreateListingPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/browse"
+                      element={<Navigate to="/marketplace" replace />}
+                    />
+                    <Route
                       path="/marketplace/edit/:id"
                       element={
                         <ProtectedRoute>
@@ -107,7 +120,23 @@ export default function App() {
                       }
                     />
                     <Route
+                      path="/listings/:id/edit"
+                      element={
+                        <ProtectedRoute>
+                          <EditListingPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
                       path="/marketplace/:id"
+                      element={
+                        <ProtectedRoute>
+                          <ListingDetailPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/listings/:id"
                       element={
                         <ProtectedRoute>
                           <ListingDetailPage />
