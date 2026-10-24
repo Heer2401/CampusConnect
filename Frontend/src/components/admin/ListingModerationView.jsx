@@ -80,7 +80,7 @@ export default function ListingModerationView({ listings = [], categories = [], 
   return (
     <div>
       <div className="adm-section-head">
-        <h2>Reported &amp; High-Risk Listing Moderation (FR-6.1)</h2>
+        <h2>Reported &amp; High-Risk Listing Moderation</h2>
         <p>Marketplace listings go live automatically. Moderate items reported by students or submitted by low-rated sellers.</p>
       </div>
 

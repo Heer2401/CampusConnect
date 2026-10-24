@@ -72,9 +72,8 @@ const createListing = async (req, res, next) => {
       return res.status(400).json({ success: false, error: { code: 400, message: typeError } });
     }
 
-    const autoApprove = process.env.LISTING_AUTO_APPROVE === 'true' || process.env.NODE_ENV === 'development';
     if (data.status !== 'draft') {
-      data.status = autoApprove ? 'active' : 'pending_approval';
+      data.status = 'active';
     }
 
     if (data.listingType === 'giveaway') {
@@ -299,10 +298,7 @@ const updateListing = async (req, res, next) => {
       }
     });
 
-    if (listing.status === 'active' && coreContentChanged && process.env.LISTING_AUTO_APPROVE !== 'true') {
-      listing.status = 'pending_approval';
-    }
-
+    // Active listings remain active when edited
     await listing.save();
     res.json({ success: true, data: listing });
   } catch (error) {

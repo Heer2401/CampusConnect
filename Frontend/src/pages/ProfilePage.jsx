@@ -316,7 +316,7 @@ export default function ProfilePage() {
           <div>
             <h2 className="card-title">
               <User size={20} color="var(--primary)" />
-              Academic Profile & Settings (FR-1.4)
+              Academic Profile &amp; Settings
             </h2>
             <p className="card-description">
               Manage your academic credentials and how counterparties contact you on campus
@@ -339,7 +339,7 @@ export default function ProfilePage() {
               className="form-input"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Dhrumil Doshi"
+              placeholder="e.g. Alex Johnson"
             />
           </div>
 

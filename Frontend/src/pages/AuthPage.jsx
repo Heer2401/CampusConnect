@@ -146,7 +146,7 @@ export default function AuthPage() {
                     type="text"
                     required
                     className="form-input"
-                    placeholder="e.g. Dhrumil Doshi"
+                    placeholder="e.g. Alex Johnson"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                   />

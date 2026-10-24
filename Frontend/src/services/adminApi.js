@@ -98,7 +98,7 @@ export const adminApi = {
         _id: res._id,
         email: res.email,
         role: res.role,
-        name: 'Kajal Varlani'
+        name: res.name || res.profile?.name || 'Administrator'
       });
     }
     return res;

@@ -135,7 +135,7 @@ export default function CategoryManagementView({ categories = [], onReload, onTo
     <div>
       <div className="adm-section-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h2>Marketplace Category Taxonomy (FR-6.3)</h2>
+          <h2>Marketplace Category Taxonomy</h2>
           <p>Configure campus categories, icons, ordering, and moderation requirements for student listings.</p>
         </div>
         <button type="button" className="adm-btn primary" onClick={openCreate}>

@@ -54,9 +54,9 @@ export default function AnalyticsView({ demandTrends = {}, metrics = {} }) {
               <div className="adm-metric-sub">{activeStudents} active out of {totalUsers} registered students</div>
             </div>
             <div className="adm-metric">
-              <div className="adm-metric-label">Average Moderation Turnaround</div>
-              <div className="adm-metric-value">1.8 hrs</div>
-              <div className="adm-metric-sub">{metrics.approvedListings || 0} listings approved this term</div>
+              <div className="adm-metric-label">Approved &amp; Active Items</div>
+              <div className="adm-metric-value">{metrics.approvedListings ?? metrics.totalListings ?? 0}</div>
+              <div className="adm-metric-sub">Published and active on campus exchange</div>
             </div>
             <div className="adm-metric">
               <div className="adm-metric-label">Dispute Resolution Rate</div>

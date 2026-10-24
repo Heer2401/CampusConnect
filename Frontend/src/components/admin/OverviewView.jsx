@@ -70,8 +70,8 @@ export default function OverviewView({ metrics = {}, demandTrends = {}, onNaviga
               <span className="adm-pill green">Active</span>
             </div>
             <div className="adm-row">
-              <span className="adm-row-label"><Clock size={16} /> Avg. moderation response</span>
-              <span className="adm-row-value">1.8 hrs</span>
+              <span className="adm-row-label"><Clock size={16} /> Moderation queue load</span>
+              <span className="adm-row-value">{metrics.pendingApprovals || 0} items</span>
             </div>
             <div className="adm-row">
               <span className="adm-row-label"><ShieldCheck size={16} /> University domain policy</span>

@@ -114,7 +114,7 @@ export default function PaymentMethodsPage() {
       <div className="card-header" style={{ marginBottom: '1.5rem' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--primary)' }}>
-            Payment Methods (FR-1.6)
+            Payment Methods
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.925rem', marginTop: '0.25rem' }}>
             Store and manage payment methods used for campus marketplace & rental transactions
