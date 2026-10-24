@@ -18,6 +18,8 @@ const notificationSchema = new mongoose.Schema({
       'rental_reminder',
       'chat_message',
       'transaction_update',
+      'order',
+      'rental',
       'system'
     ],
     required: true,

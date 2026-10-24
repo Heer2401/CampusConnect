@@ -1683,6 +1683,70 @@ body {
   border: 1px solid rgba(99, 102, 241, 0.25);
 }
 
+/* ── Handover PIN UI ── */
+.rd-pin-display-box {
+  background: rgba(99, 102, 241, 0.08);
+  border: 2px dashed rgba(99, 102, 241, 0.4);
+  border-radius: 14px;
+  padding: 24px 16px;
+  margin: 16px 0;
+  text-align: center;
+}
+.rd-pin-digits {
+  font-family: 'Fira Code', 'Courier New', monospace;
+  font-size: 38px;
+  font-weight: 800;
+  letter-spacing: 8px;
+  color: #818cf8;
+  text-shadow: 0 0 16px rgba(129, 140, 248, 0.4);
+}
+.rd-pin-instruction {
+  font-size: 13px;
+  color: #94a3b8;
+  margin-top: 10px;
+  margin-bottom: 0;
+}
+.rd-pin-input {
+  font-family: 'Fira Code', 'Courier New', monospace;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 12px;
+  text-align: center;
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.8);
+  border: 2px solid #6366f1;
+  color: #f8fafc;
+  max-width: 260px;
+  margin: 16px auto;
+  display: block;
+}
+.rd-pin-input:focus {
+  outline: none;
+  border-color: #818cf8;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+}
+.rd-btn-pin {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  border: none;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+.rd-btn-pin:hover {
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+}
+.rd-btn-verify {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff;
+  border: none;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+.rd-btn-verify:hover {
+  background: linear-gradient(135deg, #059669, #047857);
+}
+
 /* Responsive */
 @media (max-width: 640px) {
   .rd-header { flex-direction: column; }
@@ -1690,3 +1754,260 @@ body {
   .rd-stat-grid { grid-template-columns: repeat(2, 1fr); }
   .rd-grid-2 { grid-template-columns: 1fr; }
 }
+
+/* ─── Campus Exchange Hub (Renting, Requesting, Dashboard) ─────────────────── */
+.hub-pillar-nav {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 24px;
+}
+@media (max-width: 860px) {
+  .hub-pillar-nav {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+.hub-pillar-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: var(--bg-surface, #0f1117);
+  border: 1px solid var(--border-muted, #272c3b);
+  border-radius: 14px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+.hub-pillar-card:hover {
+  background: var(--bg-elevated, #161a26);
+  border-color: rgba(99, 102, 241, 0.4);
+  transform: translateY(-2px);
+}
+.hub-pillar-card.active {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(56, 189, 248, 0.08));
+  border-color: #6366f1;
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.2);
+}
+.hub-pillar-card.active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #6366f1, #38bdf8);
+}
+.hub-pillar-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.hub-pillar-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+.hub-pillar-card.active .hub-pillar-icon {
+  background: rgba(99, 102, 241, 0.2);
+  border-color: rgba(99, 102, 241, 0.5);
+  color: #a5b4fc;
+}
+.hub-pillar-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary, #f0f2f8);
+  margin-bottom: 2px;
+}
+.hub-pillar-desc {
+  font-size: 12px;
+  color: var(--text-muted, #94a3b8);
+  line-height: 1.3;
+}
+.hub-pillar-badge {
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted, #94a3b8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  white-space: nowrap;
+}
+.hub-pillar-card.active .hub-pillar-badge {
+  background: rgba(99, 102, 241, 0.25);
+  color: #a5b4fc;
+  border-color: rgba(99, 102, 241, 0.4);
+}
+
+/* Section Header Bar */
+.hub-section-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding: 20px;
+  background: var(--bg-surface, #0f1117);
+  border: 1px solid var(--border-muted, #272c3b);
+  border-radius: 14px;
+}
+.hub-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+.hub-badge-renting {
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+.hub-badge-requesting {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+.hub-badge-dashboard {
+  background: rgba(168, 85, 247, 0.12);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.25);
+}
+
+/* Secondary Selector / Sub-views */
+.hub-subview-toggle {
+  display: inline-flex;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid var(--border-muted, #272c3b);
+  gap: 4px;
+}
+.hub-subview-btn {
+  padding: 7px 16px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted, #94a3b8);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+.hub-subview-btn:hover {
+  color: var(--text-primary, #f0f2f8);
+}
+.hub-subview-btn.active {
+  background: #6366f1;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+}
+
+/* How It Works Banner for Requesting */
+.how-it-works-banner {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.05), rgba(99, 102, 241, 0.05));
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 14px;
+}
+@media (max-width: 768px) {
+  .how-it-works-banner {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+.how-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.how-step-num {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  font-weight: 800;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.how-step-content h5 {
+  margin: 0 0 4px;
+  font-size: 13px;
+  color: var(--text-primary, #f0f2f8);
+}
+.how-step-content p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted, #94a3b8);
+  line-height: 1.4;
+}
+
+/* Escrow Security Banner for Dashboard */
+.escrow-security-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(99, 102, 241, 0.08));
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 14px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.escrow-security-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.escrow-security-icon {
+  font-size: 24px;
+  background: rgba(16, 185, 129, 0.15);
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.escrow-security-text h5 {
+  margin: 0 0 3px;
+  font-size: 14px;
+  color: #34d399;
+  font-weight: 700;
+}
+.escrow-security-text p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted, #94a3b8);
+}
+

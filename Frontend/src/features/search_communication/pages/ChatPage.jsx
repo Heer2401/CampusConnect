@@ -2,7 +2,83 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { chatApi } from '../api/chatApi';
 import { useSocket } from '../context/SocketContext';
-import { useAuth } from '../../marketplace/hooks/useAuth';
+import { useAuth } from '../../../context/AuthContext';
+
+// Helper to parse automated order and meetup system messages into clean structured data
+function parseOrderMessage(content) {
+  if (!content || typeof content !== 'string') return null;
+  const isOrder = content.includes('ORDER REQUEST PLACED') || 
+                  content.includes('Order Request Placed') ||
+                  content.includes('Meetup Coordination') ||
+                  content.includes('Handover PIN');
+  if (!isOrder) return null;
+
+  // Extract key fields whether formatted with newlines or bullets
+  const itemMatch = content.match(/(?:Item:|Listing:)\s*([^\n•]+)/i);
+  const typeMatch = content.match(/Type:\s*([^\n•]+)/i);
+  const amountMatch = content.match(/Amount:\s*([^\n•]+)/i);
+  const buyerMatch = content.match(/Buyer:\s*([^\n•]+)/i);
+  const orderIdMatch = content.match(/(?:Order ID:|Transaction ID:)\s*([^\n•\s]+)/i);
+
+  return {
+    item: itemMatch ? itemMatch[1].trim() : null,
+    type: typeMatch ? typeMatch[1].trim() : 'ORDER',
+    amount: amountMatch ? amountMatch[1].trim() : null,
+    buyer: buyerMatch ? buyerMatch[1].trim() : null,
+    orderId: orderIdMatch ? orderIdMatch[1].trim() : null,
+  };
+}
+
+// Resolves actual user display name checking profile.name, name, and email prefix
+function getUserDisplayName(u) {
+  if (!u) return 'Campus Student';
+  if (typeof u === 'string') return 'Campus Student';
+  const name = u.profile?.name || u.name;
+  if (name && typeof name === 'string' && name.trim()) return name.trim();
+  if (u.email && typeof u.email === 'string') {
+    const prefix = u.email.split('@')[0];
+    return prefix.charAt(0).toUpperCase() + prefix.slice(1);
+  }
+  return 'Campus Student';
+}
+
+// Generates 1-2 letter avatar initials from name
+function getUserInitials(u) {
+  const name = getUserDisplayName(u);
+  if (!name || name === 'Campus Student') return 'U';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+}
+
+// Safely finds the conversation partner (other participant)
+function getOtherParticipant(thread, currentUserId) {
+  if (!thread) return null;
+  const myId = (currentUserId?._id || currentUserId?.id || currentUserId)?.toString();
+
+  if (Array.isArray(thread.participants) && thread.participants.length > 0) {
+    const found = thread.participants.find(p => {
+      const pid = (p?._id || p?.id || p)?.toString();
+      return pid && pid !== myId;
+    });
+    if (found && typeof found === 'object') return found;
+  }
+
+  if (thread.otherParticipant && typeof thread.otherParticipant === 'object') {
+    return thread.otherParticipant;
+  }
+
+  if (thread.listingId?.owner && typeof thread.listingId.owner === 'object') {
+    const ownerId = (thread.listingId.owner._id || thread.listingId.owner.id || thread.listingId.owner)?.toString();
+    if (ownerId && ownerId !== myId) {
+      return thread.listingId.owner;
+    }
+  }
+
+  return null;
+}
 
 export const ChatPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -120,8 +196,11 @@ export const ChatPage = () => {
     if (!socket) return;
 
     const handleIncomingMessage = (newMessage) => {
+      const incomingThreadId = (newMessage.threadId?._id || newMessage.threadId)?.toString();
+      const currentActiveId = activeThreadId?.toString();
+
       // If message is for the currently open conversation, append it
-      if (newMessage.threadId === activeThreadId) {
+      if (incomingThreadId && currentActiveId && incomingThreadId === currentActiveId) {
         setMessages(prev => {
           if (prev.some(m => m._id === newMessage._id)) return prev;
           return [...prev, newMessage];
@@ -132,7 +211,7 @@ export const ChatPage = () => {
 
       // Update thread preview and lastMessageAt in thread list
       setThreads(prev => {
-        const index = prev.findIndex(t => t._id === newMessage.threadId);
+        const index = prev.findIndex(t => t._id?.toString() === incomingThreadId);
         if (index === -1) {
           // New thread received, refetch thread list
           fetchThreads();
@@ -143,7 +222,7 @@ export const ChatPage = () => {
         const target = { ...updated[index] };
         target.lastMessagePreview = newMessage.content;
         target.lastMessageAt = newMessage.createdAt;
-        if (newMessage.threadId !== activeThreadId) {
+        if (incomingThreadId !== currentActiveId) {
           target.unreadCount = (target.unreadCount || 0) + 1;
         }
         updated.splice(index, 1);
@@ -154,8 +233,18 @@ export const ChatPage = () => {
 
     socket.on('chat_message', handleIncomingMessage);
 
+    // Rejoin thread room on socket reconnect
+    const handleReconnect = () => {
+      if (activeThreadId) {
+        socket.emit('join_thread', { threadId: activeThreadId });
+      }
+      fetchThreads();
+    };
+    socket.on('connect', handleReconnect);
+
     return () => {
       socket.off('chat_message', handleIncomingMessage);
+      socket.off('connect', handleReconnect);
     };
   }, [socket, activeThreadId, fetchThreads]);
 
@@ -277,11 +366,10 @@ export const ChatPage = () => {
             ) : (
               threads.map(thread => {
                 const isSelected = thread._id === activeThreadId;
-                const otherUser = thread.participants?.find(
-                  p => p._id?.toString() !== currentUserId?.toString()
-                ) || thread.otherParticipant;
+                const otherUser = getOtherParticipant(thread, currentUserId);
+                const otherUserName = getUserDisplayName(otherUser);
+                const otherUserInitials = getUserInitials(otherUser);
                 const listing = thread.listingId;
-                const listingImage = listing?.images?.[0]?.thumbnailUrl || listing?.images?.[0]?.url;
 
                 return (
                   <div
@@ -303,7 +391,7 @@ export const ChatPage = () => {
                       {otherUser?.avatar ? (
                         <img src={otherUser.avatar} alt="" style={{ width: '100%', borderRadius: '50%' }} />
                       ) : (
-                        otherUser?.name?.slice(0, 2).toUpperCase() || 'U'
+                        otherUserInitials
                       )}
                     </div>
 
@@ -311,7 +399,7 @@ export const ChatPage = () => {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                         <span style={{ fontWeight: 600, fontSize: 14, color: '#1e293b' }}>
-                          {otherUser?.name || 'Student'}
+                          {otherUserName}
                         </span>
                         {thread.unreadCount > 0 && (
                           <span
@@ -366,17 +454,30 @@ export const ChatPage = () => {
                 }}
               >
                 {/* Other participant info */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div className="avatar" style={{ width: 34, height: 34 }}>
-                    {activeThread.participants?.find(p => p._id?.toString() !== currentUserId?.toString())?.name?.slice(0, 2).toUpperCase() || 'U'}
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: 14 }}>
-                      {activeThread.participants?.find(p => p._id?.toString() !== currentUserId?.toString())?.name || 'Campus Student'}
+                {(() => {
+                  const activeOtherUser = getOtherParticipant(activeThread, currentUserId);
+                  const activeName = getUserDisplayName(activeOtherUser);
+                  const activeInitials = getUserInitials(activeOtherUser);
+                  const programOrTag = activeOtherUser?.profile?.program || 'Verified Campus Student';
+
+                  return (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div className="avatar" style={{ width: 36, height: 36, fontSize: 14 }}>
+                        {activeOtherUser?.avatar ? (
+                          <img src={activeOtherUser.avatar} alt="" style={{ width: '100%', borderRadius: '50%' }} />
+                        ) : (
+                          activeInitials
+                        )}
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: 15, color: '#0f172a' }}>
+                          {activeName}
+                        </div>
+                        <div className="muted" style={{ fontSize: 12 }}>{programOrTag}</div>
+                      </div>
                     </div>
-                    <div className="muted" style={{ fontSize: 11 }}>Verified Campus Student</div>
-                  </div>
-                </div>
+                  );
+                })()}
 
                 {/* Listing Context Widget */}
                 {activeThread.listingId && (
@@ -446,7 +547,166 @@ export const ChatPage = () => {
                   messages.map(msg => {
                     const isMe = (msg.senderId?._id || msg.senderId)?.toString() === currentUserId?.toString();
                     const timeStr = new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    const orderInfo = parseOrderMessage(msg.content);
 
+                    // Render structured Order Card if it's an automated order / escrow message
+                    if (orderInfo && (orderInfo.item || orderInfo.orderId)) {
+                      return (
+                        <div
+                          key={msg._id}
+                          style={{
+                            alignSelf: 'center',
+                            width: '100%',
+                            maxWidth: 520,
+                            margin: '10px 0'
+                          }}
+                        >
+                          <div
+                            style={{
+                              background: '#ffffff',
+                              border: '1px solid #bfdbfe',
+                              borderRadius: 14,
+                              padding: '16px 18px',
+                              boxShadow: '0 4px 14px rgba(37, 99, 235, 0.08)'
+                            }}
+                          >
+                            {/* Card Header */}
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                borderBottom: '1px solid #f1f5f9',
+                                paddingBottom: 10,
+                                marginBottom: 12
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <span style={{ fontSize: 22 }}>🤝</span>
+                                <div>
+                                  <div style={{ fontWeight: 700, fontSize: 14, color: '#1e293b' }}>
+                                    Campus Order Request Placed!
+                                  </div>
+                                  <div style={{ fontSize: 11, color: '#64748b' }}>
+                                    Automated campus meetup & escrow coordination
+                                  </div>
+                                </div>
+                              </div>
+                              {orderInfo.type && (
+                                <span
+                                  style={{
+                                    fontSize: 11,
+                                    fontWeight: 700,
+                                    padding: '3px 8px',
+                                    borderRadius: 999,
+                                    background: '#e0e7ff',
+                                    color: '#3730a3',
+                                    textTransform: 'uppercase'
+                                  }}
+                                >
+                                  {orderInfo.type}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Summary Grid */}
+                            <div
+                              style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+                                gap: 10,
+                                background: '#f8fafc',
+                                borderRadius: 8,
+                                padding: '10px 14px',
+                                marginBottom: 12,
+                                fontSize: 13
+                              }}
+                            >
+                              {orderInfo.item && (
+                                <div>
+                                  <div style={{ fontSize: 11, color: '#64748b' }}>📦 Listing</div>
+                                  <div style={{ fontWeight: 600, color: '#0f172a' }}>{orderInfo.item}</div>
+                                </div>
+                              )}
+                              {orderInfo.amount && (
+                                <div>
+                                  <div style={{ fontSize: 11, color: '#64748b' }}>💰 Amount</div>
+                                  <div style={{ fontWeight: 700, color: '#16a34a' }}>{orderInfo.amount}</div>
+                                </div>
+                              )}
+                              {orderInfo.buyer && (
+                                <div>
+                                  <div style={{ fontSize: 11, color: '#64748b' }}>👤 Buyer</div>
+                                  <div style={{ fontWeight: 600, color: '#0f172a' }}>{orderInfo.buyer}</div>
+                                </div>
+                              )}
+                              {orderInfo.orderId && (
+                                <div>
+                                  <div style={{ fontSize: 11, color: '#64748b' }}>🆔 Order Ref</div>
+                                  <div style={{ fontWeight: 600, color: '#6366f1', fontFamily: 'monospace' }}>
+                                    {orderInfo.orderId}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Meetup Coordination Instructions */}
+                            <div
+                              style={{
+                                background: '#eff6ff',
+                                border: '1px solid #dbeafe',
+                                borderRadius: 8,
+                                padding: '10px 14px',
+                                fontSize: 12,
+                                color: '#1e40af',
+                                lineHeight: 1.5
+                              }}
+                            >
+                              <div style={{ fontWeight: 700, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <span>📍</span> Campus Meetup & Handover Instructions:
+                              </div>
+                              <ol style={{ margin: 0, paddingLeft: 18, color: '#1e3a8a' }}>
+                                <li>Chat here to agree on a convenient campus meetup location and time.</li>
+                                <li>When meeting in person, seller clicks <b>"Show PIN"</b> on their Escrow Dashboard.</li>
+                                <li>Buyer enters the 6-digit PIN to confirm receipt and release funds safely!</li>
+                              </ol>
+                            </div>
+
+                            {/* Action Row */}
+                            <div
+                              style={{
+                                marginTop: 12,
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center'
+                              }}
+                            >
+                              <span className="muted" style={{ fontSize: 11 }}>{timeStr}</span>
+                              <Link
+                                to="/rentals?view=dashboard"
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 6,
+                                  background: '#2563eb',
+                                  color: '#ffffff',
+                                  padding: '7px 14px',
+                                  borderRadius: 6,
+                                  fontSize: 12,
+                                  fontWeight: 600,
+                                  textDecoration: 'none',
+                                  boxShadow: '0 2px 4px rgba(37,99,235,0.2)'
+                                }}
+                              >
+                                🛡️ Open Escrow Dashboard →
+                              </Link>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    // Standard User / System Message Bubble
                     return (
                       <div
                         key={msg._id}
@@ -466,7 +726,8 @@ export const ChatPage = () => {
                             borderRadius: isMe ? '14px 14px 2px 14px' : '14px 14px 14px 2px',
                             boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
                             fontSize: 14,
-                            lineHeight: 1.4,
+                            lineHeight: 1.5,
+                            whiteSpace: 'pre-wrap',
                             wordBreak: 'break-word'
                           }}
                         >

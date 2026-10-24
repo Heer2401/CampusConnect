@@ -9,6 +9,8 @@ const {
   getMyTransactions,
   getTransactionById,
   confirmTransaction,
+  generateHandoverPin,
+  verifyHandoverPin,
   cancelTransaction,
 } = require('../controllers/transactionController');
 const { protect } = require('../middlewares/authMiddleware');
@@ -29,6 +31,12 @@ router.get('/:id', getTransactionById);
 
 // PATCH  /api/transactions/:id/confirm  — Confirm receipt
 router.patch('/:id/confirm', confirmTransaction);
+
+// POST   /api/transactions/:id/generate-pin — Seller generates 6-digit meetup PIN
+router.post('/:id/generate-pin', generateHandoverPin);
+
+// POST   /api/transactions/:id/verify-pin   — Buyer enters 6-digit meetup PIN
+router.post('/:id/verify-pin', verifyHandoverPin);
 
 // PATCH  /api/transactions/:id/cancel   — Cancel transaction
 router.patch('/:id/cancel', cancelTransaction);

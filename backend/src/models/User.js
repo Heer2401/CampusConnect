@@ -40,7 +40,16 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: null,
   }
-}, { timestamps: true });
+}, { 
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
+});
+
+// Virtual name getter so user.name always resolves to profile.name or email prefix
+userSchema.virtual('name').get(function() {
+  return this.profile?.name || (this.email ? this.email.split('@')[0] : 'Campus Student');
+});
 
 // Hash password before saving
 userSchema.pre('save', async function() {

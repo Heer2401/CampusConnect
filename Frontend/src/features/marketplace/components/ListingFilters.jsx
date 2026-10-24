@@ -1,74 +1,97 @@
 import React from 'react';
 
-export const ListingFilters = ({ filters = {}, onChange, categories = [] }) => {
+export const ListingFilters = ({
+  filters = {},
+  onChange,
+  onReset,
+  onClose,
+  className = 'sidebar',
+}) => {
   const handleChange = (field, value) => {
     onChange({ [field]: value });
   };
 
   const handleReset = () => {
-    onChange({
-      category: '',
-      listingType: '',
-      condition: '',
-      minPrice: '',
-      maxPrice: '',
-      status: '',
-      sort: 'newest',
-    });
+    if (onReset) {
+      onReset();
+    } else {
+      onChange({
+        condition: '',
+        minPrice: '',
+        maxPrice: '',
+      });
+    }
   };
 
+  const activeCount = [
+    filters.condition,
+    filters.minPrice || filters.maxPrice,
+  ].filter(Boolean).length;
+
   return (
-    <div className="sidebar">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-        <h2 style={{ fontSize: 14, margin: 0 }}>Filters</h2>
-        <button
-          type="button"
-          onClick={handleReset}
-          style={{ background: 'none', border: 'none', color: '#1d4ed8', fontSize: 12, cursor: 'pointer', padding: 0 }}
-        >
-          Reset
-        </button>
+    <div className={className}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>Filters</h2>
+          {activeCount > 0 && (
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                background: '#e0e7ff',
+                color: '#3730a3',
+                padding: '2px 6px',
+                borderRadius: 999,
+              }}
+            >
+              {activeCount}
+            </span>
+          )}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {activeCount > 0 && (
+            <button
+              type="button"
+              onClick={handleReset}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#2563eb',
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: 'pointer',
+                padding: 0,
+              }}
+            >
+              Clear filters
+            </button>
+          )}
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                background: '#f1f5f9',
+                border: '1px solid #cbd5e1',
+                borderRadius: '50%',
+                width: 24,
+                height: 24,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 12,
+                cursor: 'pointer',
+                color: '#475569',
+              }}
+              title="Close filters"
+            >
+              ✕
+            </button>
+          )}
+        </div>
       </div>
 
-      <label htmlFor="filter-category">Category</label>
-      <select
-        id="filter-category"
-        value={filters.category || ''}
-        onChange={(e) => handleChange('category', e.target.value)}
-      >
-        <option value="">All Categories</option>
-        {categories.map((c) => (
-          <option key={c._id} value={c._id}>
-            {c.name} {c.listingCount !== undefined ? `(${c.listingCount})` : ''}
-          </option>
-        ))}
-      </select>
-
-      <label htmlFor="filter-type">Listing Type</label>
-      <select
-        id="filter-type"
-        value={filters.listingType || ''}
-        onChange={(e) => handleChange('listingType', e.target.value)}
-      >
-        <option value="">All Types</option>
-        <option value="sell">Sell</option>
-        <option value="rent">Rent</option>
-        <option value="exchange">Exchange</option>
-        <option value="giveaway">Giveaway</option>
-      </select>
-
-      <label htmlFor="filter-status">Availability</label>
-      <select
-        id="filter-status"
-        value={filters.status || ''}
-        onChange={(e) => handleChange('status', e.target.value)}
-      >
-        <option value="">Active (Available)</option>
-        <option value="reserved">Reserved</option>
-        <option value="rented">Rented</option>
-        <option value="sold">Sold</option>
-      </select>
-
+      {/* Condition Filter */}
       <label htmlFor="filter-condition">Condition</label>
       <select
         id="filter-condition"
@@ -83,8 +106,9 @@ export const ListingFilters = ({ filters = {}, onChange, categories = [] }) => {
         <option value="poor">Poor</option>
       </select>
 
+      {/* Price Range Filter */}
       <label>Price Range (₹)</label>
-      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 10 }}>
         <input
           type="number"
           placeholder="Min"
@@ -101,18 +125,6 @@ export const ListingFilters = ({ filters = {}, onChange, categories = [] }) => {
           style={{ width: '50%' }}
         />
       </div>
-
-      <label htmlFor="filter-sort">Sort By</label>
-      <select
-        id="filter-sort"
-        value={filters.sort || 'newest'}
-        onChange={(e) => handleChange('sort', e.target.value)}
-      >
-        <option value="newest">Newest First</option>
-        <option value="oldest">Oldest First</option>
-        <option value="price_asc">Price: Low to High</option>
-        <option value="price_desc">Price: High to Low</option>
-      </select>
     </div>
   );
 };

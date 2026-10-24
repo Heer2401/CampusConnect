@@ -173,12 +173,28 @@ export default function App() {
                       }
                     />
 
-                    {/* Rental & Transaction Dashboard (Student Only) */}
+                    {/* Rental, Requesting & Transaction Dashboard (Student Only) */}
                     <Route
                       path="/rentals"
                       element={
                         <ProtectedRoute roleRequired="student">
                           <RentalDashboardPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/requests"
+                      element={
+                        <ProtectedRoute>
+                          <Navigate to="/rentals?view=requesting" replace />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/dashboard"
+                      element={
+                        <ProtectedRoute>
+                          <Navigate to="/rentals?view=dashboard" replace />
                         </ProtectedRoute>
                       }
                     />

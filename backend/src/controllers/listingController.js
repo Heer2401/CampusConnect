@@ -142,7 +142,7 @@ const getListings = async (req, res, next) => {
       .skip(skip)
       .limit(limit)
       .populate('category', 'name slug')
-      .populate('owner', 'name avatar')
+      .populate('owner', 'name email profile reputation isVerified role createdAt')
       .lean();
 
     res.json({
@@ -192,7 +192,7 @@ const getListingById = async (req, res, next) => {
 
     const listing = await Listing.findOne({ _id: req.params.id, isDeleted: false })
       .populate('category', 'name slug')
-      .populate('owner', 'name avatar');
+      .populate('owner', 'name email profile reputation isVerified role createdAt');
 
     if (!listing) return res.status(404).json({ success: false, error: { code: 404, message: 'Not found' } });
 

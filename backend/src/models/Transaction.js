@@ -67,6 +67,14 @@ const transactionSchema = new mongoose.Schema({
     type: Date,
     default: null,
   },
+  handoverPin: {
+    type: String,
+    default: null,
+  },
+  handoverPinGeneratedAt: {
+    type: Date,
+    default: null,
+  },
 }, { timestamps: true });
 
 // ── Indexes ──────────────────────────────────────────────

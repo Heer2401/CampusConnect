@@ -1,9 +1,27 @@
 import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { User, Star, ShieldCheck, BookOpen, Clock, Phone, CheckCircle, AlertCircle, Sparkles } from 'lucide-react';
+import {
+  User,
+  Star,
+  ShieldCheck,
+  BookOpen,
+  Clock,
+  Phone,
+  CheckCircle,
+  AlertCircle,
+  Sparkles,
+  Package,
+  ArrowLeftRight,
+  Repeat,
+  Heart,
+  ChevronRight,
+  ShoppingBag,
+} from 'lucide-react';
 
 export default function ProfilePage() {
   const { user, updateProfile } = useAuth();
+  const navigate = useNavigate();
 
   const [name, setName] = useState(user?.profile?.name || '');
   const [program, setProgram] = useState(user?.profile?.program || '');
@@ -107,6 +125,186 @@ export default function ProfilePage() {
                   <span>{user.profile.program}</span>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Campus Activity & Order Tracking Hub ────────────────────────────── */}
+      <div className="card" style={{ marginBottom: '2rem', padding: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '8px' }}>
+          <div>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <ShoppingBag size={20} color="var(--primary)" />
+              My Campus Activity & Orders
+            </h2>
+            <p style={{ margin: '4px 0 0 0', fontSize: '0.875rem', color: '#64748b' }}>
+              Track all your active listings, purchases, exchange proposals, giveaways, and rentals
+            </p>
+          </div>
+          <Link
+            to="/marketplace/create"
+            className="btn btn-primary"
+            style={{ fontSize: '0.85rem', padding: '0.45rem 0.9rem' }}
+          >
+            + New Listing
+          </Link>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+          {/* Card 1: My Listings */}
+          <div
+            onClick={() => navigate('/my-listings')}
+            style={{
+              border: '1px solid #e2e8f0',
+              borderRadius: '12px',
+              padding: '1.2rem',
+              cursor: 'pointer',
+              background: '#ffffff',
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = '#3b82f6';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = '#e2e8f0';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
+            <div>
+              <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.75rem', color: '#1d4ed8' }}>
+                <Package size={22} />
+              </div>
+              <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 4px 0', color: '#0f172a' }}>
+                My Posted Listings
+              </h3>
+              <p style={{ fontSize: '0.825rem', color: '#64748b', margin: 0, lineHeight: 1.4 }}>
+                View and manage items you listed to sell, rent out, trade, or giveaway on campus.
+              </p>
+            </div>
+            <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', fontSize: '0.85rem', fontWeight: 600, color: '#1d4ed8' }}>
+              Manage My Listings <ChevronRight size={16} />
+            </div>
+          </div>
+
+          {/* Card 2: Purchases, Exchanges & Free Claims */}
+          <div
+            onClick={() => navigate('/rentals', { state: { tab: 'Transactions' } })}
+            style={{
+              border: '1px solid #e2e8f0',
+              borderRadius: '12px',
+              padding: '1.2rem',
+              cursor: 'pointer',
+              background: '#ffffff',
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = '#8b5cf6';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(139, 92, 246, 0.1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = '#e2e8f0';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
+            <div>
+              <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#f5f3ff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.75rem', color: '#6b21a8' }}>
+                <ArrowLeftRight size={22} />
+              </div>
+              <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 4px 0', color: '#0f172a' }}>
+                Purchases & Exchanges
+              </h3>
+              <p style={{ fontSize: '0.825rem', color: '#64748b', margin: 0, lineHeight: 1.4 }}>
+                Track bought items, barter proposals, giveaway claims, and 6-digit Meetup PINs.
+              </p>
+            </div>
+            <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', fontSize: '0.85rem', fontWeight: 600, color: '#6b21a8' }}>
+              View Transactions <ChevronRight size={16} />
+            </div>
+          </div>
+
+          {/* Card 3: Rentals & Borrows */}
+          <div
+            onClick={() => navigate('/rentals', { state: { tab: 'Active Rentals' } })}
+            style={{
+              border: '1px solid #e2e8f0',
+              borderRadius: '12px',
+              padding: '1.2rem',
+              cursor: 'pointer',
+              background: '#ffffff',
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = '#10b981';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = '#e2e8f0';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
+            <div>
+              <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.75rem', color: '#166534' }}>
+                <Repeat size={22} />
+              </div>
+              <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 4px 0', color: '#0f172a' }}>
+                Active Rentals
+              </h3>
+              <p style={{ fontSize: '0.825rem', color: '#64748b', margin: 0, lineHeight: 1.4 }}>
+                Track equipment and books you've rented, return due dates, and lender handovers.
+              </p>
+            </div>
+            <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', fontSize: '0.85rem', fontWeight: 600, color: '#166534' }}>
+              Track Rentals <ChevronRight size={16} />
+            </div>
+          </div>
+
+          {/* Card 4: Saved Wishlist */}
+          <div
+            onClick={() => navigate('/wishlist')}
+            style={{
+              border: '1px solid #e2e8f0',
+              borderRadius: '12px',
+              padding: '1.2rem',
+              cursor: 'pointer',
+              background: '#ffffff',
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = '#ef4444';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = '#e2e8f0';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
+            <div>
+              <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.75rem', color: '#dc2626' }}>
+                <Heart size={22} />
+              </div>
+              <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 4px 0', color: '#0f172a' }}>
+                Saved Wishlist
+              </h3>
+              <p style={{ fontSize: '0.825rem', color: '#64748b', margin: 0, lineHeight: 1.4 }}>
+                Quickly access listings you've bookmarked to check availability or purchase later.
+              </p>
+            </div>
+            <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', fontSize: '0.85rem', fontWeight: 600, color: '#dc2626' }}>
+              Open Wishlist <ChevronRight size={16} />
             </div>
           </div>
         </div>

@@ -6,8 +6,11 @@ const getNotificationIcon = (type) => {
   switch (type) {
     case 'chat_message':
       return '💬';
+    case 'order':
+      return '🛍️';
+    case 'rental':
     case 'rental_reminder':
-      return '⏰';
+      return '📦';
     case 'listing_approved':
       return '✅';
     case 'listing_rejected':
@@ -66,10 +69,14 @@ export const NotificationBell = () => {
     // Contextual navigation
     if (notif.type === 'chat_message' && notif.relatedId) {
       navigate(`/chat?thread=${notif.relatedId}`);
+    } else if (['order', 'transaction_update'].includes(notif.type)) {
+      navigate('/rentals?view=dashboard');
+    } else if (notif.type === 'rental') {
+      navigate('/rentals?view=renting');
     } else if (['listing_approved', 'listing_rejected', 'price_alert'].includes(notif.type) && notif.relatedId) {
       navigate(`/listings/${notif.relatedId}`);
     } else if (notif.type === 'rental_reminder') {
-      navigate('/my-listings');
+      navigate('/rentals?view=renting');
     }
   };
 
