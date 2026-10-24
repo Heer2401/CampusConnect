@@ -15,6 +15,15 @@ export const ListingForm = ({
 }) => {
   const { categories, loading: categoriesLoading } = useCategories();
 
+  // ── Multi-Step Stepper State ────────────────────────────────────────────────
+  // Step 1: Photos & AI
+  // Step 2: Item Details (Title, Category, Condition, Description, Tags)
+  // Step 3: Pricing & Terms (Dynamic fields based on Listing Type)
+  // Step 4: Review & Publish
+  const [currentStep, setCurrentStep] = useState(1);
+  const [visitedSteps, setVisitedSteps] = useState([1]);
+
+  // Form Fields
   const [listingType, setListingType] = useState(initialValues.listingType || 'sell');
   const [title, setTitle] = useState(initialValues.title || '');
   const [description, setDescription] = useState(initialValues.description || '');
@@ -23,6 +32,26 @@ export const ListingForm = ({
   const [price, setPrice] = useState(initialValues.price !== undefined ? initialValues.price : '');
   const [rentalRate, setRentalRate] = useState(initialValues.rentalRate !== undefined ? initialValues.rentalRate : '');
   const [rentalPeriod, setRentalPeriod] = useState(initialValues.rentalPeriod || 'week');
+  const [deposit, setDeposit] = useState(initialValues.deposit !== undefined ? initialValues.deposit : '');
+  const [exchangeFor, setExchangeFor] = useState(initialValues.exchangeFor || '');
+  const [pickupLocation, setPickupLocation] = useState(initialValues.pickupLocation || '');
+  const [quantity, setQuantity] = useState(initialValues.quantity || 1);
+  const [tags, setTags] = useState(initialValues.tags || []);
+  const [tagInput, setTagInput] = useState('');
+
+  const [pendingFiles, setPendingFiles] = useState([]);
+  const [errors, setErrors] = useState({});
+
+  // AI Suggestion State
+  const [isSuggesting, setIsSuggesting] = useState(false);
+  const [aiMessage, setAiMessage] = useState('');
+  const [aiSource, setAiSource] = useState('');
+  const [aiBrand, setAiBrand] = useState('');
+  const [aiAge, setAiAge] = useState('');
+  const [aiConditionHint, setAiConditionHint] = useState('');
+  const [aiMetadata, setAiMetadata] = useState(null);
+  const [showAiHints, setShowAiHints] = useState(false);
+  const [aiGeneratedFields, setAiGeneratedFields] = useState([]);
 
   useEffect(() => {
     if (categories.length > 0 && !category) {
@@ -41,27 +70,11 @@ export const ListingForm = ({
       }
     }
   }, [categories, category, initialValues.category, initialValues.categoryName]);
-  const [deposit, setDeposit] = useState(initialValues.deposit !== undefined ? initialValues.deposit : '');
-  const [exchangeFor, setExchangeFor] = useState(initialValues.exchangeFor || '');
-  const [pickupLocation, setPickupLocation] = useState(initialValues.pickupLocation || '');
-  const [quantity, setQuantity] = useState(initialValues.quantity || 1);
-  const [tags, setTags] = useState(initialValues.tags || []);
-  const [tagInput, setTagInput] = useState('');
 
-  const [pendingFiles, setPendingFiles] = useState([]);
-  const [errors, setErrors] = useState({});
-  const [isSuggesting, setIsSuggesting] = useState(false);
-  const [aiMessage, setAiMessage] = useState('');
-  const [aiSource, setAiSource] = useState('');
-  const [aiBrand, setAiBrand] = useState('');
-  const [aiAge, setAiAge] = useState('');
-  const [aiConditionHint, setAiConditionHint] = useState('');
-  const [aiMetadata, setAiMetadata] = useState(null);
-  const [showAiHints, setShowAiHints] = useState(false);
-
+  // AI Suggestion Trigger
   const handleAiSuggestion = async () => {
     if (!pendingFiles.length) {
-      setAiMessage('Add a photo first to get listing suggestions.');
+      setAiMessage('Please upload at least one photo first to generate suggestions.');
       return;
     }
     setIsSuggesting(true);
@@ -74,22 +87,34 @@ export const ListingForm = ({
         condition: aiConditionHint,
       });
 
-      if (suggestion.title) setTitle(suggestion.title);
-      if (suggestion.description) setDescription(suggestion.description);
+      const updatedFields = [];
+      if (suggestion.title) {
+        setTitle(suggestion.title);
+        updatedFields.push('title');
+      }
+      if (suggestion.description) {
+        setDescription(suggestion.description);
+        updatedFields.push('description');
+      }
       if (suggestion.condition) {
-        const normalizedCondition = suggestion.condition.toLowerCase().replace(/\s+/g, '_');
-        if (['new', 'like_new', 'good', 'fair', 'poor'].includes(normalizedCondition)) {
-          setCondition(normalizedCondition);
+        const normalized = suggestion.condition.toLowerCase().replace(/\s+/g, '_');
+        if (['new', 'like_new', 'good', 'fair', 'poor'].includes(normalized)) {
+          setCondition(normalized);
+          updatedFields.push('condition');
         }
       }
       if (suggestion.categoryId) {
         setCategory(suggestion.categoryId);
+        updatedFields.push('category');
       } else if (suggestion.category) {
-        const matchedCategory = categories.find((item) =>
-          item.name.toLowerCase() === suggestion.category.toLowerCase()
-          || item.slug?.toLowerCase() === suggestion.category.toLowerCase()
+        const matched = categories.find((item) =>
+          item.name.toLowerCase() === suggestion.category.toLowerCase() ||
+          item.slug?.toLowerCase() === suggestion.category.toLowerCase()
         );
-        if (matchedCategory) setCategory(matchedCategory._id);
+        if (matched) {
+          setCategory(matched._id);
+          updatedFields.push('category');
+        }
       }
       if (suggestion.tags && Array.isArray(suggestion.tags) && suggestion.tags.length > 0) {
         const combined = Array.from(new Set([...tags, ...suggestion.tags])).slice(0, 8);
@@ -97,19 +122,18 @@ export const ListingForm = ({
       }
       if (listingType === 'sell' && Number(suggestion.estimated_price) > 0) {
         setPrice(String(Math.round(Number(suggestion.estimated_price))));
+        updatedFields.push('price');
       }
+
+      setAiGeneratedFields(updatedFields);
       setAiSource(suggestion.source || 'AI');
       setAiMetadata(suggestion.ai_metadata || { source: suggestion.source || 'AI', generatedAt: new Date().toISOString() });
-      setAiMessage(
-        suggestion.category && !categories.some((item) =>
-          item.name.toLowerCase() === suggestion.category.toLowerCase()
-          || item.slug?.toLowerCase() === suggestion.category.toLowerCase()
-        )
-          ? `Suggestions filled in! Category “${suggestion.category}” isn't in your category list, so please select one manually.`
-          : 'Suggestions filled in! Review and edit them before saving or publishing.'
-      );
+      setAiMessage('✨ AI suggestions generated! All fields remain 100% editable in the next step.');
     } catch (error) {
-      setAiMessage(error.message || 'AI suggestions are unavailable. You can continue filling the form manually.');
+      setAiMessage(
+        error.message ||
+        'AI assistance is currently offline. You can proceed with manual entry without any issues.'
+      );
     } finally {
       setIsSuggesting(false);
     }
@@ -118,7 +142,6 @@ export const ListingForm = ({
   const handleTypeChange = (newType) => {
     setListingType(newType);
     setErrors(prev => ({ ...prev, price: null, rentalRate: null, exchangeFor: null }));
-    // Clear other type-specific fields on change
     if (newType !== 'sell') setPrice('');
     if (newType !== 'rent') {
       setRentalRate('');
@@ -147,21 +170,24 @@ export const ListingForm = ({
     setTags(tags.filter(t => t !== tagToRemove));
   };
 
-  const validate = () => {
+  // Step Validations
+  const validateStep2 = () => {
     const errs = {};
-
     if (!title || title.trim().length < 3 || title.trim().length > 100) {
       errs.title = 'Title must be between 3 and 100 characters';
     }
-
-    if (!description || description.trim().length < 10 || description.trim().length > 2000) {
-      errs.description = 'Description must be between 10 and 2000 characters';
-    }
-
     if (!category) {
       errs.category = 'Please select a category';
     }
+    if (!description || description.trim().length < 10 || description.trim().length > 2000) {
+      errs.description = 'Description must be between 10 and 2000 characters';
+    }
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
 
+  const validateStep3 = () => {
+    const errs = {};
     if (listingType === 'sell') {
       if (price === '' || price === null || Number(price) <= 0) {
         errs.price = 'Price is required and must be greater than 0';
@@ -173,9 +199,12 @@ export const ListingForm = ({
       if (!['day', 'week', 'month'].includes(rentalPeriod)) {
         errs.rentalPeriod = 'Please select a rental period';
       }
+      if (deposit !== '' && Number(deposit) < 0) {
+        errs.deposit = 'Security deposit cannot be negative';
+      }
     } else if (listingType === 'exchange') {
       if (!exchangeFor || exchangeFor.trim().length < 3 || exchangeFor.trim().length > 300) {
-        errs.exchangeFor = 'Exchange description must be between 3 and 300 characters';
+        errs.exchangeFor = 'Please specify what you are seeking in exchange (3–300 chars)';
       }
     }
 
@@ -187,9 +216,29 @@ export const ListingForm = ({
     return Object.keys(errs).length === 0;
   };
 
+  const goToStep = (step) => {
+    if (step === 2 && currentStep === 1) {
+      // Step 1 photos are optional or recommended
+      setCurrentStep(2);
+      if (!visitedSteps.includes(2)) setVisitedSteps([...visitedSteps, 2]);
+    } else if (step === 3) {
+      if (validateStep2()) {
+        setCurrentStep(3);
+        if (!visitedSteps.includes(3)) setVisitedSteps([...visitedSteps, 3]);
+      }
+    } else if (step === 4) {
+      if (validateStep2() && validateStep3()) {
+        setCurrentStep(4);
+        if (!visitedSteps.includes(4)) setVisitedSteps([...visitedSteps, 4]);
+      }
+    } else {
+      setCurrentStep(step);
+    }
+  };
+
   const handleSubmit = (e, status = 'active') => {
     e.preventDefault();
-    if (!validate()) return;
+    if (!validateStep2() || !validateStep3()) return;
 
     const payload = {
       title: title.trim(),
@@ -226,40 +275,122 @@ export const ListingForm = ({
     onSubmit(payload, pendingFiles);
   };
 
+  // Duplicate Check for Notes / Question Papers
+  const selectedCategoryObj = categories.find((c) => c._id === category);
+  const selectedCategorySlug = selectedCategoryObj?.slug || selectedCategoryObj?.name?.toLowerCase() || '';
+  const isStudyMaterial =
+    selectedCategorySlug.includes('note') ||
+    selectedCategorySlug.includes('paper') ||
+    /notes|question paper|pyq|exam|midsem|endsem/i.test(title);
+
+  const totalPhotosCount = existingImages.length + pendingFiles.length;
+
   return (
     <form onSubmit={(e) => handleSubmit(e, 'active')}>
-      <div className="grid2">
-        {/* Left Column: Photos & AI slot */}
-        <div className="card">
-          <h2 style={{ fontSize: 16 }}>Listing Photos</h2>
-          <ImageUploader
-            existingImages={existingImages}
-            pendingFiles={pendingFiles}
-            onPendingFilesChange={setPendingFiles}
-            onDeleteExisting={onDeleteExistingImage}
-            onSetPrimaryExisting={onSetPrimaryExistingImage}
-            disabled={isSubmitting}
-          />
+      {/* ── Stepper Navigation Bar ─────────────────────────────────────────── */}
+      <div className="create-stepper">
+        <div
+          className={`stepper-step ${currentStep === 1 ? 'active' : visitedSteps.includes(1) ? 'completed' : ''}`}
+          onClick={() => goToStep(1)}
+        >
+          <span className="stepper-number">{visitedSteps.includes(1) && currentStep > 1 ? '✓' : '1'}</span>
+          <span className="stepper-label">Photos & AI</span>
+        </div>
+        <div className={`stepper-divider ${currentStep > 1 ? 'active' : ''}`} />
 
-          {/* AI listing suggestions */}
-          {showAiSuggestionSlot && (
-            <div
-              className="card"
-              style={{
-                background: '#f5f3ff',
-                marginTop: 16,
-                borderLeft: '4px solid #7c3aed',
-                padding: '14px 16px'
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <b style={{ color: '#5b21b6' }}>✨ AI Listing Generator {aiSource && <small>({aiSource})</small>}</b>
+        <div
+          className={`stepper-step ${currentStep === 2 ? 'active' : visitedSteps.includes(2) ? 'completed' : ''}`}
+          onClick={() => goToStep(2)}
+        >
+          <span className="stepper-number">{visitedSteps.includes(2) && currentStep > 2 ? '✓' : '2'}</span>
+          <span className="stepper-label">Item Details</span>
+        </div>
+        <div className={`stepper-divider ${currentStep > 2 ? 'active' : ''}`} />
+
+        <div
+          className={`stepper-step ${currentStep === 3 ? 'active' : visitedSteps.includes(3) ? 'completed' : ''}`}
+          onClick={() => goToStep(3)}
+        >
+          <span className="stepper-number">{visitedSteps.includes(3) && currentStep > 3 ? '✓' : '3'}</span>
+          <span className="stepper-label">Pricing & Terms</span>
+        </div>
+        <div className={`stepper-divider ${currentStep > 3 ? 'active' : ''}`} />
+
+        <div
+          className={`stepper-step ${currentStep === 4 ? 'active' : ''}`}
+          onClick={() => goToStep(4)}
+        >
+          <span className="stepper-number">4</span>
+          <span className="stepper-label">Review & Publish</span>
+        </div>
+      </div>
+
+      {/* ── STEP 1: Add Photos & AI Assistance ─────────────────────────────── */}
+      {currentStep === 1 && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 24 }}>
+          {/* Photos Upload Column */}
+          <div className="card" style={{ padding: 24 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <div>
+                <h2 style={{ fontSize: 18, margin: 0, fontWeight: 700 }}>
+                  Upload Photos
+                </h2>
+                <p className="muted" style={{ margin: '4px 0 0 0', fontSize: 13 }}>
+                  Add up to 6 clear photos. The first photo is your main cover image.
+                </p>
+              </div>
+              <span className="pill pill-blue" style={{ fontSize: 12 }}>
+                {totalPhotosCount}/6 Photos
+              </span>
+            </div>
+
+            <ImageUploader
+              existingImages={existingImages}
+              pendingFiles={pendingFiles}
+              onPendingFilesChange={setPendingFiles}
+              onDeleteExisting={onDeleteExistingImage}
+              onSetPrimaryExisting={onSetPrimaryExistingImage}
+              disabled={isSubmitting}
+            />
+
+            <div className="step-nav-footer">
+              <span className="muted" style={{ fontSize: 13 }}>
+                💡 Tip: Photos increase response rates by over 3x on campus.
+              </span>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => goToStep(2)}
+                style={{ padding: '10px 20px', fontSize: 14 }}
+              >
+                Next: Enter Item Details →
+              </button>
+            </div>
+          </div>
+
+          {/* AI Assistance Column */}
+          <div className="card" style={{ padding: 24, background: '#faf5ff', border: '1.5px solid #e9d5ff' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <span style={{ fontSize: 22 }}>✨</span>
+              <h3 style={{ fontSize: 17, fontWeight: 700, color: '#581c87', margin: 0 }}>
+                AI Listing Assistant
+              </h3>
+            </div>
+            <p style={{ fontSize: 13, color: '#6b21a8', lineHeight: 1.5, margin: '0 0 16px 0' }}>
+              Upload an item photo and our campus AI will automatically analyze it to draft title, category, condition, and description.
+            </p>
+
+            <div style={{ background: '#ffffff', borderRadius: 10, padding: 14, border: '1px solid #f3e8ff', marginBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#4c1d95' }}>
+                  Optional Hints (Improves Accuracy)
+                </span>
                 <button
                   type="button"
                   style={{
                     background: 'none',
                     border: 'none',
-                    color: '#6d28d9',
+                    color: '#7c3aed',
                     fontSize: 12,
                     cursor: 'pointer',
                     textDecoration: 'underline',
@@ -267,301 +398,665 @@ export const ListingForm = ({
                   }}
                   onClick={() => setShowAiHints(prev => !prev)}
                 >
-                  {showAiHints ? 'Hide optional hints' : '+ Add optional hints'}
+                  {showAiHints ? 'Hide hints' : '+ Add hints'}
                 </button>
               </div>
-              <p className="muted" style={{ marginTop: 4, marginBottom: 10, fontSize: 13 }}>
-                Upload a photo to automatically draft title, category, description, and condition.
-              </p>
 
               {showAiHints && (
-                <div style={{ marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
                   <input
                     type="text"
-                    placeholder="Brand / Model (optional hint, e.g. Casio FX-991EX)"
+                    placeholder="Brand / Model / Course (e.g. Casio FX-991, MTH101)"
                     value={aiBrand}
                     onChange={(e) => setAiBrand(e.target.value)}
-                    style={{ fontSize: 13, padding: '6px 10px', background: '#fff' }}
+                    style={{ fontSize: 13, padding: '8px 10px' }}
                   />
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                     <input
                       type="text"
-                      placeholder="Age / Usage (e.g. 6 mos, 1 yr)"
+                      placeholder="Age (e.g. 1 semester)"
                       value={aiAge}
                       onChange={(e) => setAiAge(e.target.value)}
-                      style={{ fontSize: 13, padding: '6px 10px', background: '#fff' }}
+                      style={{ fontSize: 13, padding: '8px 10px' }}
                     />
                     <select
                       value={aiConditionHint}
                       onChange={(e) => setAiConditionHint(e.target.value)}
-                      style={{ fontSize: 13, padding: '6px 10px', background: '#fff' }}
+                      style={{ fontSize: 13, padding: '8px 10px' }}
                     >
-                      <option value="">Condition hint (optional)</option>
+                      <option value="">Condition hint</option>
                       <option value="new">New</option>
                       <option value="like_new">Like New</option>
                       <option value="good">Good</option>
                       <option value="fair">Fair</option>
-                      <option value="poor">Poor</option>
                     </select>
                   </div>
                 </div>
               )}
-
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={handleAiSuggestion}
-                disabled={isSubmitting || isSuggesting || categoriesLoading}
-                style={{ width: '100%', justifyContent: 'center' }}
-              >
-                {isSuggesting ? 'Analyzing photo with AI…' : 'Generate Details with AI'}
-              </button>
-              {aiMessage && (
-                <p
-                  className="muted"
-                  role="status"
-                  style={{
-                    marginTop: 8,
-                    fontSize: 13,
-                    color: aiMessage.includes('unavailable') ? '#b91c1c' : '#4338ca',
-                    fontWeight: 500
-                  }}
-                >
-                  {aiMessage}
-                </p>
-              )}
             </div>
-          )}
-        </div>
 
-        {/* Right Column: Listing Details */}
-        <div className="card">
-          {/* Type Selector Tabs */}
-          <label style={{ marginTop: 0 }}>Listing Type</label>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-            {['sell', 'rent', 'exchange', 'giveaway'].map((type) => (
-              <button
-                key={type}
-                type="button"
-                className={`chip ${listingType === type ? 'active' : ''}`}
-                style={{ flex: 1, textTransform: 'capitalize', textAlign: 'center', margin: 0 }}
-                onClick={() => handleTypeChange(type)}
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={handleAiSuggestion}
+              disabled={isSubmitting || isSuggesting || pendingFiles.length === 0}
+              style={{
+                width: '100%',
+                background: '#7c3aed',
+                borderColor: '#6d28d9',
+                padding: '12px 16px',
+                fontSize: 14,
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8
+              }}
+            >
+              {isSuggesting ? 'Analyzing Photo with AI…' : '✨ Generate Listing Draft with AI'}
+            </button>
+
+            {aiMessage && (
+              <div
+                style={{
+                  marginTop: 12,
+                  padding: 10,
+                  borderRadius: 8,
+                  fontSize: 12,
+                  background: aiMessage.includes('unavailable') ? '#fef2f2' : '#f0fdf4',
+                  color: aiMessage.includes('unavailable') ? '#991b1b' : '#166534',
+                  border: `1px solid ${aiMessage.includes('unavailable') ? '#fecaca' : '#bbf7d0'}`,
+                  lineHeight: 1.45
+                }}
               >
-                {type}
-              </button>
-            ))}
+                {aiMessage}
+              </div>
+            )}
+
+            <div style={{ marginTop: 14, padding: '10px 12px', background: 'rgba(255,255,255,0.7)', borderRadius: 8, fontSize: 11, color: '#6b21a8' }}>
+              🔒 <b>Student Control Guaranteed:</b> AI provides suggestions only. You can edit, adjust, or completely rewrite every field in Step 2.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── STEP 2: Item Details ───────────────────────────────────────────── */}
+      {currentStep === 2 && (
+        <div className="card" style={{ maxWidth: 760, margin: '0 auto', padding: 28 }}>
+          <div style={{ marginBottom: 20 }}>
+            <h2 style={{ fontSize: 20, margin: 0, fontWeight: 700 }}>
+              Item Details
+            </h2>
+            <p className="muted" style={{ margin: '4px 0 0 0', fontSize: 13 }}>
+              Fields marked with <span className="required-star">*</span> are required.
+            </p>
           </div>
 
           {/* Title */}
-          <label htmlFor="title">Title *</label>
-          <input
-            id="title"
-            placeholder="e.g. Used Calculus Textbook (8th Ed.)"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className={errors.title ? 'error' : ''}
-          />
-          {errors.title && <span className="error-text">{errors.title}</span>}
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+              <label htmlFor="title">
+                Title <span className="required-star">*</span>
+              </label>
+              <span className="muted" style={{ fontSize: 11 }}>
+                {title.length}/100
+              </span>
+            </div>
+            <input
+              id="title"
+              placeholder="e.g. Thomas Calculus 14th Edition with Solution Guide"
+              value={title}
+              maxLength={100}
+              onChange={(e) => setTitle(e.target.value)}
+              className={errors.title ? 'error' : ''}
+            />
+            {errors.title ? (
+              <span className="error-text">{errors.title}</span>
+            ) : (
+              <div className="form-field-helper">
+                Include brand, model, author, or edition for quick peer search discovery.
+              </div>
+            )}
+          </div>
 
           {/* Category */}
-          <label htmlFor="category">Category *</label>
-          <select
-            id="category"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            disabled={categoriesLoading}
-            className={errors.category ? 'error' : ''}
-          >
-            <option value="">
-              {categoriesLoading
-                ? 'Loading categories...'
-                : categories.length === 0
-                ? 'No categories available'
-                : 'Select a Category'}
-            </option>
-            {categories.map((c) => (
-              <option key={c._id} value={c._id}>
-                {c.icon ? `${c.icon} ` : ''}{c.name}
+          <div style={{ marginTop: 16 }}>
+            <label htmlFor="category">
+              Category <span className="required-star">*</span>
+            </label>
+            <select
+              id="category"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              disabled={categoriesLoading}
+              className={errors.category ? 'error' : ''}
+            >
+              <option value="">
+                {categoriesLoading ? 'Loading categories...' : 'Select a Category'}
               </option>
-            ))}
-          </select>
-          {errors.category && <span className="error-text">{errors.category}</span>}
-
-          {/* Type-Specific Fields */}
-          {listingType === 'sell' && (
-            <div>
-              <label htmlFor="price">Price (₹) *</label>
-              <input
-                id="price"
-                type="number"
-                placeholder="₹450"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                className={errors.price ? 'error' : ''}
-              />
-              {errors.price && <span className="error-text">{errors.price}</span>}
-            </div>
-          )}
-
-          {listingType === 'rent' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 10 }}>
-              <div>
-                <label htmlFor="rentalRate">Rental Rate (₹) *</label>
-                <input
-                  id="rentalRate"
-                  type="number"
-                  placeholder="₹25"
-                  value={rentalRate}
-                  onChange={(e) => setRentalRate(e.target.value)}
-                  className={errors.rentalRate ? 'error' : ''}
-                />
-                {errors.rentalRate && <span className="error-text">{errors.rentalRate}</span>}
+              {categories.map((c) => (
+                <option key={c._id} value={c._id}>
+                  {c.icon ? `${c.icon} ` : ''}{c.name}
+                </option>
+              ))}
+            </select>
+            {errors.category ? (
+              <span className="error-text">{errors.category}</span>
+            ) : (
+              <div className="form-field-helper">
+                Categorizing your item helps counterparties find it through browse filters.
               </div>
-              <div>
-                <label htmlFor="rentalPeriod">Per Period *</label>
-                <select
-                  id="rentalPeriod"
-                  value={rentalPeriod}
-                  onChange={(e) => setRentalPeriod(e.target.value)}
-                >
-                  <option value="day">Day</option>
-                  <option value="week">Week</option>
-                  <option value="month">Month</option>
-                </select>
-              </div>
-              <div style={{ gridColumn: 'span 2' }}>
-                <label htmlFor="deposit">Security Deposit (₹) (Optional)</label>
-                <input
-                  id="deposit"
-                  type="number"
-                  placeholder="₹200"
-                  value={deposit}
-                  onChange={(e) => setDeposit(e.target.value)}
-                />
-              </div>
-            </div>
-          )}
+            )}
+          </div>
 
-          {listingType === 'exchange' && (
-            <div>
-              <label htmlFor="exchangeFor">What do you want in exchange? *</label>
-              <input
-                id="exchangeFor"
-                placeholder="e.g. Looking for Algorithms textbook or Python book"
-                value={exchangeFor}
-                onChange={(e) => setExchangeFor(e.target.value)}
-                className={errors.exchangeFor ? 'error' : ''}
-              />
-              {errors.exchangeFor && <span className="error-text">{errors.exchangeFor}</span>}
-            </div>
-          )}
-
-          {listingType === 'giveaway' && (
-            <div style={{ background: '#fef3c7', padding: '10px 14px', borderRadius: 8, marginTop: 14 }}>
-              <b style={{ color: '#92400e', fontSize: 13 }}>Free Item</b>
-              <p className="muted" style={{ fontSize: 12 }}>
-                This item is listed as a campus giveaway at ₹0 price.
+          {/* Duplicate Notice for Study Material / Question Papers */}
+          {isStudyMaterial && (
+            <div className="academic-duplicate-warning">
+              <span style={{ fontSize: 18 }}>📝</span>
+              <p>
+                <b>Sharing Academic Study Material?</b> Please make sure these lecture notes or past question papers aren't already uploaded by your class representative or peers in this category to prevent duplicate campus listings.
               </p>
             </div>
           )}
 
           {/* Condition */}
-          <label htmlFor="condition">Condition</label>
-          <select
-            id="condition"
-            value={condition}
-            onChange={(e) => setCondition(e.target.value)}
-          >
-            <option value="new">New</option>
-            <option value="like_new">Like New</option>
-            <option value="good">Good</option>
-            <option value="fair">Fair</option>
-            <option value="poor">Poor</option>
-          </select>
+          <div style={{ marginTop: 16 }}>
+            <label htmlFor="condition">
+              Condition <span className="required-star">*</span>
+            </label>
+            <select
+              id="condition"
+              value={condition}
+              onChange={(e) => setCondition(e.target.value)}
+            >
+              <option value="new">New (Unopened, in original packaging)</option>
+              <option value="like_new">Like New (Barely used, zero flaws)</option>
+              <option value="good">Good (Lightly used, fully functional)</option>
+              <option value="fair">Fair (Noticeable cosmetic wear, fully working)</option>
+              <option value="poor">Poor (Heavy wear, suitable for spare parts/rough use)</option>
+            </select>
+            <div className="form-field-helper">
+              Accurate condition builds your campus reputation and avoids disputes at physical meetup.
+            </div>
+          </div>
 
           {/* Description */}
-          <label htmlFor="description">Description *</label>
-          <textarea
-            id="description"
-            rows="3"
-            placeholder="Lightly used, all pages intact, no markings."
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className={errors.description ? 'error' : ''}
-          />
-          {errors.description && <span className="error-text">{errors.description}</span>}
+          <div style={{ marginTop: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+              <label htmlFor="description">
+                Description <span className="required-star">*</span>
+              </label>
+              <span className="muted" style={{ fontSize: 11 }}>
+                {description.length}/2000
+              </span>
+            </div>
+            <textarea
+              id="description"
+              rows={4}
+              placeholder="Provide details about the item's condition, subject, semester, or included accessories (e.g., covers, cables, markings)."
+              value={description}
+              maxLength={2000}
+              onChange={(e) => setDescription(e.target.value)}
+              className={errors.description ? 'error' : ''}
+              style={{ resize: 'vertical' }}
+            />
+            {errors.description ? (
+              <span className="error-text">{errors.description}</span>
+            ) : (
+              <div className="form-field-helper">
+                Minimum 10 characters. Mentioning any highlights or flaws helps buyers decide faster.
+              </div>
+            )}
+          </div>
 
-          {/* Pickup Location & Quantity */}
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10 }}>
+          {/* Search Tags */}
+          <div style={{ marginTop: 16 }}>
+            <label htmlFor="tags">Search Tags (Up to 8 tags)</label>
+            <input
+              id="tags"
+              placeholder="e.g. sem3, calculus, engineering, drafter (press Enter)"
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              onKeyDown={handleAddTag}
+            />
+            {errors.tags && <span className="error-text">{errors.tags}</span>}
+            {tags.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                {tags.map((tag) => (
+                  <span key={tag} className="chip-tag">
+                    #{tag}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveTag(tag)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Step Footer Navigation */}
+          <div className="step-nav-footer">
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => goToStep(1)}
+            >
+              ← Back: Photos
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => goToStep(3)}
+              style={{ padding: '10px 22px' }}
+            >
+              Next: Pricing & Terms →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── STEP 3: Pricing & Terms (Dynamic Form Based on Listing Type) ────── */}
+      {currentStep === 3 && (
+        <div className="card" style={{ maxWidth: 760, margin: '0 auto', padding: 28 }}>
+          <div style={{ marginBottom: 20 }}>
+            <h2 style={{ fontSize: 20, margin: 0, fontWeight: 700 }}>
+              Pricing & Handover Terms
+            </h2>
+            <p className="muted" style={{ margin: '4px 0 0 0', fontSize: 13 }}>
+              Choose your listing type. The form adapts dynamically to show only relevant fields.
+            </p>
+          </div>
+
+          {/* Dynamic Listing Type Cards */}
+          <div className="listing-type-cards">
+            <div
+              className={`type-select-card ${listingType === 'sell' ? 'active' : ''}`}
+              onClick={() => handleTypeChange('sell')}
+            >
+              <span className="type-select-icon">🏷️</span>
+              <span className="type-select-title">Sell</span>
+              <span className="type-select-desc">Direct campus purchase</span>
+            </div>
+
+            <div
+              className={`type-select-card ${listingType === 'rent' ? 'active' : ''}`}
+              onClick={() => handleTypeChange('rent')}
+            >
+              <span className="type-select-icon">⏳</span>
+              <span className="type-select-title">Rent</span>
+              <span className="type-select-desc">Temporary borrowing</span>
+            </div>
+
+            <div
+              className={`type-select-card ${listingType === 'exchange' ? 'active' : ''}`}
+              onClick={() => handleTypeChange('exchange')}
+            >
+              <span className="type-select-icon">🔄</span>
+              <span className="type-select-title">Exchange</span>
+              <span className="type-select-desc">Item-for-item barter</span>
+            </div>
+
+            <div
+              className={`type-select-card ${listingType === 'giveaway' ? 'active' : ''}`}
+              onClick={() => handleTypeChange('giveaway')}
+            >
+              <span className="type-select-icon">🎁</span>
+              <span className="type-select-title">Giveaway</span>
+              <span className="type-select-desc">Free community gift</span>
+            </div>
+          </div>
+
+          {/* ── Dynamic Fields Based on Listing Type ──────────────────────── */}
+          {/* A. Sell Fields */}
+          {listingType === 'sell' && (
+            <div style={{ background: '#f8fafc', padding: 18, borderRadius: 12, border: '1px solid #e2e8f0', marginBottom: 20 }}>
+              <label htmlFor="price" style={{ marginTop: 0 }}>
+                Selling Price (₹) <span className="required-star">*</span>
+              </label>
+              <input
+                id="price"
+                type="number"
+                min="1"
+                placeholder="e.g. 450"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                className={errors.price ? 'error' : ''}
+              />
+              {errors.price ? (
+                <span className="error-text">{errors.price}</span>
+              ) : (
+                <div className="form-field-helper">
+                  💡 Tip: Fair campus pricing (30–50% below retail) ensures fast sales among students.
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* B. Rent Fields */}
+          {listingType === 'rent' && (
+            <div style={{ background: '#f0fdf4', padding: 18, borderRadius: 12, border: '1px solid #bbf7d0', marginBottom: 20 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 14 }}>
+                <div>
+                  <label htmlFor="rentalRate" style={{ marginTop: 0 }}>
+                    Rental Rate (₹) <span className="required-star">*</span>
+                  </label>
+                  <input
+                    id="rentalRate"
+                    type="number"
+                    min="1"
+                    placeholder="e.g. 50"
+                    value={rentalRate}
+                    onChange={(e) => setRentalRate(e.target.value)}
+                    className={errors.rentalRate ? 'error' : ''}
+                  />
+                  {errors.rentalRate && <span className="error-text">{errors.rentalRate}</span>}
+                </div>
+                <div>
+                  <label htmlFor="rentalPeriod" style={{ marginTop: 0 }}>
+                    Per Period <span className="required-star">*</span>
+                  </label>
+                  <select
+                    id="rentalPeriod"
+                    value={rentalPeriod}
+                    onChange={(e) => setRentalPeriod(e.target.value)}
+                  >
+                    <option value="day">Per Day</option>
+                    <option value="week">Per Week</option>
+                    <option value="month">Per Month</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ marginTop: 14 }}>
+                <label htmlFor="deposit" style={{ marginTop: 0 }}>
+                  Security Deposit (₹) <span className="muted" style={{ fontWeight: 400 }}>(Optional, Refundable)</span>
+                </label>
+                <input
+                  id="deposit"
+                  type="number"
+                  min="0"
+                  placeholder="e.g. 200"
+                  value={deposit}
+                  onChange={(e) => setDeposit(e.target.value)}
+                  className={errors.deposit ? 'error' : ''}
+                />
+                {errors.deposit ? (
+                  <span className="error-text">{errors.deposit}</span>
+                ) : (
+                  <div className="form-field-helper">
+                    🔒 Refunded in full to the renter when the item is returned in good condition.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* C. Exchange Fields */}
+          {listingType === 'exchange' && (
+            <div style={{ background: '#faf5ff', padding: 18, borderRadius: 12, border: '1px solid #e9d5ff', marginBottom: 20 }}>
+              <label htmlFor="exchangeFor" style={{ marginTop: 0 }}>
+                What do you want in exchange? <span className="required-star">*</span>
+              </label>
+              <input
+                id="exchangeFor"
+                placeholder="e.g. Looking for Data Structures book (2nd Ed.) or scientific calculator"
+                value={exchangeFor}
+                onChange={(e) => setExchangeFor(e.target.value)}
+                className={errors.exchangeFor ? 'error' : ''}
+              />
+              {errors.exchangeFor ? (
+                <span className="error-text">{errors.exchangeFor}</span>
+              ) : (
+                <div className="form-field-helper">
+                  Be specific so peers know what trade proposals you are willing to accept.
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* D. Giveaway Fields */}
+          {listingType === 'giveaway' && (
+            <div style={{ background: '#fef3c7', padding: 16, borderRadius: 12, border: '1px solid #fde68a', marginBottom: 20 }}>
+              <b style={{ color: '#92400e', fontSize: 14 }}>🎁 Free Campus Giveaway (₹0)</b>
+              <p style={{ margin: '4px 0 0 0', fontSize: 13, color: '#b45309', lineHeight: 1.45 }}>
+                This item will be listed for free campus pickup. Sharing items gives them a second life and boosts your Campus Eco Score!
+              </p>
+            </div>
+          )}
+
+          {/* Shared Handover & Quantity Fields */}
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
             <div>
-              <label htmlFor="pickupLocation">Pickup Location</label>
+              <label htmlFor="pickupLocation" style={{ marginTop: 0 }}>
+                Campus Pickup Location
+              </label>
               <input
                 id="pickupLocation"
-                placeholder="e.g. Hostel Block C / Main Canteen"
+                placeholder="e.g. Central Library Foyer / Main Canteen"
                 value={pickupLocation}
                 onChange={(e) => setPickupLocation(e.target.value)}
               />
+              <div className="form-field-helper">
+                📍 Where you prefer to physically meet counterparties on campus.
+              </div>
             </div>
             <div>
-              <label htmlFor="quantity">Quantity</label>
+              <label htmlFor="quantity" style={{ marginTop: 0 }}>
+                Quantity Available
+              </label>
               <input
                 id="quantity"
                 type="number"
                 min="1"
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
+                className={errors.quantity ? 'error' : ''}
               />
+              {errors.quantity && <span className="error-text">{errors.quantity}</span>}
             </div>
           </div>
 
-          {/* Tags */}
-          <label htmlFor="tags">Tags (Up to 8 tags, press Enter or comma)</label>
-          <input
-            id="tags"
-            placeholder="e.g. calculus, sem3, maths"
-            value={tagInput}
-            onChange={(e) => setTagInput(e.target.value)}
-            onKeyDown={handleAddTag}
-          />
-          {errors.tags && <span className="error-text">{errors.tags}</span>}
-          {tags.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
-              {tags.map((tag) => (
-                <span key={tag} className="chip-tag">
-                  #{tag}
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveTag(tag)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                  >
-                    ×
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div style={{ display: 'flex', gap: 10, marginTop: 24 }}>
+          {/* Step Footer Navigation */}
+          <div className="step-nav-footer">
             <button
               type="button"
               className="btn btn-secondary"
-              disabled={isSubmitting}
-              onClick={(e) => handleSubmit(e, 'draft')}
+              onClick={() => goToStep(2)}
             >
-              Save Draft
+              ← Back: Item Details
             </button>
             <button
-              type="submit"
+              type="button"
               className="btn btn-primary"
-              disabled={isSubmitting}
-              style={{ flex: 1 }}
+              onClick={() => goToStep(4)}
+              style={{ padding: '10px 22px' }}
             >
-              {isSubmitting ? 'Saving...' : 'Publish Listing'}
+              Next: Review & Publish →
             </button>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* ── STEP 4: Review and Publish ─────────────────────────────────────── */}
+      {currentStep === 4 && (
+        <div className="card" style={{ maxWidth: 840, margin: '0 auto', padding: 28 }}>
+          <div style={{ marginBottom: 20 }}>
+            <h2 style={{ fontSize: 22, margin: 0, fontWeight: 700 }}>
+              Review Your Listing
+            </h2>
+            <p className="muted" style={{ margin: '4px 0 0 0', fontSize: 13 }}>
+              Verify how your listing will appear to counterparties before publishing.
+            </p>
+          </div>
+
+          {/* Interactive Preview Card */}
+          <div className="review-preview-box">
+            {/* Left: Photos Preview */}
+            <div>
+              <div
+                style={{
+                  width: '100%',
+                  height: 220,
+                  borderRadius: 12,
+                  background: '#ffffff',
+                  border: '1px solid #cbd5e1',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  position: 'relative'
+                }}
+              >
+                {pendingFiles.length > 0 ? (
+                  <img
+                    src={URL.createObjectURL(pendingFiles[0])}
+                    alt="Cover preview"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                ) : existingImages.length > 0 ? (
+                  <img
+                    src={existingImages[0].url}
+                    alt="Cover preview"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                ) : (
+                  <div style={{ textAlign: 'center', color: '#94a3b8', padding: 20 }}>
+                    <div style={{ fontSize: 32, marginBottom: 4 }}>📷</div>
+                    <span style={{ fontSize: 12 }}>No photo uploaded</span>
+                  </div>
+                )}
+                {totalPhotosCount > 0 && (
+                  <span
+                    className="pill pill-blue"
+                    style={{ position: 'absolute', top: 8, left: 8, fontSize: 11, fontWeight: 700 }}
+                  >
+                    ★ Main Photo ({totalPhotosCount} total)
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Right: Key Specs Preview */}
+            <div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                <span className="pill pill-blue">
+                  {selectedCategoryObj?.name || 'General Item'}
+                </span>
+                <span className={`pill ${listingType === 'rent' ? 'pill-green' : listingType === 'exchange' ? 'pill-purple' : listingType === 'giveaway' ? 'pill-yellow' : 'pill-gray'}`}>
+                  {listingType.toUpperCase()}
+                </span>
+                <span className="pill pill-gray" style={{ textTransform: 'capitalize' }}>
+                  {condition.replace('_', ' ')}
+                </span>
+              </div>
+
+              <h3 style={{ fontSize: 20, margin: '0 0 10px 0', color: '#0f172a' }}>
+                {title || 'Untitled Listing'}
+              </h3>
+
+              {/* Pricing Callout */}
+              <div style={{ marginBottom: 14 }}>
+                {listingType === 'sell' && (
+                  <div style={{ fontSize: 26, fontWeight: 800, color: '#1d4ed8' }}>
+                    ₹{price || 0} <span style={{ fontSize: 13, fontWeight: 500, color: '#64748b' }}>Fixed Price</span>
+                  </div>
+                )}
+                {listingType === 'rent' && (
+                  <div>
+                    <span style={{ fontSize: 26, fontWeight: 800, color: '#166534' }}>
+                      ₹{rentalRate || 0}
+                    </span>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: '#475569' }}>/{rentalPeriod}</span>
+                    {deposit ? <span className="muted" style={{ fontSize: 12, marginLeft: 8 }}>(Deposit: ₹{deposit})</span> : null}
+                  </div>
+                )}
+                {listingType === 'exchange' && (
+                  <div style={{ color: '#6b21a8' }}>
+                    <span style={{ fontWeight: 700, fontSize: 16 }}>Seeking in trade:</span> {exchangeFor || 'Item exchange'}
+                  </div>
+                )}
+                {listingType === 'giveaway' && (
+                  <div style={{ fontSize: 24, fontWeight: 800, color: '#92400e' }}>
+                    Free Item (₹0)
+                  </div>
+                )}
+              </div>
+
+              <p style={{ fontSize: 13, color: '#475569', lineHeight: 1.5, whiteSpace: 'pre-line', margin: '0 0 12px 0' }}>
+                {description || 'No description provided.'}
+              </p>
+
+              <div style={{ display: 'flex', gap: 16, fontSize: 12, color: '#64748b' }}>
+                <span>📍 {pickupLocation || 'Campus meetup spot to be coordinated'}</span>
+                <span>📦 Qty: {quantity}</span>
+              </div>
+
+              {tags.length > 0 && (
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
+                  {tags.map(t => (
+                    <span key={t} className="chip-tag" style={{ fontSize: 11 }}>#{t}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Publishing Policy Notice */}
+          <div
+            style={{
+              marginTop: 20,
+              padding: '12px 16px',
+              borderRadius: 10,
+              background: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              fontSize: 13,
+              color: '#166534'
+            }}
+          >
+            <span>✓</span>
+            <span>
+              <b>Instant Live Publishing:</b> Your listing will be visible across the campus marketplace immediately upon confirmation.
+            </span>
+          </div>
+
+          {/* Step 4 Final Actions */}
+          <div className="step-nav-footer">
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => goToStep(3)}
+              disabled={isSubmitting}
+            >
+              ← Back to Edit
+            </button>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                disabled={isSubmitting}
+                onClick={(e) => handleSubmit(e, 'draft')}
+              >
+                Save as Draft
+              </button>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={isSubmitting}
+                style={{ minWidth: 160 }}
+              >
+                {isSubmitting ? 'Publishing...' : '🚀 Publish Listing Now'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 };

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { listingsApi } from '../api/listingsApi';
 import { ListingForm } from '../components/ListingForm';
 import '../marketplace.css';
@@ -11,8 +11,8 @@ export const CreateListingPage = () => {
   const fromRentalRequest = location.state?.fromRentalRequest;
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [successData, setSuccessData] = useState(null);
 
   const handleCreate = async (formData, pendingFiles) => {
     try {
@@ -23,37 +23,43 @@ export const CreateListingPage = () => {
       const newListing = await listingsApi.createListing(formData);
 
       // 2. Upload images if provided
+      let imageUploadWarning = '';
       if (pendingFiles && pendingFiles.length > 0) {
         try {
           await listingsApi.uploadImages(newListing._id, pendingFiles);
         } catch (imgError) {
-          setToastMessage('Listing created, but image upload encountered an error. You can re-upload photos in Edit.');
-          setTimeout(() => navigate(`/marketplace/${newListing._id}`), 2500);
-          return;
+          imageUploadWarning = 'Listing was created, but photos could not be processed. You can re-upload them anytime in Edit Listing.';
         }
       }
 
-      setToastMessage('Listing created successfully!');
-      setTimeout(() => navigate(`/marketplace/${newListing._id}`), 1000);
+      setSuccessData({
+        listing: newListing,
+        status: newListing.status || formData.status || 'active',
+        imageWarning: imageUploadWarning,
+      });
     } catch (err) {
-      setErrorMessage(err.message || 'Failed to create listing');
+      setErrorMessage(err.message || 'Failed to create listing. Please check required fields and try again.');
       setIsSubmitting(false);
     }
   };
 
   return (
     <div className="marketplace-page page">
-      <h1>Create a New Listing</h1>
-      <p className="muted" style={{ marginBottom: 20 }}>
-        Post items to buy, sell, rent, exchange, or giveaway with fellow campus students.
-      </p>
+      <div style={{ marginBottom: 20 }}>
+        <h1 style={{ fontSize: 26, margin: '0 0 6px 0', color: '#0f172a' }}>
+          Create a New Listing
+        </h1>
+        <p className="muted" style={{ margin: 0, fontSize: 14 }}>
+          Post items to buy, sell, rent, exchange, or giveaway with fellow campus peers.
+        </p>
+      </div>
 
       {fromRentalRequest && (
         <div
           style={{
             background: 'rgba(99, 102, 241, 0.1)',
             border: '1px solid rgba(99, 102, 241, 0.3)',
-            borderRadius: 8,
+            borderRadius: 10,
             padding: '12px 16px',
             marginBottom: 20,
             display: 'flex',
@@ -62,22 +68,30 @@ export const CreateListingPage = () => {
           }}
         >
           <span style={{ fontSize: 20 }}>✨</span>
-          <p style={{ margin: 0, color: '#a5b4fc', fontSize: 14 }}>
-            <strong>Listing for Rental Request:</strong> Pre-filled for{' '}
-            <strong>"{initialValues.title}"</strong>. The student has been notified and will be able to rent it once published!
+          <p style={{ margin: 0, color: '#3730a3', fontSize: 14 }}>
+            <strong>Fulfilling Rental Request:</strong> Pre-filled for{' '}
+            <strong>"{initialValues.title}"</strong>. The requesting peer will be notified once published!
           </p>
         </div>
       )}
 
       {errorMessage && (
-        <div className="card" style={{ background: '#fef2f2', border: '1px solid #fecaca', marginBottom: 16 }}>
-          <p style={{ color: '#b91c1c' }}>{errorMessage}</p>
-        </div>
-      )}
-
-      {toastMessage && (
-        <div className="toast">
-          ✓ {toastMessage}
+        <div
+          className="card"
+          style={{
+            background: '#fef2f2',
+            border: '1px solid #fecaca',
+            borderLeft: '4px solid #dc2626',
+            marginBottom: 20,
+            padding: '14px 18px',
+          }}
+        >
+          <p style={{ color: '#b91c1c', margin: 0, fontWeight: 600, fontSize: 14 }}>
+            ⚠️ {errorMessage}
+          </p>
+          <p className="muted" style={{ margin: '4px 0 0 0', fontSize: 12 }}>
+            Your entered data has been preserved below. Please correct the highlighted errors and try again.
+          </p>
         </div>
       )}
 
@@ -86,6 +100,124 @@ export const CreateListingPage = () => {
         onSubmit={handleCreate}
         isSubmitting={isSubmitting}
       />
+
+      {/* ── Submission Confirmation Modal ────────────────────────────────────── */}
+      {successData && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.65)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            backdropFilter: 'blur(4px)',
+          }}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: 16,
+              padding: 32,
+              width: '100%',
+              maxWidth: 500,
+              boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+              textAlign: 'center',
+            }}
+          >
+            <div
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: '50%',
+                background: successData.status === 'pending' ? '#fef3c7' : '#dcfce7',
+                color: successData.status === 'pending' ? '#b45309' : '#166534',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 32,
+                margin: '0 auto 16px auto',
+              }}
+            >
+              {successData.status === 'pending' ? '⏳' : '🎉'}
+            </div>
+
+            <h3 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 8px 0', color: '#0f172a' }}>
+              {successData.status === 'draft'
+                ? 'Draft Saved Successfully!'
+                : successData.status === 'pending'
+                ? 'Listing Submitted for Review'
+                : 'Listing Published Successfully!'}
+            </h3>
+
+            <p style={{ color: '#475569', fontSize: 14, lineHeight: 1.5, margin: '0 0 20px 0' }}>
+              {successData.status === 'draft' ? (
+                <span>
+                  Your listing draft for <b>"{successData.listing?.title}"</b> is saved in your account. You can complete and publish it anytime from your My Listings page.
+                </span>
+              ) : successData.status === 'pending' ? (
+                <span>
+                  Your listing for <b>"{successData.listing?.title}"</b> is in a moderated category and is currently awaiting a quick safety check by student moderators. It will appear publicly as soon as approved!
+                </span>
+              ) : (
+                <span>
+                  Your listing for <b>"{successData.listing?.title}"</b> is now live! Fellow campus peers can now discover, request, or purchase it on the marketplace.
+                </span>
+              )}
+            </p>
+
+            {successData.imageWarning && (
+              <div
+                style={{
+                  background: '#fffbeb',
+                  border: '1px solid #fde68a',
+                  borderRadius: 8,
+                  padding: 10,
+                  fontSize: 12,
+                  color: '#92400e',
+                  marginBottom: 16,
+                  textAlign: 'left',
+                }}
+              >
+                ℹ️ {successData.imageWarning}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => navigate(`/marketplace/${successData.listing?._id}`)}
+                style={{ width: '100%', padding: '12px 18px', fontSize: 15 }}
+              >
+                View Live Listing →
+              </button>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    setSuccessData(null);
+                    navigate('/marketplace/create', { state: {} });
+                    window.location.reload();
+                  }}
+                  style={{ flex: 1, fontSize: 13 }}
+                >
+                  + Create Another
+                </button>
+                <Link
+                  to="/my-listings"
+                  className="btn btn-secondary"
+                  style={{ flex: 1, fontSize: 13, textAlign: 'center' }}
+                >
+                  My Listings Hub
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

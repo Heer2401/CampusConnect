@@ -58,6 +58,14 @@ export const ImageUploader = ({
     onPendingFilesChange(updated);
   };
 
+  // Allow user to choose which pending image is primary/main
+  const handleSetPrimaryPending = (index) => {
+    if (index === 0) return;
+    const chosen = pendingFiles[index];
+    const rest = pendingFiles.filter((_, i) => i !== index);
+    onPendingFilesChange([chosen, ...rest]);
+  };
+
   return (
     <div>
       <div
@@ -66,26 +74,26 @@ export const ImageUploader = ({
         onDrop={handleDrop}
         onClick={() => !disabled && fileInputRef.current?.click()}
         style={{
-          border: dragOver ? '2px dashed #1d4ed8' : '2px dashed #c7d2e0',
-          borderRadius: 10,
+          border: dragOver ? '2px dashed #1d4ed8' : '2px dashed #cbd5e1',
+          borderRadius: 12,
           minHeight: 180,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           flexDirection: 'column',
-          color: '#7d8aa3',
+          color: '#64748b',
           cursor: disabled ? 'not-allowed' : 'pointer',
-          background: dragOver ? '#eff6ff' : '#fafbfd',
-          padding: 16,
+          background: dragOver ? '#eff6ff' : '#f8fafc',
+          padding: 20,
           transition: 'all 0.15s ease'
         }}
       >
-        <div style={{ fontSize: 32, marginBottom: 6 }}>⬆️</div>
-        <div style={{ fontWeight: 600, color: '#1f2937', marginBottom: 4 }}>
+        <div style={{ fontSize: 36, marginBottom: 8 }}>📸</div>
+        <div style={{ fontWeight: 700, color: '#1e293b', marginBottom: 4, fontSize: 15 }}>
           Drag photos here or click to upload
         </div>
         <div className="muted" style={{ fontSize: 12 }}>
-          JPEG, PNG, WebP up to 5MB (Max {MAX_FILES} photos)
+          JPEG, PNG, WebP up to 5MB (Max {MAX_FILES} photos · {totalCount}/{MAX_FILES} uploaded)
         </div>
         <input
           ref={fileInputRef}
@@ -105,114 +113,150 @@ export const ImageUploader = ({
 
       {errorMessage && (
         <p className="error-text" style={{ marginTop: 8 }}>
-          {errorMessage}
+          ⚠️ {errorMessage}
         </p>
       )}
 
       {/* Previews Grid */}
       {(existingImages.length > 0 || pendingFiles.length > 0) && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginTop: 14 }}>
-          {/* Existing uploaded images */}
-          {existingImages.map((img) => (
-            <div
-              key={img._id || img.key}
-              style={{
-                position: 'relative',
-                height: 100,
-                borderRadius: 8,
-                overflow: 'hidden',
-                border: img.isPrimary ? '2px solid #1d4ed8' : '1px solid #e2e8f0',
-              }}
-            >
-              <img
-                src={img.thumbnailUrl || img.url}
-                alt="Listing preview"
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              />
-              {img.isPrimary && (
-                <span
-                  className="pill pill-blue"
-                  style={{ position: 'absolute', top: 4, left: 4, fontSize: 10, padding: '2px 6px' }}
-                >
-                  Primary
-                </span>
-              )}
-              <div style={{ position: 'absolute', top: 4, right: 4, display: 'flex', gap: 4 }}>
-                {!img.isPrimary && onSetPrimaryExisting && (
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); onSetPrimaryExisting(img._id); }}
-                    style={{ background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: 4, fontSize: 10, padding: '2px 5px', cursor: 'pointer' }}
-                    title="Set Primary"
-                  >
-                    ★
-                  </button>
-                )}
-                {onDeleteExisting && (
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); onDeleteExisting(img._id); }}
-                    style={{ background: '#b42318', color: '#fff', border: 'none', borderRadius: 4, fontSize: 11, width: 20, height: 20, cursor: 'pointer' }}
-                    title="Delete"
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
-
-          {/* Pending local files */}
-          {pendingFiles.map((file, idx) => {
-            const previewUrl = URL.createObjectURL(file);
-            const isFirst = existingImages.length === 0 && idx === 0;
-            return (
+        <div style={{ marginTop: 14 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>
+              Photo Previews (Click ★ to set Main Image)
+            </span>
+            <span className="muted" style={{ fontSize: 11 }}>
+              First image is the cover photo
+            </span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+            {/* Existing uploaded images */}
+            {existingImages.map((img) => (
               <div
-                key={`${file.name}-${idx}`}
+                key={img._id || img.key}
                 style={{
                   position: 'relative',
-                  height: 100,
-                  borderRadius: 8,
+                  height: 105,
+                  borderRadius: 10,
                   overflow: 'hidden',
-                  border: isFirst ? '2px solid #1d4ed8' : '1px solid #e2e8f0',
+                  border: img.isPrimary ? '2.5px solid #1d4ed8' : '1px solid #e2e8f0',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.06)'
                 }}
               >
                 <img
-                  src={previewUrl}
-                  alt={file.name}
+                  src={img.thumbnailUrl || img.url}
+                  alt="Listing preview"
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
-                {isFirst && (
+                {img.isPrimary && (
                   <span
                     className="pill pill-blue"
-                    style={{ position: 'absolute', top: 4, left: 4, fontSize: 10, padding: '2px 6px' }}
+                    style={{ position: 'absolute', top: 4, left: 4, fontSize: 10, padding: '2px 6px', fontWeight: 700 }}
                   >
-                    Primary
+                    ★ Main Photo
                   </span>
                 )}
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); handleRemovePending(idx); }}
-                  style={{
-                    position: 'absolute',
-                    top: 4,
-                    right: 4,
-                    background: '#b42318',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: 4,
-                    fontSize: 12,
-                    width: 20,
-                    height: 20,
-                    cursor: 'pointer'
-                  }}
-                  title="Remove"
-                >
-                  ×
-                </button>
+                <div style={{ position: 'absolute', top: 4, right: 4, display: 'flex', gap: 4 }}>
+                  {!img.isPrimary && onSetPrimaryExisting && (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); onSetPrimaryExisting(img._id); }}
+                      style={{ background: 'rgba(15, 23, 42, 0.75)', color: '#fff', border: 'none', borderRadius: 4, fontSize: 11, padding: '2px 6px', cursor: 'pointer' }}
+                      title="Set as Main Cover Photo"
+                    >
+                      ★ Main
+                    </button>
+                  )}
+                  {onDeleteExisting && (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); onDeleteExisting(img._id); }}
+                      style={{ background: '#b42318', color: '#fff', border: 'none', borderRadius: 4, fontSize: 12, width: 22, height: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      title="Delete Photo"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
               </div>
-            );
-          })}
+            ))}
+
+            {/* Pending local files */}
+            {pendingFiles.map((file, idx) => {
+              const previewUrl = URL.createObjectURL(file);
+              const isFirst = existingImages.length === 0 && idx === 0;
+              return (
+                <div
+                  key={`${file.name}-${idx}`}
+                  style={{
+                    position: 'relative',
+                    height: 105,
+                    borderRadius: 10,
+                    overflow: 'hidden',
+                    border: isFirst ? '2.5px solid #1d4ed8' : '1px solid #e2e8f0',
+                    boxShadow: '0 1px 4px rgba(0,0,0,0.06)'
+                  }}
+                >
+                  <img
+                    src={previewUrl}
+                    alt={file.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                  {isFirst ? (
+                    <span
+                      className="pill pill-blue"
+                      style={{ position: 'absolute', top: 4, left: 4, fontSize: 10, padding: '2px 6px', fontWeight: 700 }}
+                    >
+                      ★ Main Photo
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); handleSetPrimaryPending(idx); }}
+                      style={{
+                        position: 'absolute',
+                        top: 4,
+                        left: 4,
+                        background: 'rgba(15, 23, 42, 0.75)',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: 4,
+                        fontSize: 10,
+                        padding: '2px 6px',
+                        cursor: 'pointer',
+                        fontWeight: 600
+                      }}
+                      title="Set as Main Cover Photo"
+                    >
+                      ★ Make Main
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); handleRemovePending(idx); }}
+                    style={{
+                      position: 'absolute',
+                      top: 4,
+                      right: 4,
+                      background: '#b42318',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: 4,
+                      fontSize: 13,
+                      width: 22,
+                      height: 22,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                    title="Remove Photo"
+                  >
+                    ×
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
