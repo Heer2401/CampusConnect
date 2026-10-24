@@ -26,7 +26,7 @@ export default function AuthPage() {
     try {
       if (isLogin) {
         await login(email, password);
-        navigate('/profile');
+        navigate('/marketplace');
       } else {
         await register({ email, password, name, program, year, contactNumber });
         setSuccessMessage('Account created successfully! Please sign in.');
