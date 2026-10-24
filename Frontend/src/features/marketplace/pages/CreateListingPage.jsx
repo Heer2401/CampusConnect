@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { listingsApi } from '../api/listingsApi';
 import { ListingForm } from '../components/ListingForm';
 import '../marketplace.css';
 
 export const CreateListingPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const initialValues = location.state?.initialValues || {};
+  const fromRentalRequest = location.state?.fromRentalRequest;
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -44,6 +48,27 @@ export const CreateListingPage = () => {
         Post items to buy, sell, rent, exchange, or giveaway with fellow campus students.
       </p>
 
+      {fromRentalRequest && (
+        <div
+          style={{
+            background: 'rgba(99, 102, 241, 0.1)',
+            border: '1px solid rgba(99, 102, 241, 0.3)',
+            borderRadius: 8,
+            padding: '12px 16px',
+            marginBottom: 20,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+          }}
+        >
+          <span style={{ fontSize: 20 }}>✨</span>
+          <p style={{ margin: 0, color: '#a5b4fc', fontSize: 14 }}>
+            <strong>Listing for Rental Request:</strong> Pre-filled for{' '}
+            <strong>"{initialValues.title}"</strong>. The student has been notified and will be able to rent it once published!
+          </p>
+        </div>
+      )}
+
       {errorMessage && (
         <div className="card" style={{ background: '#fef2f2', border: '1px solid #fecaca', marginBottom: 16 }}>
           <p style={{ color: '#b91c1c' }}>{errorMessage}</p>
@@ -57,6 +82,7 @@ export const CreateListingPage = () => {
       )}
 
       <ListingForm
+        initialValues={initialValues}
         onSubmit={handleCreate}
         isSubmitting={isSubmitting}
       />

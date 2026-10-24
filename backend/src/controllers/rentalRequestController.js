@@ -127,9 +127,52 @@ const cancelRentalRequest = async (req, res, next) => {
   }
 };
 
+/* ─────────────────────────────────────────────────────────────────────────
+   POST /api/rental-requests/:id/notify-listing
+   An owner indicates interest in fulfilling this open request and lists the item.
+   Triggers a notification to the requester.
+───────────────────────────────────────────────────────────────────────── */
+const notifyItemListing = async (req, res, next) => {
+  try {
+    const rentalRequest = await RentalRequest.findById(req.params.id);
+
+    if (!rentalRequest) {
+      return res.status(404).json({ message: 'Rental request not found.' });
+    }
+    if (rentalRequest.status !== 'open') {
+      return res.status(400).json({ message: `Cannot fulfill a request with status '${rentalRequest.status}'.` });
+    }
+    if (rentalRequest.requesterId.toString() === req.user._id.toString()) {
+      return res.status(400).json({ message: 'You cannot fulfill your own rental request.' });
+    }
+
+    const ownerName = req.user.profile?.name || req.user.email || 'A campus member';
+
+    // Dispatch in-app and socket notification to the requester
+    const { sendNotification } = require('../services/notificationService');
+    await sendNotification(req.app, {
+      userId: rentalRequest.requesterId,
+      type: 'match_found',
+      title: `Item Being Listed: "${rentalRequest.itemName}"`,
+      message: `${ownerName} is listing "${rentalRequest.itemName}" to fulfill your rental request. Check the marketplace to proceed!`,
+      relatedId: rentalRequest._id,
+      relatedModel: null,
+    });
+
+    res.json({
+      message: 'Requester has been notified that you are listing this item.',
+      rentalRequest,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createRentalRequest,
   getMyRentalRequests,
   getAllRentalRequests,
   cancelRentalRequest,
+  notifyItemListing,
 };
+

@@ -15,6 +15,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import {
   getMyRentals,
@@ -29,6 +30,7 @@ import {
   getMyRentalRequests,
   getAllRentalRequests,
   cancelRentalRequest,
+  notifyItemListing,
 } from '../api/rentalApi';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -296,7 +298,7 @@ function RequestItemModal({ onSuccess, onClose }) {
 }
 
 // ─── Item Requests Table (Unlisted Items Needed) ─────────────────────────────
-function ItemRequestsTable({ itemRequests, role, userId, onCancel, onRequestNew }) {
+function ItemRequestsTable({ itemRequests, role, userId, onCancel, onRequestNew, onInterestedList, actionLoading }) {
   if (!itemRequests.length) {
     return (
       <div className="rd-empty" style={{ textAlign: 'center', padding: '40px 20px' }}>
@@ -368,8 +370,21 @@ function ItemRequestsTable({ itemRequests, role, userId, onCancel, onRequestNew 
                       Cancel Request
                     </button>
                   )}
-                  {(!isMyRequest || req.status !== 'open') && (
+                  {role === 'owner' && req.status === 'open' && (
+                    <button
+                      className="rd-btn rd-btn-primary rd-btn-sm"
+                      onClick={() => onInterestedList(req)}
+                      disabled={actionLoading === req._id}
+                      title="Notify student and open listing form"
+                    >
+                      {actionLoading === req._id ? 'Notifying...' : 'Interested? List Item'}
+                    </button>
+                  )}
+                  {(!isMyRequest && role !== 'owner') && (
                     <span className="rd-done-label">{req.status === 'open' ? 'Open' : '—'}</span>
+                  )}
+                  {req.status !== 'open' && (
+                    <span className="rd-done-label">{req.status}</span>
                   )}
                 </td>
               </tr>
@@ -561,12 +576,14 @@ export default function RentalDashboardPage() {
   const { user } = useAuth();
   const userId = user?._id;
 
+  const navigate = useNavigate();
   const [role, setRole] = useState('renter'); // 'renter' | 'owner'
   const [activeTab, setActiveTab] = useState('Active Rentals');
   const [rentals, setRentals] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [itemRequests, setItemRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(null);
   const [toast, setToast] = useState({ message: '', type: 'success' });
 
   // Modals
@@ -652,6 +669,33 @@ export default function RentalDashboardPage() {
     } catch (e) { showToast(e.message, 'error'); }
   };
 
+  const handleInterestedList = async (req) => {
+    try {
+      setActionLoading(req._id);
+      await notifyItemListing(req._id);
+      showToast(`Student notified! Redirecting to list "${req.itemName}"...`);
+      setTimeout(() => {
+        navigate('/marketplace/create', {
+          state: {
+            fromRentalRequest: true,
+            requestId: req._id,
+            initialValues: {
+              title: req.itemName,
+              categoryName: req.category,
+              listingType: 'rent',
+              rentalRate: req.budgetPerDay || '',
+              rentalPeriod: 'day',
+              description: `Available for rent in response to student request for ${req.itemName}.${req.description ? ` (Requested details: ${req.description})` : ''}`,
+            },
+          },
+        });
+      }, 500);
+    } catch (e) {
+      showToast(e.message || 'Failed to notify student.', 'error');
+      setActionLoading(null);
+    }
+  };
+
   return (
     <div className="rd-page">
       {/* Toast */}
@@ -724,6 +768,8 @@ export default function RentalDashboardPage() {
             userId={userId}
             onCancel={handleCancelItemRequest}
             onRequestNew={() => setShowRequestModal(true)}
+            onInterestedList={handleInterestedList}
+            actionLoading={actionLoading}
           />
         ) : (
           <RentalsTable

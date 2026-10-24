@@ -7,6 +7,23 @@ const connectDB = async () => {
       serverSelectionTimeoutMS: 5000,
     });
     console.log(`MongoDB Connected: ${conn.connection.host}`);
+
+    // Auto-seed default categories if none exist
+    const Category = require('../models/Category');
+    const catCount = await Category.countDocuments();
+    if (catCount === 0) {
+      await Category.insertMany([
+        { name: 'Books & Textbooks', slug: 'books-textbooks', sortOrder: 1, icon: '📚' },
+        { name: 'Electronics & Gadgets', slug: 'electronics-gadgets', sortOrder: 2, icon: '💻' },
+        { name: 'Lab Equipment & Tools', slug: 'lab-equipment-tools', sortOrder: 3, icon: '🔬' },
+        { name: 'Stationery & Supplies', slug: 'stationery-supplies', sortOrder: 4, icon: '✏️' },
+        { name: 'Cycles & Mobility', slug: 'cycles-mobility', sortOrder: 5, icon: '🚲' },
+        { name: 'Sports & Fitness', slug: 'sports-fitness', sortOrder: 6, icon: '⚽' },
+        { name: 'Hostel & Room Essentials', slug: 'hostel-room-essentials', sortOrder: 7, icon: '🛏️' },
+        { name: 'Other', slug: 'other', sortOrder: 8, icon: '📦' },
+      ]);
+      console.log('Seeded default campus categories.');
+    }
   } catch (error) {
     console.error(`MongoDB Connection Error: ${error.message}`);
     console.warn('Backend server running. Connect MongoDB/Atlas on MONGO_URI for live data persistence.');

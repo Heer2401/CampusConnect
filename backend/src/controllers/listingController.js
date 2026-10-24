@@ -72,7 +72,7 @@ const createListing = async (req, res, next) => {
       return res.status(400).json({ success: false, error: { code: 400, message: typeError } });
     }
 
-    const autoApprove = process.env.LISTING_AUTO_APPROVE === 'true';
+    const autoApprove = process.env.LISTING_AUTO_APPROVE === 'true' || process.env.NODE_ENV === 'development';
     if (data.status !== 'draft') {
       data.status = autoApprove ? 'active' : 'pending_approval';
     }
@@ -98,7 +98,8 @@ const getListings = async (req, res, next) => {
     const limit = Math.min(parseInt(req.query.limit, 10) || 12, 50);
     const skip = (page - 1) * limit;
 
-    const filter = { status: req.query.status || 'active', isDeleted: false };
+    const statusFilter = req.query.status ? req.query.status : { $in: ['active', 'approved'] };
+    const filter = { status: statusFilter, isDeleted: false };
 
     if (req.query.category) {
       if (mongoose.Types.ObjectId.isValid(req.query.category)) {

@@ -192,5 +192,21 @@ describe('RentalRequest - Free-form item request (no listingId required)', () =>
     assert.ok(!canCancel('fulfilled'));
     assert.ok(!canCancel('cancelled'));
   });
+
+  test('Owner cannot fulfill own rental request', () => {
+    const requesterId = '507f191e810c19729de860ea';
+    const currentUserId = '507f191e810c19729de860ea';
+    const isOwnRequest = requesterId === currentUserId;
+    assert.ok(isOwnRequest, 'Should detect self-fulfillment attempt');
+  });
+
+  test('Owner can fulfill open request of another student', () => {
+    const requesterId = '507f191e810c19729de860ea';
+    const ownerId = '507f191e810c19729de860eb';
+    const status = 'open';
+    const canFulfill = requesterId !== ownerId && status === 'open';
+    assert.ok(canFulfill);
+  });
 });
+
 

@@ -9,6 +9,7 @@ const {
   getMyRentalRequests,
   getAllRentalRequests,
   cancelRentalRequest,
+  notifyItemListing,
 } = require('../controllers/rentalRequestController');
 const { protect } = require('../middlewares/authMiddleware');
 
@@ -25,6 +26,9 @@ router.get('/my', getMyRentalRequests);
 
 // GET    /api/rental-requests        — Browse all open community requests
 router.get('/', getAllRentalRequests);
+
+// POST   /api/rental-requests/:id/notify-listing — Owner offers to list item & notifies student
+router.post('/:id/notify-listing', notifyItemListing);
 
 // PATCH  /api/rental-requests/:id/cancel — Cancel own request
 router.patch('/:id/cancel', cancelRentalRequest);

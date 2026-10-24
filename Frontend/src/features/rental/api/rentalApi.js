@@ -128,3 +128,11 @@ export const cancelRentalRequest = (id) =>
     body: JSON.stringify({}),
   });
 
+/** POST /api/rental-requests/:id/notify-listing — Owner offers to list item & notifies student */
+export const notifyItemListing = (id) =>
+  request(`/api/rental-requests/${id}/notify-listing`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+
+

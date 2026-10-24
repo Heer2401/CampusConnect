@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCategories } from '../hooks/useCategories';
 import { listingsApi } from '../api/listingsApi';
 import { ImageUploader } from './ImageUploader';
@@ -23,6 +23,24 @@ export const ListingForm = ({
   const [price, setPrice] = useState(initialValues.price !== undefined ? initialValues.price : '');
   const [rentalRate, setRentalRate] = useState(initialValues.rentalRate !== undefined ? initialValues.rentalRate : '');
   const [rentalPeriod, setRentalPeriod] = useState(initialValues.rentalPeriod || 'week');
+
+  useEffect(() => {
+    if (categories.length > 0 && !category) {
+      const match = categories.find((c) =>
+        (initialValues.categoryName && (
+          c.name.toLowerCase().includes(initialValues.categoryName.toLowerCase()) ||
+          initialValues.categoryName.toLowerCase().includes(c.name.toLowerCase())
+        )) ||
+        (typeof initialValues.category === 'string' && (
+          c.name.toLowerCase().includes(initialValues.category.toLowerCase()) ||
+          c._id === initialValues.category
+        ))
+      );
+      if (match) {
+        setCategory(match._id);
+      }
+    }
+  }, [categories, category, initialValues.category, initialValues.categoryName]);
   const [deposit, setDeposit] = useState(initialValues.deposit !== undefined ? initialValues.deposit : '');
   const [exchangeFor, setExchangeFor] = useState(initialValues.exchangeFor || '');
   const [pickupLocation, setPickupLocation] = useState(initialValues.pickupLocation || '');
@@ -354,10 +372,16 @@ export const ListingForm = ({
             disabled={categoriesLoading}
             className={errors.category ? 'error' : ''}
           >
-            <option value="">Select a Category</option>
+            <option value="">
+              {categoriesLoading
+                ? 'Loading categories...'
+                : categories.length === 0
+                ? 'No categories available'
+                : 'Select a Category'}
+            </option>
             {categories.map((c) => (
               <option key={c._id} value={c._id}>
-                {c.name}
+                {c.icon ? `${c.icon} ` : ''}{c.name}
               </option>
             ))}
           </select>
