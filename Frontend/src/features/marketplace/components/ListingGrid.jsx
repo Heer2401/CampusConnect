@@ -1,10 +1,10 @@
 import React from 'react';
 import { ListingCard } from './ListingCard';
 
-export const ListingGrid = ({ listings = [], loading = false, error = null, onRetry }) => {
+export const ListingGrid = ({ listings = [], loading = false, error = null, onRetry, gridClass = 'grid3' }) => {
   if (loading) {
     return (
-      <div className="grid3">
+      <div className={gridClass}>
         {[1, 2, 3, 4, 5, 6].map(n => (
           <div key={n} className="card" style={{ height: 240, opacity: 0.6 }}>
             <div className="listing-img" style={{ animation: 'pulse 1.5s infinite' }}>Loading...</div>
@@ -40,7 +40,7 @@ export const ListingGrid = ({ listings = [], loading = false, error = null, onRe
   }
 
   return (
-    <div className="grid3">
+    <div className={gridClass}>
       {listings.map(item => (
         <ListingCard key={item._id} listing={item} />
       ))}

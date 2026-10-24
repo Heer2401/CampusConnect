@@ -1676,6 +1676,70 @@ body {
   border: 1px solid rgba(99, 102, 241, 0.25);
 }
 
+/* ── Handover PIN UI ── */
+.rd-pin-display-box {
+  background: rgba(99, 102, 241, 0.08);
+  border: 2px dashed rgba(99, 102, 241, 0.4);
+  border-radius: 14px;
+  padding: 24px 16px;
+  margin: 16px 0;
+  text-align: center;
+}
+.rd-pin-digits {
+  font-family: 'Fira Code', 'Courier New', monospace;
+  font-size: 38px;
+  font-weight: 800;
+  letter-spacing: 8px;
+  color: #818cf8;
+  text-shadow: 0 0 16px rgba(129, 140, 248, 0.4);
+}
+.rd-pin-instruction {
+  font-size: 13px;
+  color: #94a3b8;
+  margin-top: 10px;
+  margin-bottom: 0;
+}
+.rd-pin-input {
+  font-family: 'Fira Code', 'Courier New', monospace;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 12px;
+  text-align: center;
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.8);
+  border: 2px solid #6366f1;
+  color: #f8fafc;
+  max-width: 260px;
+  margin: 16px auto;
+  display: block;
+}
+.rd-pin-input:focus {
+  outline: none;
+  border-color: #818cf8;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+}
+.rd-btn-pin {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  border: none;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+.rd-btn-pin:hover {
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+}
+.rd-btn-verify {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff;
+  border: none;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+.rd-btn-verify:hover {
+  background: linear-gradient(135deg, #059669, #047857);
+}
+
 /* Responsive */
 @media (max-width: 640px) {
   .rd-header { flex-direction: column; }
