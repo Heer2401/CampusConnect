@@ -104,7 +104,11 @@ const createOrGetThread = async (req, res, next) => {
       participants: { $all: [currentUserId, targetRecipientId] }
     })
       .populate('participants', 'name email profile avatar')
-      .populate('listingId', 'title price rentalRate rentalPeriod listingType status images owner');
+      .populate({
+        path: 'listingId',
+        select: 'title price rentalRate rentalPeriod listingType status images owner',
+        populate: { path: 'owner', select: 'name email profile avatar' }
+      });
 
     if (thread) {
       return res.status(200).json({
@@ -126,7 +130,11 @@ const createOrGetThread = async (req, res, next) => {
 
     const populated = await ChatThread.findById(thread._id)
       .populate('participants', 'name email profile avatar')
-      .populate('listingId', 'title price rentalRate rentalPeriod listingType status images owner');
+      .populate({
+        path: 'listingId',
+        select: 'title price rentalRate rentalPeriod listingType status images owner',
+        populate: { path: 'owner', select: 'name email profile avatar' }
+      });
 
     res.status(201).json({
       success: true,
@@ -156,7 +164,11 @@ const getThreadById = async (req, res, next) => {
 
     const thread = await ChatThread.findById(id)
       .populate('participants', 'name email profile avatar')
-      .populate('listingId', 'title price rentalRate rentalPeriod listingType status images owner');
+      .populate({
+        path: 'listingId',
+        select: 'title price rentalRate rentalPeriod listingType status images owner',
+        populate: { path: 'owner', select: 'name email profile avatar' }
+      });
 
     if (!thread) {
       return res.status(404).json({
@@ -227,7 +239,7 @@ const getMessages = async (req, res, next) => {
 
     const messages = await Message.find({ threadId: id })
       .sort({ createdAt: 1 })
-      .populate('senderId', 'name avatar')
+      .populate('senderId', 'name email profile avatar')
       .lean();
 
     res.json({
@@ -308,7 +320,7 @@ const sendMessage = async (req, res, next) => {
     await thread.save();
 
     const populatedMessage = await Message.findById(message._id)
-      .populate('senderId', 'name avatar');
+      .populate('senderId', 'name email profile avatar');
 
     // Identify recipient for notification & live delivery
     const recipientId = thread.participants.find(
