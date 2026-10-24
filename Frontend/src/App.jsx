@@ -171,12 +171,28 @@ export default function App() {
                       }
                     />
 
-                    {/* Rental & Transaction Dashboard */}
+                    {/* Rental, Requesting & Transaction Dashboard */}
                     <Route
                       path="/rentals"
                       element={
                         <ProtectedRoute>
                           <RentalDashboardPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/requests"
+                      element={
+                        <ProtectedRoute>
+                          <Navigate to="/rentals?view=requesting" replace />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/dashboard"
+                      element={
+                        <ProtectedRoute>
+                          <Navigate to="/rentals?view=dashboard" replace />
                         </ProtectedRoute>
                       }
                     />

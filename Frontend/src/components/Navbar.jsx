@@ -55,7 +55,7 @@ export default function Navbar() {
               className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
             >
               <Package size={16} />
-              Rentals
+              Rentals & Requests
             </NavLink>
 
             <NavLink

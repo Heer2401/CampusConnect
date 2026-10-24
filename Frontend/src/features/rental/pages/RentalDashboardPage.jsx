@@ -2,20 +2,31 @@
  * Charmi Bhayani (202512028) - Rental & Transaction Management
  * RentalDashboardPage.jsx
  *
- * Fully live - all data fetched from backend via rentalApi.js.
- * No hardcoded mock data. Falls back to empty state with user-friendly message.
- *
- * Tabs:
- *   - Active Rentals: Ongoing, pending approval, and overdue rentals
- *   - Item Requests: Free-form requests for unlisted items (e.g. calculator for 2 days)
- *   - Rental History: Completed and cancelled rentals
- *   - Transactions: Escrow transaction statuses
- *
- * Modes:  Renter view  /  Owner view  (toggled via role switcher)
+ * Refactored into 3 clear, dedicated pillars to eliminate confusion:
+ *   1. 📦 Renting Hub: Active borrowings, lent items, due dates, QR handovers
+ *   2. 📢 Wanted Requests: Campus request board, student needs, fulfill/list requests
+ *   3. 📊 Dashboard & Escrow: In-person Meetup PINs, escrow transactions, overview metrics
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import {
+  Package,
+  ClipboardList,
+  LayoutDashboard,
+  Search,
+  PlusCircle,
+  ShieldCheck,
+  CheckCircle2,
+  Clock,
+  MessageSquare,
+  KeyRound,
+  QrCode,
+  ArrowRight,
+  AlertCircle,
+  RefreshCw,
+  Sparkles,
+} from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import {
   getMyRentals,
@@ -99,7 +110,7 @@ function QRModal({ rentalId, onClose }) {
         {qrData && (
           <>
             <img src={qrData.qrDataUri} alt="QR Code" className="rd-qr-img" />
-            <p className="rd-qr-hint">Show this QR to the renter to scan and verify handover.</p>
+            <p className="rd-qr-hint">Show this QR to the renter to scan and verify in-person handover.</p>
             <code className="rd-qr-token">{qrData.token}</code>
           </>
         )}
@@ -133,16 +144,17 @@ function ScanQRModal({ rentalId, onSuccess, onClose }) {
       <div className="rd-modal" onClick={(e) => e.stopPropagation()}>
         <button className="rd-modal-close" onClick={onClose}>✕</button>
         <h3 className="rd-modal-title">Verify QR Handover</h3>
-        <p className="rd-modal-sub">Enter the token displayed on the owner's QR code screen:</p>
+        <p className="rd-modal-sub">Enter the token displayed on the item owner's screen:</p>
         <input
           className="rd-input"
-          placeholder="Paste QR token here..."
+          placeholder="Paste or type QR token here..."
           value={token}
           onChange={(e) => setToken(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleVerify()}
+          autoFocus
         />
         {error && <p className="rd-error-msg">{error}</p>}
-        <button className="rd-btn rd-btn-primary" onClick={handleVerify} disabled={loading}>
+        <button className="rd-btn rd-btn-primary" onClick={handleVerify} disabled={loading} style={{ marginTop: 12 }}>
           {loading ? 'Verifying...' : 'Verify Handover'}
         </button>
       </div>
@@ -194,13 +206,13 @@ function ShowPinModal({ transaction, onSuccess, onClose }) {
         ) : (
           <div className="rd-pin-display-box">
             <div className="rd-pin-digits">{pin}</div>
-            <p className="rd-pin-instruction">Buyer will enter this on their device to complete the exchange.</p>
+            <p className="rd-pin-instruction">Buyer will enter this on their device to confirm item receipt and complete the transaction.</p>
           </div>
         )}
 
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '16px' }}>
           <button className="rd-btn rd-btn-secondary" onClick={fetchOrGeneratePin} disabled={loading}>
-            🔄 Regenerate
+            🔄 Regenerate PIN
           </button>
           <button className="rd-btn rd-btn-primary" onClick={onClose}>
             Done
@@ -230,7 +242,7 @@ function VerifyPinModal({ transaction, onSuccess, onClose }) {
       onSuccess('Handover verified! Transaction completed successfully 🎉');
       onClose();
     } catch (err) {
-      setError(err.message || 'Invalid PIN. Please verify with the seller.');
+      setError(err.message || 'Invalid PIN. Please check the seller screen.');
     } finally {
       setLoading(false);
     }
@@ -244,7 +256,7 @@ function VerifyPinModal({ transaction, onSuccess, onClose }) {
         <h3 className="rd-modal-title">Verify Meetup Handover</h3>
         <p className="rd-modal-sub" style={{ marginBottom: '14px' }}>
           Item: <strong>{transaction?.listingId?.title || 'Listing'}</strong><br />
-          Enter the 6-digit PIN displayed on the seller's screen:
+          Enter the 6-digit PIN shown on the seller screen after inspecting the item:
         </p>
 
         <form onSubmit={handleVerify}>
@@ -264,7 +276,7 @@ function VerifyPinModal({ transaction, onSuccess, onClose }) {
               Cancel
             </button>
             <button type="submit" className="rd-btn rd-btn-verify" disabled={loading || pin.trim().length !== 6}>
-              {loading ? 'Verifying...' : 'Verify & Complete'}
+              {loading ? 'Verifying...' : 'Verify & Release'}
             </button>
           </div>
         </form>
@@ -273,7 +285,7 @@ function VerifyPinModal({ transaction, onSuccess, onClose }) {
   );
 }
 
-// ─── Request Item Modal (Free-form, no listing ID needed) ─────────────────────
+// ─── Request Item Modal (Post to Campus Wanted Board) ─────────────────────────
 function RequestItemModal({ onSuccess, onClose }) {
   const todayStr = new Date().toISOString().split('T')[0];
   const [form, setForm] = useState({
@@ -312,7 +324,7 @@ function RequestItemModal({ onSuccess, onClose }) {
         budgetPerDay: form.budgetPerDay ? Number(form.budgetPerDay) : null,
         description: form.description.trim(),
       });
-      onSuccess('Rental request posted! Campus owners can now see what you need.');
+      onSuccess('Request posted to Campus Wanted Board! Students who own this item will be notified.');
       onClose();
     } catch (err) {
       setError(err.message || 'Failed to submit rental request.');
@@ -325,16 +337,16 @@ function RequestItemModal({ onSuccess, onClose }) {
     <div className="rd-modal-backdrop" onClick={onClose}>
       <div className="rd-modal" style={{ maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
         <button className="rd-modal-close" onClick={onClose}>✕</button>
-        <h3 className="rd-modal-title">Request an Item on Rent</h3>
+        <h3 className="rd-modal-title">📢 Post an Item Request</h3>
         <p className="rd-modal-sub">
-          Can't find what you need in the marketplace? Post your requirement so students with the item can connect with you.
+          Can't find what you need on CampusConnect? Post your requirement so students with the item can lend or list it for you.
         </p>
 
         <form onSubmit={handleSubmit}>
-          <label className="rd-label">Item Name *</label>
+          <label className="rd-label">Item Needed *</label>
           <input
             className="rd-input"
-            placeholder="e.g. Scientific Calculator (Casio fx-991EX), Lab Coat, Drafter..."
+            placeholder="e.g. Scientific Calculator (fx-991EX), Lab Coat, Drafter, Novel..."
             value={form.itemName}
             onChange={(e) => setForm({ ...form, itemName: e.target.value })}
             autoFocus
@@ -362,7 +374,7 @@ function RequestItemModal({ onSuccess, onClose }) {
                 className="rd-input"
                 type="number"
                 min="0"
-                placeholder="e.g. 20 (or blank for flexible)"
+                placeholder="e.g. 25 (or leave empty)"
                 value={form.budgetPerDay}
                 onChange={(e) => setForm({ ...form, budgetPerDay: e.target.value })}
               />
@@ -392,10 +404,10 @@ function RequestItemModal({ onSuccess, onClose }) {
             </div>
           </div>
 
-          <label className="rd-label">Details / Urgency (optional)</label>
+          <label className="rd-label">Notes / Urgency (optional)</label>
           <textarea
             className="rd-input rd-textarea"
-            placeholder="e.g. Needed for 2 days for end-sem exam, prefer working condition..."
+            placeholder="e.g. Needed for 2 days for end-sem exam; please reach out if available in Hostel Block C..."
             rows={3}
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
@@ -422,330 +434,43 @@ function RequestItemModal({ onSuccess, onClose }) {
   );
 }
 
-// ─── Item Requests Table (Unlisted Items Needed) ─────────────────────────────
-function ItemRequestsTable({ itemRequests, role, userId, onCancel, onRequestNew, onInterestedList, actionLoading }) {
-  if (!itemRequests.length) {
-    return (
-      <div className="rd-empty" style={{ textAlign: 'center', padding: '40px 20px' }}>
-        <div style={{ fontSize: 36, marginBottom: 12 }}>🔍</div>
-        <h4 style={{ color: 'var(--text-primary)', margin: '0 0 8px' }}>
-          {role === 'renter' ? 'No item requests yet' : 'No open requests from students'}
-        </h4>
-        <p style={{ color: 'var(--text-muted)', fontSize: 14, maxWidth: 420, margin: '0 auto 16px' }}>
-          {role === 'renter'
-            ? "Looking for an item like a calculator, lab kit, or book that isn't listed on the marketplace? Post a request so owners can help!"
-            : "No students currently have open requests for items. Check back later!"}
-        </p>
-        {role === 'renter' && (
-          <button className="rd-btn rd-btn-primary" onClick={onRequestNew}>
-            + Request an Item
-          </button>
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <div className="rd-table-wrap">
-      <table className="rd-table">
-        <thead>
-          <tr>
-            <th>Item</th>
-            <th>{role === 'owner' ? 'Requested By' : 'Category'}</th>
-            <th>Required Duration</th>
-            <th>Budget</th>
-            <th>Details</th>
-            <th>Status</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {itemRequests.map((req) => {
-            const isMyRequest = req.requesterId?._id === userId || req.requesterId === userId;
-            const requesterName = req.requesterId?.profile?.name || req.requesterId?.email || 'Student';
-            const daysCount = Math.max(
-              1,
-              Math.ceil((new Date(req.dueDate) - new Date(req.startDate)) / (1000 * 60 * 60 * 24))
-            );
-
-            return (
-              <tr key={req._id}>
-                <td className="rd-td-item">
-                  <div>{req.itemName}</div>
-                  <span className="rd-tag">{req.category || 'Other'}</span>
-                </td>
-                <td>{role === 'owner' ? requesterName : req.category || '—'}</td>
-                <td>
-                  <div>{fmt(req.startDate)} → {fmt(req.dueDate)}</div>
-                  <small style={{ color: 'var(--text-muted)' }}>({daysCount} day{daysCount > 1 ? 's' : ''})</small>
-                </td>
-                <td>
-                  {req.budgetPerDay ? `₹${req.budgetPerDay}/day` : <span style={{ color: 'var(--text-muted)' }}>Flexible</span>}
-                </td>
-                <td style={{ maxWidth: 220, fontSize: 13, color: 'var(--text-secondary)' }}>
-                  {req.description || '—'}
-                </td>
-                <td><StatusBadge status={req.status} /></td>
-                <td className="rd-actions">
-                  {isMyRequest && req.status === 'open' && (
-                    <button
-                      className="rd-btn rd-btn-danger rd-btn-sm"
-                      onClick={() => onCancel(req._id)}
-                    >
-                      Cancel Request
-                    </button>
-                  )}
-                  {role === 'owner' && req.status === 'open' && (
-                    <button
-                      className="rd-btn rd-btn-primary rd-btn-sm"
-                      onClick={() => onInterestedList(req)}
-                      disabled={actionLoading === req._id}
-                      title="Notify student and open listing form"
-                    >
-                      {actionLoading === req._id ? 'Notifying...' : 'Interested? List Item'}
-                    </button>
-                  )}
-                  {(!isMyRequest && role !== 'owner') && (
-                    <span className="rd-done-label">{req.status === 'open' ? 'Open' : '—'}</span>
-                  )}
-                  {req.status !== 'open' && (
-                    <span className="rd-done-label">{req.status}</span>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-// ─── Rentals Table (Listing-based Rentals) ────────────────────────────────────
-function RentalsTable({ rentals, role, userId, onAction, onShowQR, onScanQR, onConfirmReturn }) {
-  if (!rentals.length) {
-    return <div className="rd-empty">No rentals found.</div>;
-  }
-
-  return (
-    <div className="rd-table-wrap">
-      <table className="rd-table">
-        <thead>
-          <tr>
-            <th>Item</th>
-            <th>{role === 'owner' ? 'Renter' : 'Owner'}</th>
-            <th>Start</th>
-            <th>Due</th>
-            <th>Status</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rentals.map((r) => {
-            const itemTitle = r.listingId?.title || r.listingId || 'Item';
-            const counterpart =
-              role === 'owner'
-                ? r.renterId?.profile?.name || r.renterId?.email || '—'
-                : r.ownerId?.profile?.name || r.ownerId?.email || '—';
-
-            return (
-              <tr key={r._id}>
-                <td className="rd-td-item">{itemTitle}</td>
-                <td>{counterpart}</td>
-                <td>{fmt(r.startDate)}</td>
-                <td className={r.status === 'overdue' ? 'rd-overdue-text' : ''}>{fmt(r.dueDate)}</td>
-                <td><StatusBadge status={r.status} /></td>
-                <td className="rd-actions">
-                  {/* Owner: approve / reject requests */}
-                  {role === 'owner' && r.status === 'requested' && (
-                    <>
-                      <button className="rd-btn rd-btn-success rd-btn-sm"
-                        onClick={() => onAction(r._id, 'approved', 'Rental approved!')}>Approve</button>
-                      <button className="rd-btn rd-btn-danger rd-btn-sm"
-                        onClick={() => onAction(r._id, 'cancelled', 'Rental rejected.')}>Reject</button>
-                    </>
-                  )}
-                  {/* Owner: show QR for approved rentals */}
-                  {role === 'owner' && r.status === 'approved' && (
-                    <button className="rd-btn rd-btn-primary rd-btn-sm" onClick={() => onShowQR(r._id)}>
-                      Show QR
-                    </button>
-                  )}
-                  {/* Renter: cancel own requests */}
-                  {role === 'renter' && r.status === 'requested' && (
-                    <button className="rd-btn rd-btn-danger rd-btn-sm"
-                      onClick={() => onAction(r._id, 'cancelled', 'Request cancelled.')}>Cancel</button>
-                  )}
-                  {/* Renter: scan/verify QR */}
-                  {role === 'renter' && r.status === 'approved' && (
-                    <button className="rd-btn rd-btn-primary rd-btn-sm" onClick={() => onScanQR(r._id)}>
-                      Scan / Verify QR
-                    </button>
-                  )}
-                  {/* Owner: confirm return */}
-                  {role === 'owner' && (r.status === 'active' || r.status === 'overdue') && (
-                    <button className="rd-btn rd-btn-success rd-btn-sm" onClick={() => onConfirmReturn(r._id)}>
-                      Confirm Return
-                    </button>
-                  )}
-                  {(r.status === 'completed' || r.status === 'cancelled') && (
-                    <span className="rd-done-label">—</span>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-// ─── Transactions Table ───────────────────────────────────────────────────────
-function TransactionsTable({ transactions, userId, onConfirm, onCancel, onShowPin, onVerifyPin, onChat }) {
-  if (!transactions.length) {
-    return <div className="rd-empty">No transactions found.</div>;
-  }
-
-  return (
-    <div className="rd-table-wrap">
-      <table className="rd-table">
-        <thead>
-          <tr>
-            <th>Item</th>
-            <th>Type</th>
-            <th>Amount</th>
-            <th>Other Party</th>
-            <th>Status</th>
-            <th>Handover / Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {transactions.map((t) => {
-            const isBuyer = t.buyerId?._id === userId || t.buyerId?.toString?.() === userId;
-            const counterpart = isBuyer
-              ? t.sellerId?.profile?.name || t.sellerId?.email || '—'
-              : t.buyerId?.profile?.name || t.buyerId?.email || '—';
-            const myRole = isBuyer ? 'Buyer' : 'Seller';
-            const isOngoing = ['pending', 'payment_held', 'buyer_confirmed', 'seller_confirmed'].includes(t.status);
-            const alreadyConfirmed =
-              (isBuyer && t.buyerConfirmedAt) || (!isBuyer && t.sellerConfirmedAt);
-            const canConfirm = !alreadyConfirmed && isOngoing;
-            const canCancel = ['pending', 'payment_held'].includes(t.status);
-
-            return (
-              <tr key={t._id}>
-                <td className="rd-td-item">
-                  <div style={{ fontWeight: 600 }}>{t.listingId?.title || '—'}</div>
-                  <div style={{ fontSize: '11px', color: '#94a3b8' }}>ID: #{t._id?.slice(-6)}</div>
-                </td>
-                <td>
-                  <span className={`rd-type-pill rd-type-${t.type}`}>{t.type}</span>
-                  <span className="rd-my-role" style={{ marginLeft: 6 }}>({myRole})</span>
-                </td>
-                <td>₹{t.amount ?? 0}</td>
-                <td>{counterpart}</td>
-                <td><StatusBadge status={t.status} /></td>
-                <td className="rd-actions" style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
-                  {/* Meetup Handover PIN buttons */}
-                  {isOngoing && !isBuyer && (
-                    <button
-                      className="rd-btn rd-btn-sm rd-btn-pin"
-                      title="Show or generate the 6-digit PIN for in-person meetup"
-                      onClick={() => onShowPin(t)}
-                    >
-                      🔑 {t.handoverPin ? `PIN: ${t.handoverPin}` : 'Show PIN'}
-                    </button>
-                  )}
-                  {isOngoing && isBuyer && (
-                    <button
-                      className="rd-btn rd-btn-sm rd-btn-verify"
-                      title="Enter the 6-digit code provided by seller"
-                      onClick={() => onVerifyPin(t)}
-                    >
-                      🔐 Enter PIN
-                    </button>
-                  )}
-
-                  {/* Chat button to coordinate meetup */}
-                  <button
-                    className="rd-btn rd-btn-secondary rd-btn-sm"
-                    title="Chat with other party to decide meetup time & place"
-                    onClick={() => onChat(t)}
-                  >
-                    💬 Chat
-                  </button>
-
-                  {canConfirm && (
-                    <button className="rd-btn rd-btn-success rd-btn-sm" onClick={() => onConfirm(t._id)}>
-                      Confirm Receipt
-                    </button>
-                  )}
-                  {canCancel && (
-                    <button className="rd-btn rd-btn-danger rd-btn-sm" onClick={() => onCancel(t._id)}>
-                      Cancel
-                    </button>
-                  )}
-
-                  {t.status === 'completed' && <span className="rd-done-label">Done ✓</span>}
-                  {t.status === 'cancelled' && <span className="rd-done-label">Cancelled</span>}
-                  {alreadyConfirmed && !canConfirm && t.status !== 'completed' && t.status !== 'cancelled' && (
-                    <span className="rd-done-label">Awaiting other party</span>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-// ─── Stat Cards ───────────────────────────────────────────────────────────────
-function StatCards({ rentals, transactions, itemRequests }) {
-  const active    = rentals.filter((r) => ['requested', 'approved', 'active', 'overdue'].includes(r.status)).length;
-  const requests  = itemRequests.filter((r) => r.status === 'open').length;
-  const completed = rentals.filter((r) => r.status === 'completed').length;
-  const txnTotal  = transactions.length;
-
-  return (
-    <div className="rd-stat-grid">
-      {[
-        { label: 'Active Rentals', value: active, icon: '📦' },
-        { label: 'Item Requests', value: requests, icon: '📋' },
-        { label: 'Completed Rentals', value: completed, icon: '✅' },
-        { label: 'Transactions', value: txnTotal, icon: '💳' },
-      ].map((s) => (
-        <div key={s.label} className="rd-stat-card">
-          <div className="rd-stat-icon">{s.icon}</div>
-          <div className="rd-stat-value">{s.value}</div>
-          <div className="rd-stat-label">{s.label}</div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ─── Main Page ────────────────────────────────────────────────────────────────
-const TABS = ['Active Rentals', 'Item Requests', 'Rental History', 'Transactions'];
-
+// ─── Main Hub Page Component ──────────────────────────────────────────────────
 export default function RentalDashboardPage() {
   const { user } = useAuth();
   const userId = user?._id;
-
   const navigate = useNavigate();
   const location = useLocation();
-  const [role, setRole] = useState('renter'); // 'renter' | 'owner'
-  const [activeTab, setActiveTab] = useState(location.state?.tab || 'Active Rentals');
-  const [rentals, setRentals] = useState([]);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // ── Pillar State: 'dashboard' | 'requesting' | 'renting'
+  const initialPillar = useMemo(() => {
+    const qView = searchParams.get('view');
+    if (['dashboard', 'requesting', 'renting'].includes(qView)) return qView;
+    if (location.state?.tab === 'Active Rentals' || location.state?.tab === 'Rental History') return 'renting';
+    if (location.state?.tab === 'Item Requests') return 'requesting';
+    return 'dashboard'; // Main page defaults to Escrow Dashboard
+  }, [searchParams, location.state]);
+
+  const [activePillar, setActivePillar] = useState(initialPillar);
+
+  // ── Sub-view states for each pillar
+  const [rentalSubView, setRentalSubView] = useState('borrowing'); // 'borrowing' | 'lending'
+  const [rentalStatusFilter, setRentalStatusFilter] = useState('active'); // 'active' | 'history'
+  const [requestSubView, setRequestSubView] = useState('my_requests'); // 'my_requests' | 'campus_feed'
+  const [txnFilter, setTxnFilter] = useState('all'); // 'all' | 'pending' | 'completed' | 'cancelled'
+
+  // ── Data storage
+  const [allRentals, setAllRentals] = useState([]);
   const [transactions, setTransactions] = useState([]);
-  const [itemRequests, setItemRequests] = useState([]);
+  const [myRequests, setMyRequests] = useState([]);
+  const [communityRequests, setCommunityRequests] = useState([]);
+
+  // ── UI feedback & loading
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
   const [toast, setToast] = useState({ message: '', type: 'success' });
 
-  // Modals
+  // ── Modals
   const [showQRFor, setShowQRFor] = useState(null);
   const [scanQRFor, setScanQRFor] = useState(null);
   const [showRequestModal, setShowRequestModal] = useState(false);
@@ -754,51 +479,92 @@ export default function RentalDashboardPage() {
 
   const showToast = (message, type = 'success') => setToast({ message, type });
 
+  // Sync state message & tab from routing
   useEffect(() => {
-    if (location.state?.tab) {
-      setActiveTab(location.state.tab);
+    if (location.state?.tab === 'Transactions') {
+      setActivePillar('dashboard');
+    } else if (location.state?.tab === 'Item Requests') {
+      setActivePillar('requesting');
+    } else if (location.state?.tab === 'Active Rentals') {
+      setActivePillar('renting');
+      setRentalStatusFilter('active');
     }
     if (location.state?.message) {
       showToast(location.state.message);
     }
   }, [location.state]);
 
+  // Load all 4 datasets together
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [rentalRes, txnRes, reqRes] = await Promise.all([
-        getMyRentals({ role }),
+      const [rentalRes, txnRes, myReqRes, allReqRes] = await Promise.all([
+        getMyRentals(), // fetches both renter and owner rentals
         getMyTransactions({}),
-        role === 'renter' ? getMyRentalRequests() : getAllRentalRequests(),
+        getMyRentalRequests(),
+        getAllRentalRequests(),
       ]);
-      setRentals(rentalRes.rentals || []);
+      setAllRentals(rentalRes.rentals || []);
       setTransactions(txnRes.transactions || []);
-      setItemRequests(reqRes.requests || []);
+      setMyRequests(myReqRes.requests || []);
+      setCommunityRequests(allReqRes.requests || []);
     } catch (e) {
       showToast(e.message || 'Failed to load data.', 'error');
     } finally {
       setLoading(false);
     }
-  }, [role]);
+  }, []);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
-  // ── Filter rentals per tab
-  const filteredRentals = (() => {
-    if (activeTab === 'Active Rentals') return rentals.filter((r) => ['requested', 'approved', 'active', 'overdue'].includes(r.status));
-    if (activeTab === 'Rental History') return rentals.filter((r) => ['completed', 'cancelled'].includes(r.status));
-    return [];
-  })();
+  // Switch pillar handler with URL parameter sync
+  const handlePillarChange = (pillar) => {
+    setActivePillar(pillar);
+    setSearchParams({ view: pillar });
+  };
 
-  // ── In Owner view, exclude own requests from community requests
-  const visibleItemRequests = role === 'owner'
-    ? itemRequests.filter((r) => {
-        const reqUserId = r.requesterId?._id?.toString?.() || r.requesterId?.toString?.();
-        return reqUserId && userId && reqUserId !== userId.toString();
-      })
-    : itemRequests;
+  // ── Derived Rentals
+  const borrowingRentals = useMemo(() => {
+    return allRentals.filter((r) => {
+      const rId = r.renterId?._id || r.renterId;
+      return rId && userId && rId.toString() === userId.toString();
+    });
+  }, [allRentals, userId]);
 
-  // ── Actions
+  const lendingRentals = useMemo(() => {
+    return allRentals.filter((r) => {
+      const oId = r.ownerId?._id || r.ownerId;
+      return oId && userId && oId.toString() === userId.toString();
+    });
+  }, [allRentals, userId]);
+
+  const currentRentalsList = useMemo(() => {
+    const base = rentalSubView === 'borrowing' ? borrowingRentals : lendingRentals;
+    if (rentalStatusFilter === 'active') {
+      return base.filter((r) => ['requested', 'approved', 'active', 'overdue'].includes(r.status));
+    }
+    return base.filter((r) => ['completed', 'cancelled'].includes(r.status));
+  }, [rentalSubView, rentalStatusFilter, borrowingRentals, lendingRentals]);
+
+  // ── Derived Transactions
+  const filteredTransactions = useMemo(() => {
+    if (txnFilter === 'pending') {
+      return transactions.filter((t) =>
+        ['pending', 'payment_held', 'buyer_confirmed', 'seller_confirmed'].includes(t.status)
+      );
+    }
+    if (txnFilter === 'completed') {
+      return transactions.filter((t) => t.status === 'completed');
+    }
+    if (txnFilter === 'cancelled') {
+      return transactions.filter((t) => t.status === 'cancelled');
+    }
+    return transactions;
+  }, [transactions, txnFilter]);
+
+  // ── Action Handlers
   const handleStatusUpdate = async (id, status, successMsg) => {
     try {
       await updateRentalStatus(id, status);
@@ -866,98 +632,660 @@ export default function RentalDashboardPage() {
     }
   };
 
+  // Metrics for Top Pillar Nav
+  const activeRentalsCount = allRentals.filter((r) =>
+    ['requested', 'approved', 'active', 'overdue'].includes(r.status)
+  ).length;
+
+  const openRequestsCount = myRequests.filter((r) => r.status === 'open').length;
+  const pendingTxnCount = transactions.filter((t) =>
+    ['pending', 'payment_held', 'buyer_confirmed', 'seller_confirmed'].includes(t.status)
+  ).length;
+
   return (
     <div className="rd-page">
-      {/* Toast */}
+      {/* Toast Alert */}
       {toast.message && (
         <Toast message={toast.message} type={toast.type} onClose={() => setToast({ message: '' })} />
       )}
 
-      {/* Header */}
-      <div className="rd-header">
-        <div>
-          <h1 className="rd-title">Rental Dashboard</h1>
-          <p className="rd-subtitle">Manage your active rentals, item requests, rental history, and transactions.</p>
-        </div>
-        <div className="rd-header-actions">
-          <button
-            className={`rd-role-toggle ${role === 'renter' ? 'rd-role-renter' : 'rd-role-owner'}`}
-            onClick={() => setRole((r) => (r === 'renter' ? 'owner' : 'renter'))}
-          >
-            {role === 'renter' ? '🎒 Renter View' : '🏠 Owner View'}
-            <span className="rd-role-switch-hint"> — click to switch</span>
-          </button>
-          {role === 'renter' && (
-            <button className="rd-btn rd-btn-primary" onClick={() => setShowRequestModal(true)}>
-              + Request an Item
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Stat Cards */}
-      <StatCards rentals={rentals} transactions={transactions} itemRequests={visibleItemRequests} />
-
-      {/* Tabs */}
-      <div className="rd-tabs">
-        {TABS.map((tab) => (
-          <button
-            key={tab}
-            className={`rd-tab ${activeTab === tab ? 'rd-tab-active' : ''}`}
-            onClick={() => setActiveTab(tab)}
-          >
-            {tab}
-            {tab === 'Active Rentals' && rentals.filter(r => ['requested', 'approved', 'active', 'overdue'].includes(r.status)).length > 0 && (
-              <span className="rd-tab-badge">{rentals.filter(r => ['requested', 'approved', 'active', 'overdue'].includes(r.status)).length}</span>
-            )}
-            {tab === 'Item Requests' && visibleItemRequests.filter(r => r.status === 'open').length > 0 && (
-              <span className="rd-tab-badge rd-tab-badge-warn">{visibleItemRequests.filter(r => r.status === 'open').length}</span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* Content */}
-      <div className="rd-content">
-        {loading ? (
-          <div className="rd-loading">
-            <div className="rd-spinner" />
-            <span>Loading your data…</span>
+      {/* ─── 3 PRIMARY PILLARS NAVIGATOR ──────────────────────────────────── */}
+      <div className="hub-pillar-nav">
+        {/* Pillar 1: Escrow Dashboard */}
+        <div
+          className={`hub-pillar-card ${activePillar === 'dashboard' ? 'active' : ''}`}
+          onClick={() => handlePillarChange('dashboard')}
+        >
+          <div className="hub-pillar-left">
+            <div className="hub-pillar-icon">
+              <LayoutDashboard size={22} />
+            </div>
+            <div>
+              <div className="hub-pillar-title">1. Escrow Dashboard</div>
+              <div className="hub-pillar-desc">In-person PINs & transactions</div>
+            </div>
           </div>
-        ) : activeTab === 'Transactions' ? (
-          <TransactionsTable
-            transactions={transactions}
-            userId={userId}
-            onConfirm={handleConfirmTxn}
-            onCancel={handleCancelTxn}
-            onShowPin={(txn) => setShowPinFor(txn)}
-            onVerifyPin={(txn) => setVerifyPinFor(txn)}
-            onChat={() => navigate('/chat')}
-          />
-        ) : activeTab === 'Item Requests' ? (
-          <ItemRequestsTable
-            itemRequests={visibleItemRequests}
-            role={role}
-            userId={userId}
-            onCancel={handleCancelItemRequest}
-            onRequestNew={() => setShowRequestModal(true)}
-            onInterestedList={handleInterestedList}
-            actionLoading={actionLoading}
-          />
-        ) : (
-          <RentalsTable
-            rentals={filteredRentals}
-            role={role}
-            userId={userId}
-            onAction={handleStatusUpdate}
-            onShowQR={setShowQRFor}
-            onScanQR={setScanQRFor}
-            onConfirmReturn={handleConfirmReturn}
-          />
-        )}
+          <span className="hub-pillar-badge">
+            {pendingTxnCount > 0 ? `${pendingTxnCount} Handovers` : `${transactions.length} Total`}
+          </span>
+        </div>
+
+        {/* Pillar 2: Campus Request Board */}
+        <div
+          className={`hub-pillar-card ${activePillar === 'requesting' ? 'active' : ''}`}
+          onClick={() => handlePillarChange('requesting')}
+        >
+          <div className="hub-pillar-left">
+            <div className="hub-pillar-icon">
+              <ClipboardList size={22} />
+            </div>
+            <div>
+              <div className="hub-pillar-title">2. Campus Request Board</div>
+              <div className="hub-pillar-desc">Wanted posts for unlisted items</div>
+            </div>
+          </div>
+          <span className="hub-pillar-badge">
+            {openRequestsCount > 0 ? `${openRequestsCount} Open` : `${communityRequests.length} Feed`}
+          </span>
+        </div>
+
+        {/* Pillar 3: Renting Hub */}
+        <div
+          className={`hub-pillar-card ${activePillar === 'renting' ? 'active' : ''}`}
+          onClick={() => handlePillarChange('renting')}
+        >
+          <div className="hub-pillar-left">
+            <div className="hub-pillar-icon">
+              <Package size={22} />
+            </div>
+            <div>
+              <div className="hub-pillar-title">3. Renting Hub</div>
+              <div className="hub-pillar-desc">Borrow & lend active rentals</div>
+            </div>
+          </div>
+          <span className="hub-pillar-badge">
+            {activeRentalsCount > 0 ? `${activeRentalsCount} Active` : '0 Active'}
+          </span>
+        </div>
       </div>
 
-      {/* Modals */}
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {/* ─── PILLAR 1: RENTING HUB ────────────────────────────────────────── */}
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {activePillar === 'renting' && (
+        <div>
+          {/* Subview Segmented Selector (Borrowing vs Lending) */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
+            <div className="hub-subview-toggle">
+              <button
+                className={`hub-subview-btn ${rentalSubView === 'borrowing' ? 'active' : ''}`}
+                onClick={() => setRentalSubView('borrowing')}
+              >
+                🎒 Items I'm Borrowing ({borrowingRentals.length})
+              </button>
+              <button
+                className={`hub-subview-btn ${rentalSubView === 'lending' ? 'active' : ''}`}
+                onClick={() => setRentalSubView('lending')}
+              >
+                🏠 Items I'm Lending Out ({lendingRentals.length})
+              </button>
+            </div>
+
+            {/* Filter: Active vs History */}
+            <div className="rd-tabs" style={{ margin: 0, borderBottom: 'none' }}>
+              <button
+                className={`rd-tab ${rentalStatusFilter === 'active' ? 'rd-tab-active' : ''}`}
+                onClick={() => setRentalStatusFilter('active')}
+              >
+                Active Rentals
+              </button>
+              <button
+                className={`rd-tab ${rentalStatusFilter === 'history' ? 'rd-tab-active' : ''}`}
+                onClick={() => setRentalStatusFilter('history')}
+              >
+                Rental History
+              </button>
+            </div>
+          </div>
+
+          {/* Rentals Content Table */}
+          <div className="rd-content">
+            {loading ? (
+              <div className="rd-loading">
+                <div className="rd-spinner" />
+                <span>Loading your rentals…</span>
+              </div>
+            ) : currentRentalsList.length === 0 ? (
+              <div className="rd-empty" style={{ padding: '50px 20px', textAlign: 'center' }}>
+                <div style={{ fontSize: 40, marginBottom: 12 }}>📦</div>
+                <h4 style={{ color: 'var(--text-primary)', margin: '0 0 8px' }}>
+                  {rentalSubView === 'borrowing'
+                    ? rentalStatusFilter === 'active'
+                      ? 'No active borrowings right now'
+                      : 'No past borrowing history'
+                    : rentalStatusFilter === 'active'
+                      ? 'No items currently rented out'
+                      : 'No past lending history'}
+                </h4>
+                <p style={{ color: 'var(--text-muted)', fontSize: 14, maxWidth: 460, margin: '0 auto 18px' }}>
+                  {rentalSubView === 'borrowing'
+                    ? 'Need textbooks, calculators, lab coats, or cameras? Find fellow students renting out gear on campus.'
+                    : 'Have gadgets, books, or equipment sitting unused? List them for rent and earn passive income!'}
+                </p>
+                {rentalSubView === 'borrowing' ? (
+                  <button className="rd-btn rd-btn-primary" onClick={() => navigate('/marketplace?type=rent')}>
+                    🔍 Browse Campus Rentals
+                  </button>
+                ) : (
+                  <button
+                    className="rd-btn rd-btn-primary"
+                    onClick={() => navigate('/marketplace/create', { state: { initialValues: { listingType: 'rent' } } })}
+                  >
+                    + List an Item for Rent
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="rd-table-wrap">
+                <table className="rd-table">
+                  <thead>
+                    <tr>
+                      <th>Item</th>
+                      <th>{rentalSubView === 'borrowing' ? 'Lent By (Owner)' : 'Rented By (Student)'}</th>
+                      <th>Start Date</th>
+                      <th>Due Date</th>
+                      <th>Status</th>
+                      <th>Handover / Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {currentRentalsList.map((r) => {
+                      const itemTitle = r.listingId?.title || r.listingId || 'Rental Item';
+                      const counterpart =
+                        rentalSubView === 'borrowing'
+                          ? r.ownerId?.profile?.name || r.ownerId?.email || 'Campus Student'
+                          : r.renterId?.profile?.name || r.renterId?.email || 'Campus Student';
+
+                      return (
+                        <tr key={r._id}>
+                          <td className="rd-td-item">
+                            <div>{itemTitle}</div>
+                            <small style={{ color: 'var(--text-muted)' }}>ID: #{r._id.slice(-6)}</small>
+                          </td>
+                          <td>{counterpart}</td>
+                          <td>{fmt(r.startDate)}</td>
+                          <td className={r.status === 'overdue' ? 'rd-overdue-text' : ''}>
+                            {fmt(r.dueDate)}
+                            {r.status === 'overdue' && <span style={{ marginLeft: 6 }}>⚠️ Overdue</span>}
+                          </td>
+                          <td><StatusBadge status={r.status} /></td>
+                          <td className="rd-actions">
+                            {/* OWNER ACTIONS (Lending view) */}
+                            {rentalSubView === 'lending' && r.status === 'requested' && (
+                              <>
+                                <button
+                                  className="rd-btn rd-btn-success rd-btn-sm"
+                                  onClick={() => handleStatusUpdate(r._id, 'approved', 'Rental approved!')}
+                                >
+                                  ✓ Approve
+                                </button>
+                                <button
+                                  className="rd-btn rd-btn-danger rd-btn-sm"
+                                  onClick={() => handleStatusUpdate(r._id, 'cancelled', 'Rental rejected.')}
+                                >
+                                  ✕ Reject
+                                </button>
+                              </>
+                            )}
+                            {rentalSubView === 'lending' && r.status === 'approved' && (
+                              <button
+                                className="rd-btn rd-btn-primary rd-btn-sm"
+                                onClick={() => setShowQRFor(r._id)}
+                                title="Show QR code for renter to scan upon handover"
+                              >
+                                <QrCode size={13} /> Show Handover QR
+                              </button>
+                            )}
+                            {rentalSubView === 'lending' && (r.status === 'active' || r.status === 'overdue') && (
+                              <button
+                                className="rd-btn rd-btn-success rd-btn-sm"
+                                onClick={() => handleConfirmReturn(r._id)}
+                              >
+                                ✓ Confirm Return
+                              </button>
+                            )}
+
+                            {/* RENTER ACTIONS (Borrowing view) */}
+                            {rentalSubView === 'borrowing' && r.status === 'requested' && (
+                              <button
+                                className="rd-btn rd-btn-danger rd-btn-sm"
+                                onClick={() => handleStatusUpdate(r._id, 'cancelled', 'Request cancelled.')}
+                              >
+                                Cancel Request
+                              </button>
+                            )}
+                            {rentalSubView === 'borrowing' && r.status === 'approved' && (
+                              <button
+                                className="rd-btn rd-btn-primary rd-btn-sm"
+                                onClick={() => setScanQRFor(r._id)}
+                                title="Enter token from owner QR code"
+                              >
+                                <QrCode size={13} /> Scan / Verify QR
+                              </button>
+                            )}
+
+                            {/* Done states */}
+                            {(r.status === 'completed' || r.status === 'cancelled') && (
+                              <span className="rd-done-label">Completed ✓</span>
+                            )}
+                            {r.status === 'active' && rentalSubView === 'borrowing' && (
+                              <span className="rd-done-label" style={{ color: '#4ade80' }}>Active Rental</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {/* ─── PILLAR 2: CAMPUS REQUEST BOARD ───────────────────────────────── */}
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {activePillar === 'requesting' && (
+        <div>
+          {/* Section Header */}
+          <div className="hub-section-bar">
+            <div>
+              <span className="hub-badge-pill hub-badge-requesting">
+                <ClipboardList size={12} /> Wanted Board
+              </span>
+              <h1 className="rd-title">Campus Request & Wanted Board</h1>
+              <p className="rd-subtitle">
+                Can't find what you need in the marketplace? Post your requirement so students with the item can connect, lend, or list it for you.
+              </p>
+            </div>
+            <div>
+              <button className="rd-btn rd-btn-primary" onClick={() => setShowRequestModal(true)}>
+                <PlusCircle size={16} /> + Post an Item Request
+              </button>
+            </div>
+          </div>
+
+          {/* Subview Selector */}
+          <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
+            <div className="hub-subview-toggle">
+              <button
+                className={`hub-subview-btn ${requestSubView === 'my_requests' ? 'active' : ''}`}
+                onClick={() => setRequestSubView('my_requests')}
+              >
+                📋 My Posted Requests ({myRequests.length})
+              </button>
+              <button
+                className={`hub-subview-btn ${requestSubView === 'campus_feed' ? 'active' : ''}`}
+                onClick={() => setRequestSubView('campus_feed')}
+              >
+                🤝 Campus Requests to Fulfill ({communityRequests.length})
+              </button>
+            </div>
+          </div>
+
+          {/* Table Content */}
+          <div className="rd-content">
+            {loading ? (
+              <div className="rd-loading">
+                <div className="rd-spinner" />
+                <span>Loading requests…</span>
+              </div>
+            ) : requestSubView === 'my_requests' ? (
+              /* MY REQUESTS TABLE */
+              myRequests.length === 0 ? (
+                <div className="rd-empty" style={{ padding: '50px 20px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
+                  <h4 style={{ color: 'var(--text-primary)', margin: '0 0 8px' }}>
+                    You haven't posted any item requests yet
+                  </h4>
+                  <p style={{ color: 'var(--text-muted)', fontSize: 14, maxWidth: 440, margin: '0 auto 18px' }}>
+                    Need a scientific calculator for end-sems, a lab kit, a textbook, or an adapter for a presentation?
+                  </p>
+                  <button className="rd-btn rd-btn-primary" onClick={() => setShowRequestModal(true)}>
+                    + Post an Item Request
+                  </button>
+                </div>
+              ) : (
+                <div className="rd-table-wrap">
+                  <table className="rd-table">
+                    <thead>
+                      <tr>
+                        <th>Item Needed</th>
+                        <th>Category</th>
+                        <th>Required Dates</th>
+                        <th>Budget</th>
+                        <th>Notes / Urgency</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {myRequests.map((req) => {
+                        const days = Math.max(
+                          1,
+                          Math.ceil((new Date(req.dueDate) - new Date(req.startDate)) / (1000 * 60 * 60 * 24))
+                        );
+                        return (
+                          <tr key={req._id}>
+                            <td className="rd-td-item">
+                              <div>{req.itemName}</div>
+                            </td>
+                            <td><span className="rd-tag">{req.category || 'Other'}</span></td>
+                            <td>
+                              <div>{fmt(req.startDate)} → {fmt(req.dueDate)}</div>
+                              <small style={{ color: 'var(--text-muted)' }}>({days} day{days > 1 ? 's' : ''})</small>
+                            </td>
+                            <td>
+                              {req.budgetPerDay ? `₹${req.budgetPerDay}/day` : <span style={{ color: 'var(--text-muted)' }}>Flexible</span>}
+                            </td>
+                            <td style={{ maxWidth: 220, fontSize: 13, color: 'var(--text-secondary)' }}>
+                              {req.description || '—'}
+                            </td>
+                            <td><StatusBadge status={req.status} /></td>
+                            <td className="rd-actions">
+                              {req.status === 'open' ? (
+                                <button
+                                  className="rd-btn rd-btn-danger rd-btn-sm"
+                                  onClick={() => handleCancelItemRequest(req._id)}
+                                >
+                                  Cancel Request
+                                </button>
+                              ) : (
+                                <span className="rd-done-label">{req.status}</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )
+            ) : (
+              /* CAMPUS COMMUNITY FEED */
+              communityRequests.length === 0 ? (
+                <div className="rd-empty" style={{ padding: '50px 20px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 40, marginBottom: 12 }}>🤝</div>
+                  <h4 style={{ color: 'var(--text-primary)', margin: '0 0 8px' }}>
+                    No open requests from students right now
+                  </h4>
+                  <p style={{ color: 'var(--text-muted)', fontSize: 14, maxWidth: 440, margin: '0 auto' }}>
+                    When fellow campus students post requests for items they need, they will show up here so you can help and earn rental income.
+                  </p>
+                </div>
+              ) : (
+                <div className="rd-table-wrap">
+                  <table className="rd-table">
+                    <thead>
+                      <tr>
+                        <th>Requested Item</th>
+                        <th>Student</th>
+                        <th>Required Dates</th>
+                        <th>Offered Budget</th>
+                        <th>Details</th>
+                        <th>Help Student</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {communityRequests.map((req) => {
+                        const requesterName = req.requesterId?.profile?.name || req.requesterId?.email || 'Student';
+                        const days = Math.max(
+                          1,
+                          Math.ceil((new Date(req.dueDate) - new Date(req.startDate)) / (1000 * 60 * 60 * 24))
+                        );
+
+                        return (
+                          <tr key={req._id}>
+                            <td className="rd-td-item">
+                              <div>{req.itemName}</div>
+                              <span className="rd-tag">{req.category || 'Other'}</span>
+                            </td>
+                            <td>{requesterName}</td>
+                            <td>
+                              <div>{fmt(req.startDate)} → {fmt(req.dueDate)}</div>
+                              <small style={{ color: 'var(--text-muted)' }}>({days} day{days > 1 ? 's' : ''})</small>
+                            </td>
+                            <td>
+                              {req.budgetPerDay ? `₹${req.budgetPerDay}/day` : <span style={{ color: 'var(--text-muted)' }}>Flexible</span>}
+                            </td>
+                            <td style={{ maxWidth: 220, fontSize: 13, color: 'var(--text-secondary)' }}>
+                              {req.description || '—'}
+                            </td>
+                            <td className="rd-actions">
+                              <button
+                                className="rd-btn rd-btn-primary rd-btn-sm"
+                                onClick={() => handleInterestedList(req)}
+                                disabled={actionLoading === req._id}
+                                title="Pre-fill listing and alert student"
+                              >
+                                <Sparkles size={13} /> {actionLoading === req._id ? 'Notifying...' : 'I Have This — List Item'}
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {/* ─── PILLAR 3: DASHBOARD & ESCROW HANDOVER ────────────────────────── */}
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {activePillar === 'dashboard' && (
+        <div>
+          {/* Quick Metrics */}
+          <div className="rd-stat-grid" style={{ marginBottom: 20 }}>
+            <div
+              className="rd-stat-card"
+              style={{ cursor: 'pointer' }}
+              onClick={() => handlePillarChange('renting')}
+              title="Click to view Renting Hub"
+            >
+              <div className="rd-stat-icon">📦</div>
+              <div className="rd-stat-value">{activeRentalsCount}</div>
+              <div className="rd-stat-label">Active Rentals →</div>
+            </div>
+            <div
+              className="rd-stat-card"
+              style={{ cursor: 'pointer' }}
+              onClick={() => handlePillarChange('requesting')}
+              title="Click to view Campus Request Board"
+            >
+              <div className="rd-stat-icon">📢</div>
+              <div className="rd-stat-value">{openRequestsCount}</div>
+              <div className="rd-stat-label">Open Item Requests →</div>
+            </div>
+            <div
+              className="rd-stat-card"
+              style={{ cursor: 'pointer' }}
+              onClick={() => setTxnFilter('pending')}
+              title="Filter to awaiting handovers"
+            >
+              <div className="rd-stat-icon">🤝</div>
+              <div className="rd-stat-value">{pendingTxnCount}</div>
+              <div className="rd-stat-label">Awaiting Meetup PIN</div>
+            </div>
+            <div
+              className="rd-stat-card"
+              style={{ cursor: 'pointer' }}
+              onClick={() => setTxnFilter('completed')}
+              title="Filter to completed transactions"
+            >
+              <div className="rd-stat-icon">💳</div>
+              <div className="rd-stat-value">
+                {transactions.filter((t) => t.status === 'completed').length}
+              </div>
+              <div className="rd-stat-label">Completed Deals</div>
+            </div>
+          </div>
+
+          {/* Escrow Safety Guide Banner */}
+          <div className="escrow-security-banner">
+            <div className="escrow-security-info">
+              <div className="escrow-security-icon">🛡️</div>
+              <div className="escrow-security-text">
+                <h5>CampusConnect In-Person Escrow Protection</h5>
+                <p>
+                  Funds and items are safeguarded. Only exchange the 6-digit Meetup PIN after meeting at a safe campus location and inspecting the item in person.
+                </p>
+              </div>
+            </div>
+            <div>
+              <span className="rd-tag" style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#34d399' }}>
+                ✓ Protected Meetup
+              </span>
+            </div>
+          </div>
+
+          {/* Transactions Filter Selector */}
+          <div className="rd-tabs" style={{ marginBottom: 16 }}>
+            {[
+              { id: 'all', label: `All Transactions (${transactions.length})` },
+              { id: 'pending', label: `Awaiting PIN Handover (${pendingTxnCount})` },
+              { id: 'completed', label: 'Completed Deals' },
+              { id: 'cancelled', label: 'Cancelled' },
+            ].map((f) => (
+              <button
+                key={f.id}
+                className={`rd-tab ${txnFilter === f.id ? 'rd-tab-active' : ''}`}
+                onClick={() => setTxnFilter(f.id)}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Transactions Table */}
+          <div className="rd-content">
+            {loading ? (
+              <div className="rd-loading">
+                <div className="rd-spinner" />
+                <span>Loading transaction records…</span>
+              </div>
+            ) : filteredTransactions.length === 0 ? (
+              <div className="rd-empty" style={{ padding: '40px 20px', textAlign: 'center' }}>
+                <div style={{ fontSize: 36, marginBottom: 10 }}>💳</div>
+                <h4 style={{ color: 'var(--text-primary)', margin: '0 0 6px' }}>No transactions in this filter</h4>
+                <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: '0 auto' }}>
+                  Transactions are created when you buy, rent, exchange, or claim a free item on CampusConnect.
+                </p>
+              </div>
+            ) : (
+              <div className="rd-table-wrap">
+                <table className="rd-table">
+                  <thead>
+                    <tr>
+                      <th>Listing Item</th>
+                      <th>Exchange Type</th>
+                      <th>Price / Value</th>
+                      <th>Other Party</th>
+                      <th>Status</th>
+                      <th>Meetup Handover / Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredTransactions.map((t) => {
+                      const isBuyer = t.buyerId?._id === userId || t.buyerId?.toString?.() === userId;
+                      const counterpart = isBuyer
+                        ? t.sellerId?.profile?.name || t.sellerId?.email || 'Campus Student'
+                        : t.buyerId?.profile?.name || t.buyerId?.email || 'Campus Student';
+                      const myRole = isBuyer ? 'Buyer' : 'Seller';
+                      const isOngoing = ['pending', 'payment_held', 'buyer_confirmed', 'seller_confirmed'].includes(t.status);
+                      const alreadyConfirmed =
+                        (isBuyer && t.buyerConfirmedAt) || (!isBuyer && t.sellerConfirmedAt);
+                      const canConfirm = !alreadyConfirmed && isOngoing;
+                      const canCancel = ['pending', 'payment_held'].includes(t.status);
+
+                      return (
+                        <tr key={t._id}>
+                          <td className="rd-td-item">
+                            <div style={{ fontWeight: 600 }}>{t.listingId?.title || 'Listing'}</div>
+                            <div style={{ fontSize: '11px', color: '#94a3b8' }}>ID: #{t._id?.slice(-6)}</div>
+                          </td>
+                          <td>
+                            <span className={`rd-type-pill rd-type-${t.type}`}>{t.type}</span>
+                            <span className="rd-my-role" style={{ marginLeft: 6 }}>({myRole})</span>
+                          </td>
+                          <td>₹{t.amount ?? 0}</td>
+                          <td>{counterpart}</td>
+                          <td><StatusBadge status={t.status} /></td>
+                          <td className="rd-actions" style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                            {/* Meetup Handover PIN buttons */}
+                            {isOngoing && !isBuyer && (
+                              <button
+                                className="rd-btn rd-btn-sm rd-btn-pin"
+                                title="Show or generate the 6-digit PIN for in-person meetup"
+                                onClick={() => setShowPinFor(t)}
+                              >
+                                <KeyRound size={12} /> {t.handoverPin ? `PIN: ${t.handoverPin}` : 'Show PIN'}
+                              </button>
+                            )}
+                            {isOngoing && isBuyer && (
+                              <button
+                                className="rd-btn rd-btn-sm rd-btn-verify"
+                                title="Enter the 6-digit code provided by seller"
+                                onClick={() => setVerifyPinFor(t)}
+                              >
+                                <KeyRound size={12} /> Enter PIN
+                              </button>
+                            )}
+
+                            {/* Chat button to coordinate meetup */}
+                            <button
+                              className="rd-btn rd-btn-secondary rd-btn-sm"
+                              title="Chat with other party to decide meetup time & place"
+                              onClick={() => navigate('/chat')}
+                            >
+                              <MessageSquare size={12} /> Chat
+                            </button>
+
+                            {canConfirm && (
+                              <button className="rd-btn rd-btn-success rd-btn-sm" onClick={() => handleConfirmTxn(t._id)}>
+                                Confirm Receipt
+                              </button>
+                            )}
+                            {canCancel && (
+                              <button className="rd-btn rd-btn-danger rd-btn-sm" onClick={() => handleCancelTxn(t._id)}>
+                                Cancel
+                              </button>
+                            )}
+
+                            {t.status === 'completed' && <span className="rd-done-label">Done ✓</span>}
+                            {t.status === 'cancelled' && <span className="rd-done-label">Cancelled</span>}
+                            {alreadyConfirmed && !canConfirm && t.status !== 'completed' && t.status !== 'cancelled' && (
+                              <span className="rd-done-label">Awaiting other party</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {/* ─── MODALS ──────────────────────────────────────────────────────── */}
+      {/* ─────────────────────────────────────────────────────────────────── */}
       {showQRFor && (
         <QRModal rentalId={showQRFor} onClose={() => { setShowQRFor(null); loadData(); }} />
       )}
