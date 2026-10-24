@@ -13,82 +13,90 @@ export default function Navbar() {
     navigate('/login');
   };
 
+  const isAdmin = user && (user.role === 'Admin' || user.role === 'Administrator');
+
   return (
     <header className="navbar">
       <div className="nav-inner">
-        <NavLink to="/marketplace" className="brand-wrapper">
+        <NavLink to={isAdmin ? "/admin" : "/marketplace"} className="brand-wrapper">
           <div className="brand-logo-icon">CC</div>
           <div>
             <div className="brand-name">CampusConnect</div>
-            <span className="brand-subtitle">Smart Campus Exchange</span>
+            <span className="brand-subtitle">{isAdmin ? "Admin Console" : "Smart Campus Exchange"}</span>
           </div>
         </NavLink>
 
         {user && (
           <nav className="nav-links">
-            <NavLink
-              to="/marketplace"
-              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-            >
-              <ShoppingBag size={16} />
-              Marketplace
-            </NavLink>
+            {isAdmin ? (
+              /* Dedicated Admin Navigation: No student marketplace/chats/wishlist */
+              <>
+                <NavLink
+                  to="/admin"
+                  className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                >
+                  <ShieldCheck size={16} />
+                  Admin Console
+                </NavLink>
+              </>
+            ) : (
+              /* Dedicated Student Navigation */
+              <>
+                <NavLink
+                  to="/marketplace"
+                  className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                >
+                  <ShoppingBag size={16} />
+                  Marketplace
+                </NavLink>
 
-            <NavLink
-              to="/wishlist"
-              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-            >
-              <Heart size={16} />
-              Wishlist
-            </NavLink>
+                <NavLink
+                  to="/wishlist"
+                  className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                >
+                  <Heart size={16} />
+                  Wishlist
+                </NavLink>
 
-            <NavLink
-              to="/chat"
-              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-            >
-              <MessageSquare size={16} />
-              Chat
-            </NavLink>
+                <NavLink
+                  to="/chat"
+                  className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                >
+                  <MessageSquare size={16} />
+                  Chat
+                </NavLink>
 
-            <NavLink
-              to="/rentals"
-              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-            >
-              <Package size={16} />
-              Rentals
-            </NavLink>
+                <NavLink
+                  to="/rentals"
+                  className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                >
+                  <Package size={16} />
+                  Rentals
+                </NavLink>
 
-            <NavLink
-              to="/sustainability"
-              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-            >
-              <Leaf size={16} />
-              Sustainability
-            </NavLink>
+                <NavLink
+                  to="/sustainability"
+                  className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                >
+                  <Leaf size={16} />
+                  Sustainability
+                </NavLink>
 
-            <NavLink
-              to="/profile"
-              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-            >
-              <User size={16} />
-              Profile
-            </NavLink>
+                <NavLink
+                  to="/profile"
+                  className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                >
+                  <User size={16} />
+                  Profile
+                </NavLink>
 
-            {user.role === 'Admin' && (
-              <NavLink
-                to="/admin"
-                className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-              >
-                <ShieldCheck size={16} />
-                Admin
-              </NavLink>
+                <NotificationBell />
+              </>
             )}
 
-            <NotificationBell />
-
             <div className="nav-user-badge">
-              <span className="role-pill">
-                {user.role || 'Student'}
+              <span className={`role-pill ${isAdmin ? 'role-pill-admin' : ''}`}>
+                {isAdmin ? 'Administrator' : (user.role || 'Student')}
               </span>
               <span style={{ fontSize: '0.85rem', color: '#E2E8F0', fontWeight: 500 }}>
                 {user.profile?.name || user.name || user.email?.split('@')[0]}

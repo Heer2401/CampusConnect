@@ -25,8 +25,12 @@ export default function AuthPage() {
 
     try {
       if (isLogin) {
-        await login(email, password);
-        navigate('/marketplace');
+        const loggedUser = await login(email, password);
+        if (loggedUser?.role === 'Administrator' || loggedUser?.role === 'Admin') {
+          navigate('/admin');
+        } else {
+          navigate('/marketplace');
+        }
       } else {
         await register({ email, password, name, program, year, contactNumber });
         setSuccessMessage('Account created successfully! Please sign in.');

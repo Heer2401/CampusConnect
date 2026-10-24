@@ -1,14 +1,36 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { ShieldCheck, RefreshCw, AlertCircle, LayoutDashboard, ClipboardCheck, Users, Flag, BarChart3, FolderTree } from 'lucide-react';
 import { adminApi } from '../../services/adminApi';
-import { IconSync, IconAlertCircle } from '../common/Icons';
+import { useAuth } from '../../context/AuthContext';
+import { isPending } from './adminUtils';
+import './admin.css';
 import OverviewView from './OverviewView';
 import ListingModerationView from './ListingModerationView';
 import UserManagementView from './UserManagementView';
+import CategoryManagementView from './CategoryManagementView';
 import DisputeResolutionView from './DisputeResolutionView';
 import AnalyticsView from './AnalyticsView';
 
+const TABS = [
+  { id: 'overview',   label: 'Overview',            icon: LayoutDashboard },
+  { id: 'listings',   label: 'Listing Moderation',  icon: ClipboardCheck },
+  { id: 'users',      label: 'User Management',     icon: Users },
+  { id: 'categories', label: 'Category Taxonomy',   icon: FolderTree },
+  { id: 'disputes',   label: 'Disputes & Reports',  icon: Flag },
+  { id: 'analytics',  label: 'Platform Analytics',  icon: BarChart3 },
+];
+
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState('overview');
+  const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Active tab lives in the URL (/admin, /admin/listings, ...) so refresh & back work.
+  const urlTab = location.pathname.replace(/^\/admin\/?/, '').split('/')[0];
+  const activeTab = TABS.some(t => t.id === urlTab) ? urlTab : 'overview';
+  const setActiveTab = (id) => navigate(id === 'overview' ? '/admin' : `/admin/${id}`);
+
   const [loading, setLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [serverConnected, setServerConnected] = useState(false);
@@ -62,7 +84,7 @@ export default function AdminDashboard() {
           console.warn('Live Analytics API error:', err.message);
           return null;
         }),
-        adminApi.getListings({ status: 'pending' }).catch(err => {
+        adminApi.getListings({ queueType: 'moderation_needed' }).catch(err => {
           console.warn('Live Listings API error:', err.message);
           return [];
         }),
@@ -177,173 +199,143 @@ export default function AdminDashboard() {
   };
 
 
-  const pendingCount = listings.filter(l => l.status === 'pending').length;
+  const pendingCount = listings.filter(l =>
+    (l.reports && l.reports.length > 0) ||
+    (l.moderationFlags && l.moderationFlags.length > 0) ||
+    isPending(l.status)
+  ).length;
+  const adminName = user?.profile?.name || user?.name || user?.email?.split('@')[0] || 'Administrator';
 
   return (
-    <div className="app-container admin-theme">
-      {/* Top Navbar */}
-      <header className="topbar">
-        <div className="brand-section">
-          <div className="brand-logo">CC</div>
-          <div className="brand-title">CampusConnect</div>
-          <span className="brand-badge">Admin</span>
+    <div className="adm">
+      {/* Hero header — same treatment as the Profile / Sustainability banners */}
+      <section className="adm-hero">
+        <div>
+          <div className="adm-hero-eyebrow"><ShieldCheck size={14} /> Admin Console</div>
+          <h1>Welcome back, {adminName}</h1>
+          <p>Moderate listings, manage members and resolve disputes to keep the campus marketplace safe and trusted.</p>
         </div>
 
-        <nav className="nav-tabs" aria-label="Admin Navigation">
-          <button 
-            className={`nav-tab ${activeTab === 'overview' ? 'active' : ''}`}
-            onClick={() => setActiveTab('overview')}
-          >
-            <span>Overview</span>
-          </button>
-          <button 
-            className={`nav-tab ${activeTab === 'listings' ? 'active' : ''}`}
-            onClick={() => setActiveTab('listings')}
-          >
-            <span>Listing Approvals</span>
-            {pendingCount > 0 && <span className="badge-count">{pendingCount}</span>}
-          </button>
-          <button 
-            className={`nav-tab ${activeTab === 'users' ? 'active' : ''}`}
-            onClick={() => setActiveTab('users')}
-          >
-            <span>User Management</span>
-          </button>
-          <button 
-            className={`nav-tab ${activeTab === 'disputes' ? 'active' : ''}`}
-            onClick={() => setActiveTab('disputes')}
-          >
-            <span>Disputes & Reports</span>
-            {metrics.openDisputes > 0 && (
-              <span className="badge-count" style={{ background: 'var(--danger-subtle)', color: 'var(--danger)', borderColor: 'var(--danger-border)' }}>
-                {metrics.openDisputes}
-              </span>
-            )}
-          </button>
-          <button 
-            className={`nav-tab ${activeTab === 'analytics' ? 'active' : ''}`}
-            onClick={() => setActiveTab('analytics')}
-          >
-            <span>Platform Analytics</span>
-          </button>
-        </nav>
-
-        <div className="topbar-actions">
-          {/* Live Backend Connection Indicator */}
-          <div 
-            className="connection-indicator"
+        <div className="adm-hero-actions">
+          <button
+            type="button"
+            className="adm-live"
             onClick={() => fetchAllLiveData(true)}
-            style={{ cursor: 'pointer' }}
-            title={serverConnected ? `Connected to Backend. Last sync: ${lastSynced ? lastSynced.toLocaleTimeString() : 'N/A'}` : 'Disconnected. Click to retry'}
+            title={serverConnected ? `Connected to backend. Last sync: ${lastSynced ? lastSynced.toLocaleTimeString() : 'N/A'}` : 'Disconnected. Click to retry'}
           >
-            <span className={`indicator-dot ${serverConnected ? 'online' : 'offline'}`} />
-            <span>{isSyncing ? 'Syncing' : serverConnected ? 'Live Backend' : 'Disconnected'}</span>
-          </div>
-
-          <button 
-            className="btn btn-sm btn-secondary" 
-            onClick={() => fetchAllLiveData(true)} 
+            <span className={`adm-dot ${serverConnected ? 'online' : 'offline'}`} />
+            {isSyncing ? 'Syncing…' : serverConnected ? 'Live backend' : 'Disconnected'}
+          </button>
+          <button
+            type="button"
+            className="adm-btn ghost-light"
+            onClick={() => fetchAllLiveData(true)}
             disabled={isSyncing}
             title="Reload live data from server"
           >
-            <IconSync spinning={isSyncing} size={13} />
-            <span>Sync</span>
+            <RefreshCw size={15} className={isSyncing ? 'spin' : ''} />
+            Sync
           </button>
-
-
-          <div className="user-profile">
-            <div className="user-avatar">KV</div>
-            <div className="user-details">
-              <span className="user-name">Kajal Varlani</span>
-              <span className="user-role">Administrator</span>
-            </div>
-          </div>
         </div>
-      </header>
+      </section>
 
-      {/* Connection Warning Banner if Server Unreachable */}
+      {/* Tabs */}
+      <nav className="adm-tabs" role="tablist" aria-label="Admin sections">
+        {TABS.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === id}
+            className={`adm-tab ${activeTab === id ? 'active' : ''}`}
+            onClick={() => setActiveTab(id)}
+          >
+            <Icon size={16} />
+            <span>{label}</span>
+            {id === 'listings' && pendingCount > 0 && <span className="adm-count">{pendingCount}</span>}
+            {id === 'disputes' && metrics.openDisputes > 0 && <span className="adm-count danger">{metrics.openDisputes}</span>}
+          </button>
+        ))}
+      </nav>
+
+      {/* Connection warning */}
       {!serverConnected && !loading && (
-        <div style={{
-          background: 'var(--danger-subtle)',
-          borderBottom: '1px solid var(--danger-border)',
-          padding: '0.65rem 1.5rem',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          color: '#fca5a5',
-          fontSize: '0.8rem'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <IconAlertCircle size={15} />
-            <span>Backend Server Unreachable: {errorMessage || 'Could not connect to port 5000'}. Verify backend server is running.</span>
-          </div>
-          <button className="btn btn-sm btn-danger" onClick={() => fetchAllLiveData()}>
-            Retry Connection
+        <div className="adm-alert danger" role="alert">
+          <span>
+            <AlertCircle size={18} />
+            Backend server unreachable: {errorMessage || 'Could not connect to port 5000'}. Verify the backend server is running.
+          </span>
+          <button type="button" className="adm-btn sm danger" onClick={() => fetchAllLiveData()}>
+            Retry connection
           </button>
         </div>
       )}
 
-      {/* Main Content Area */}
-      <main className="main-content">
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '6rem 2rem', color: 'var(--text-muted)' }}>
-            <div style={{ display: 'inline-flex', marginBottom: '1rem', color: 'var(--text-heading)' }}>
-              <IconSync spinning={true} size={28} />
-            </div>
-            <h2 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-heading)', marginBottom: '0.35rem' }}>Loading live backend data</h2>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Retrieving records from CampusConnect API</p>
-          </div>
-        ) : (
-          <>
-            {activeTab === 'overview' && (
-              <OverviewView 
-                metrics={metrics} 
-                demandTrends={demandTrends} 
-                onNavigate={(tab) => setActiveTab(tab)}
-                onRefresh={() => fetchAllLiveData(true)}
-                loading={isSyncing}
-              />
-            )}
-            {activeTab === 'listings' && (
-              <ListingModerationView 
-                listings={listings} 
-                onApprove={handleApproveListing}
-                onReject={handleRejectListing}
-                onRefresh={() => fetchAllLiveData(true)}
-                loading={isSyncing}
-              />
-            )}
-            {activeTab === 'users' && (
-              <UserManagementView 
-                users={users} 
-                onToggleStatus={handleToggleUserStatus}
-                onRefresh={() => fetchAllLiveData(true)}
-                loading={isSyncing}
-              />
-            )}
-            {activeTab === 'disputes' && (
-              <DisputeResolutionView 
-                disputes={disputes} 
-                onResolve={handleResolveDispute}
-                onRefresh={() => fetchAllLiveData(true)}
-                loading={isSyncing}
-              />
-            )}
-            {activeTab === 'analytics' && (
-              <AnalyticsView 
-                demandTrends={demandTrends} 
-                metrics={metrics}
-                loading={isSyncing}
-              />
-            )}
-          </>
-        )}
-      </main>
+      {/* Active view */}
+      {loading ? (
+        <div className="adm-loading" role="status">
+          <div className="adm-spinner" />
+          <b>Loading live backend data</b>
+          <span>Retrieving records from the CampusConnect API</span>
+        </div>
+      ) : (
+        <>
+          {activeTab === 'overview' && (
+            <OverviewView
+              metrics={metrics}
+              demandTrends={demandTrends}
+              onNavigate={(tab) => setActiveTab(tab)}
+              onRefresh={() => fetchAllLiveData(true)}
+              loading={isSyncing}
+            />
+          )}
+          {activeTab === 'listings' && (
+            <ListingModerationView
+              listings={listings}
+              categories={categories}
+              onApprove={handleApproveListing}
+              onReject={handleRejectListing}
+              onRefresh={() => fetchAllLiveData(true)}
+              loading={isSyncing}
+            />
+          )}
+          {activeTab === 'users' && (
+            <UserManagementView
+              users={users}
+              onToggleStatus={handleToggleUserStatus}
+              onRefresh={() => fetchAllLiveData(true)}
+              loading={isSyncing}
+            />
+          )}
+          {activeTab === 'categories' && (
+            <CategoryManagementView
+              categories={categories}
+              onReload={() => fetchAllLiveData(true)}
+              onToast={showToast}
+            />
+          )}
+          {activeTab === 'disputes' && (
+            <DisputeResolutionView
+              disputes={disputes}
+              onResolve={handleResolveDispute}
+              onRefresh={() => fetchAllLiveData(true)}
+              loading={isSyncing}
+            />
+          )}
+          {activeTab === 'analytics' && (
+            <AnalyticsView
+              demandTrends={demandTrends}
+              metrics={metrics}
+              loading={isSyncing}
+            />
+          )}
+        </>
+      )}
 
-      {/* Toast Notification Container */}
-      <div className="toast-container">
+      {/* Toasts */}
+      <div className="adm-toasts" aria-live="polite">
         {toasts.map(t => (
-          <div key={t.id} className={`toast toast-${t.type}`}>
+          <div key={t.id} className={`adm-toast ${t.type}`}>
             <span>{t.message}</span>
           </div>
         ))}

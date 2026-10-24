@@ -1,152 +1,91 @@
 import React from 'react';
-import { 
-  IconClock, 
-  IconUsers, 
-  IconPackage, 
-  IconAlertCircle, 
-  IconCheckCircle, 
-  IconSlash, 
-  IconShield, 
-  IconScale, 
-  IconArrowRight 
-} from '../common/Icons';
+import {
+  Clock, Users, Package, AlertCircle, CheckCircle2, Ban,
+  ShieldCheck, Scale, ArrowRight, BarChart3,
+} from 'lucide-react';
 
-export default function OverviewView({ metrics = {}, demandTrends = {}, onNavigate, onRefresh, loading }) {
+const STATS = (m) => [
+  { label: 'Pending Moderation',  value: m.pendingApprovals || 0,                    sub: 'Listings awaiting approval',     icon: Clock,        tone: 'amber' },
+  { label: 'Active Students',     value: (m.activeStudents || 0).toLocaleString(),   sub: 'Verified university members',    icon: Users,        tone: 'blue' },
+  { label: 'Active Listings',     value: (m.totalListings || 0).toLocaleString(),    sub: 'Total marketplace items',        icon: Package,      tone: 'green' },
+  { label: 'Open Disputes',       value: m.openDisputes || 0,                        sub: 'Cases under review',             icon: AlertCircle,  tone: 'red' },
+  { label: 'Resolved Disputes',   value: m.resolvedDisputes || 0,                    sub: 'Mediation concluded',            icon: CheckCircle2, tone: 'purple' },
+  { label: 'Suspended Accounts',  value: m.suspendedUsers || 0,                      sub: 'Trust & Safety actions taken',   icon: Ban,          tone: 'slate' },
+];
+
+export default function OverviewView({ metrics = {}, demandTrends = {}, onNavigate }) {
   const weeklyVolume = demandTrends?.weeklyVolume || [];
   const maxVol = weeklyVolume.length > 0 ? Math.max(...weeklyVolume.map(w => w.count), 1) : 1;
 
+  const open = metrics.openDisputes || 0;
+  const resolved = metrics.resolvedDisputes || 0;
+  const resolutionRate = open + resolved > 0 ? `${Math.round((resolved / (open + resolved)) * 100)}%` : '100%';
+
   return (
     <div>
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Platform Operations Overview</h1>
-          <p className="page-subtitle">Real-time status of university marketplace activity, pending moderation, and member trust.</p>
-        </div>
+      <div className="adm-section-head">
+        <h2>Platform Operations Overview</h2>
+        <p>Real-time status of university marketplace activity, pending moderation, and member trust.</p>
       </div>
 
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-top">
-            <span className="stat-label">Pending Moderation</span>
-            <span className="stat-icon-wrapper"><IconClock size={15} /></span>
+      <div className="adm-stat-grid">
+        {STATS(metrics).map(({ label, value, sub, icon: Icon, tone }) => (
+          <div className="adm-stat" key={label}>
+            <div className={`adm-stat-icon ${tone}`}><Icon size={26} /></div>
+            <div>
+              <div className="adm-stat-value">{value}</div>
+              <div className="adm-stat-label">{label}</div>
+              <div className="adm-stat-sub">{sub}</div>
+            </div>
           </div>
-          <div className="stat-number">{metrics.pendingApprovals || 0}</div>
-          <div className="stat-subtext">Listings awaiting approval</div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-top">
-            <span className="stat-label">Active Students</span>
-            <span className="stat-icon-wrapper"><IconUsers size={15} /></span>
-          </div>
-          <div className="stat-number">{(metrics.activeStudents || 0).toLocaleString()}</div>
-          <div className="stat-subtext">Verified university members</div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-top">
-            <span className="stat-label">Active Listings</span>
-            <span className="stat-icon-wrapper"><IconPackage size={15} /></span>
-          </div>
-          <div className="stat-number">{(metrics.totalListings || 0).toLocaleString()}</div>
-          <div className="stat-subtext">Total marketplace items</div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-top">
-            <span className="stat-label">Open Disputes</span>
-            <span className="stat-icon-wrapper"><IconAlertCircle size={15} /></span>
-          </div>
-          <div className="stat-number">{metrics.openDisputes || 0}</div>
-          <div className="stat-subtext">Cases under review</div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-top">
-            <span className="stat-label">Resolved Disputes</span>
-            <span className="stat-icon-wrapper"><IconCheckCircle size={15} /></span>
-          </div>
-          <div className="stat-number">{metrics.resolvedDisputes || 0}</div>
-          <div className="stat-subtext">Mediation concluded</div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-top">
-            <span className="stat-label">Suspended Accounts</span>
-            <span className="stat-icon-wrapper"><IconSlash size={15} /></span>
-          </div>
-          <div className="stat-number">{metrics.suspendedUsers || 0}</div>
-          <div className="stat-subtext">Trust & Safety actions taken</div>
-        </div>
+        ))}
       </div>
 
-      <div className="analytics-grid">
-        <div className="chart-card">
-          <div className="chart-header">
-            <h2 className="chart-title">Marketplace Listing Volume (Last 4 Sprints)</h2>
-          </div>
-          <div className="weekly-bars-container">
-            {weeklyVolume.map((w, idx) => {
-              const heightPct = Math.round((w.count / maxVol) * 80) + 20;
-              return (
-                <div key={idx} className="volume-column">
-                  <span className="volume-value">{w.count}</span>
-                  <div className="volume-bar" style={{ height: `${heightPct}%` }}></div>
-                  <span className="volume-week">{w.week}</span>
-                </div>
-              );
-            })}
-          </div>
+      <div className="adm-grid">
+        <div className="adm-card">
+          <h3 className="adm-card-title"><BarChart3 size={20} color="var(--accent)" /> Marketplace Listing Volume (Last 4 Sprints)</h3>
+          {weeklyVolume.length === 0 ? (
+            <div className="adm-empty"><span>No volume data available yet.</span></div>
+          ) : (
+            <div className="adm-volume">
+              {weeklyVolume.map((w, idx) => {
+                const heightPct = Math.round((w.count / maxVol) * 80) + 20;
+                return (
+                  <div key={idx} className="adm-volume-col">
+                    <span className="adm-volume-val">{w.count}</span>
+                    <div className="adm-volume-bar" style={{ height: `${heightPct * 0.75}%` }} />
+                    <span className="adm-volume-week">{w.week}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
-        <div className="chart-card">
-          <div className="chart-header">
-            <h2 className="chart-title">Trust & Safety Status</h2>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.8rem', color: 'var(--text-body)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-subtle)' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: 'var(--text-muted)' }}>
-                <IconShield size={14} />
-                <span>Automated Duplicate / OCR Checks</span>
-              </span>
-              <span className="pill pill-success">Active</span>
+        <div className="adm-card">
+          <h3 className="adm-card-title"><ShieldCheck size={20} color="var(--accent)" /> Trust &amp; Safety Status</h3>
+          <div className="adm-rows">
+            <div className="adm-row">
+              <span className="adm-row-label"><ShieldCheck size={16} /> Duplicate / OCR checks</span>
+              <span className="adm-pill green">Active</span>
             </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-subtle)' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: 'var(--text-muted)' }}>
-                <IconClock size={14} />
-                <span>Average Moderation Response</span>
-              </span>
-              <span style={{ fontWeight: 600, fontFamily: 'var(--font-mono)' }}>1.8 hrs</span>
+            <div className="adm-row">
+              <span className="adm-row-label"><Clock size={16} /> Avg. moderation response</span>
+              <span className="adm-row-value">1.8 hrs</span>
             </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-subtle)' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: 'var(--text-muted)' }}>
-                <IconShield size={14} />
-                <span>University Domain Policy</span>
-              </span>
-              <span style={{ fontWeight: 500, fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>*.edu</span>
+            <div className="adm-row">
+              <span className="adm-row-label"><ShieldCheck size={16} /> University domain policy</span>
+              <span className="adm-row-value">*.edu</span>
             </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: 'var(--text-muted)' }}>
-                <IconScale size={14} />
-                <span>Dispute Resolution Rate</span>
-              </span>
-              <span style={{ fontWeight: 600, fontFamily: 'var(--font-mono)', color: 'var(--success)' }}>
-                {metrics.openDisputes + metrics.resolvedDisputes > 0 
-                  ? `${Math.round((metrics.resolvedDisputes / (metrics.openDisputes + metrics.resolvedDisputes)) * 100)}%` 
-                  : '100%'}
-              </span>
+            <div className="adm-row">
+              <span className="adm-row-label"><Scale size={16} /> Dispute resolution rate</span>
+              <span className="adm-row-value good">{resolutionRate}</span>
             </div>
           </div>
 
-          <div style={{ marginTop: '1.25rem' }}>
-            <button className="btn btn-secondary" style={{ width: '100%' }} onClick={() => onNavigate('listings')}>
-              <span>Review Pending Queue</span>
-              <IconArrowRight size={13} />
-            </button>
-          </div>
+          <button type="button" className="adm-btn primary block" style={{ marginTop: '1.25rem' }} onClick={() => onNavigate('listings')}>
+            Review pending queue <ArrowRight size={15} />
+          </button>
         </div>
       </div>
     </div>

@@ -7,4 +7,5 @@ build/
 Frontend/dist/
 .vite/
 Frontend/.vite/
-
+*.rar
+*.zip

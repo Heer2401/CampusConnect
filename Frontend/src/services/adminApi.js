@@ -10,7 +10,7 @@ const USER_KEY = 'cc_admin_user';
 
 export const adminApi = {
   getToken() {
-    return localStorage.getItem(TOKEN_KEY);
+    return localStorage.getItem(TOKEN_KEY) || localStorage.getItem('cc_token');
   },
 
   setToken(token) {
@@ -22,7 +22,7 @@ export const adminApi = {
   },
 
   getUser() {
-    const raw = localStorage.getItem(USER_KEY);
+    const raw = localStorage.getItem(USER_KEY) || localStorage.getItem('cc_user');
     if (!raw) return null;
     try {
       return JSON.parse(raw);
@@ -129,12 +129,13 @@ export const adminApi = {
     const query = new URLSearchParams();
     if (params.category && params.category !== 'all') query.append('category', params.category);
     if (params.status && params.status !== 'all') query.append('status', params.status);
+    if (params.queueType) query.append('queueType', params.queueType);
     if (params.search) query.append('search', params.search);
     if (params.page) query.append('page', params.page);
     if (params.limit) query.append('limit', params.limit);
 
     const queryString = query.toString() ? `?${query.toString()}` : '';
-    const res = await this.request(`/admin/listings${queryString}`);
+    const res = await this.request(`/admin/listings/pending${queryString}`);
     return res.data || [];
   },
 
@@ -200,6 +201,29 @@ export const adminApi = {
   async getCategories() {
     const res = await this.request('/admin/categories');
     return res.data || [];
+  },
+
+  async createCategory(categoryData) {
+    const res = await this.request('/admin/categories', {
+      method: 'POST',
+      body: JSON.stringify(categoryData)
+    });
+    return res.data || res;
+  },
+
+  async updateCategory(categoryId, categoryData) {
+    const res = await this.request(`/admin/categories/${categoryId}`, {
+      method: 'PUT',
+      body: JSON.stringify(categoryData)
+    });
+    return res.data || res;
+  },
+
+  async deleteCategory(categoryId) {
+    const res = await this.request(`/admin/categories/${categoryId}`, {
+      method: 'DELETE'
+    });
+    return res.data || res;
   },
 
   // 8. Database Seeding Utility

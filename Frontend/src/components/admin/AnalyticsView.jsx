@@ -1,94 +1,67 @@
 import React from 'react';
+import { BarChart3, Activity } from 'lucide-react';
 
 export default function AnalyticsView({ demandTrends = {}, metrics = {} }) {
   const categories = demandTrends?.categories || [];
   const maxCount = categories.length > 0 ? Math.max(...categories.map(c => c.count), 1) : 1;
 
-  const resolutionRate = (metrics.openDisputes + metrics.resolvedDisputes) > 0 
-    ? ((metrics.resolvedDisputes / (metrics.openDisputes + metrics.resolvedDisputes)) * 100).toFixed(1)
-    : '100.0';
+  const open = metrics.openDisputes || 0;
+  const resolved = metrics.resolvedDisputes || 0;
+  const totalUsers = metrics.totalUsers || 0;
+  const activeStudents = metrics.activeStudents || 0;
 
-  const engagementRatio = metrics.totalUsers > 0 
-    ? ((metrics.activeStudents / metrics.totalUsers) * 100).toFixed(1)
-    : '100.0';
+  const resolutionRate = open + resolved > 0 ? ((resolved / (open + resolved)) * 100).toFixed(1) : '100.0';
+  const engagementRatio = totalUsers > 0 ? ((activeStudents / totalUsers) * 100).toFixed(1) : '100.0';
 
   return (
     <div>
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Platform Analytics & Demand Trends</h1>
-          <p className="page-subtitle">Understand category popularity, resource reuse stats, and campus marketplace velocity.</p>
-        </div>
+      <div className="adm-section-head">
+        <h2>Platform Analytics &amp; Demand Trends</h2>
+        <p>Understand category popularity, resource reuse stats, and campus marketplace velocity.</p>
       </div>
 
-      <div className="analytics-grid">
-        <div className="chart-card">
-          <div className="chart-header">
-            <h2 className="chart-title">Demand by Marketplace Category</h2>
-          </div>
-          <div className="bar-chart-container">
-            {categories.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                No category data available yet.
-              </div>
-            ) : (
-              categories.map((c, i) => {
+      <div className="adm-grid">
+        <div className="adm-card">
+          <h3 className="adm-card-title"><BarChart3 size={20} color="var(--accent)" /> Demand by Marketplace Category</h3>
+          {categories.length === 0 ? (
+            <div className="adm-empty"><span>No category data available yet.</span></div>
+          ) : (
+            <div className="adm-bars">
+              {categories.map((c, i) => {
                 const pct = Math.round((c.count / maxCount) * 100);
                 return (
-                  <div key={i} className="bar-row">
-                    <div className="bar-labels">
-                      <span>{c._id || 'General'}</span>
-                      <span>{c.count} listings</span>
+                  <div key={i}>
+                    <div className="adm-bar-labels">
+                      <b>{c.icon ? `${c.icon} ` : ''}{c.name || 'General'}</b>
+                      <span>{c.count} {c.count === 1 ? 'listing' : 'listings'}</span>
                     </div>
-                    <div className="bar-track">
-                      <div className="bar-fill" style={{ width: `${pct}%`, background: 'var(--text-heading)' }}></div>
+                    <div className="adm-bar-track">
+                      <div className="adm-bar-fill" style={{ width: `${pct}%` }} />
                     </div>
                   </div>
                 );
-              })
-            )}
-          </div>
+              })}
+            </div>
+          )}
         </div>
 
-        <div className="chart-card">
-          <div className="chart-header">
-            <h2 className="chart-title">Platform Health Indicators</h2>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-            <div style={{ background: 'var(--bg-subtle)', padding: '0.85rem 1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
-              <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>
-                Student Engagement Ratio
-              </div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 600, color: 'var(--text-heading)', fontFamily: 'var(--font-mono)' }}>
-                {engagementRatio}%
-              </div>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                {metrics.activeStudents} active out of {metrics.totalUsers} registered students
-              </div>
+        <div className="adm-card">
+          <h3 className="adm-card-title"><Activity size={20} color="var(--accent)" /> Platform Health Indicators</h3>
+          <div className="adm-rows">
+            <div className="adm-metric">
+              <div className="adm-metric-label">Student Engagement Ratio</div>
+              <div className="adm-metric-value">{engagementRatio}%</div>
+              <div className="adm-metric-sub">{activeStudents} active out of {totalUsers} registered students</div>
             </div>
-
-            <div style={{ background: 'var(--bg-subtle)', padding: '0.85rem 1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
-              <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>
-                Average Moderation Turnaround
-              </div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 600, color: 'var(--text-heading)', fontFamily: 'var(--font-mono)' }}>
-                1.8 hrs
-              </div>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                {metrics.approvedListings} listings approved this term
-              </div>
+            <div className="adm-metric">
+              <div className="adm-metric-label">Average Moderation Turnaround</div>
+              <div className="adm-metric-value">1.8 hrs</div>
+              <div className="adm-metric-sub">{metrics.approvedListings || 0} listings approved this term</div>
             </div>
-
-            <div style={{ background: 'var(--bg-subtle)', padding: '0.85rem 1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
-              <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>
-                Dispute Resolution Rate
-              </div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 600, color: 'var(--text-heading)', fontFamily: 'var(--font-mono)' }}>
-                {resolutionRate}%
-              </div>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                {metrics.resolvedDisputes} resolved of {metrics.resolvedDisputes + metrics.openDisputes} total cases
-              </div>
+            <div className="adm-metric">
+              <div className="adm-metric-label">Dispute Resolution Rate</div>
+              <div className="adm-metric-value">{resolutionRate}%</div>
+              <div className="adm-metric-sub">{resolved} resolved of {resolved + open} total cases</div>
             </div>
           </div>
         </div>

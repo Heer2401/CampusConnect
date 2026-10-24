@@ -32,7 +32,4 @@ const sustainabilityStatSchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 
-// ── Indexes ──────────────────────────────────────────────
-sustainabilityStatSchema.index({ userId: 1 }, { unique: true });
-
 module.exports = mongoose.model('SustainabilityStat', sustainabilityStatSchema);

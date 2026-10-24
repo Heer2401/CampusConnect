@@ -1,186 +1,185 @@
 import React, { useState } from 'react';
-import { IconSearch, IconX, IconSlash, IconCheck } from '../common/Icons';
+import { Search, Ban, Check, Users, ShieldCheck } from 'lucide-react';
+import AdminModal from './AdminModal';
+import { isAdminRole, initials } from './adminUtils';
 
-export default function UserManagementView({ users = [], onToggleStatus, loading, onRefresh }) {
+export default function UserManagementView({ users = [], onToggleStatus }) {
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [suspendingUser, setSuspendingUser] = useState(null);
   const [suspensionReason, setSuspensionReason] = useState('');
+  const [reasonError, setReasonError] = useState('');
 
+  const term = searchTerm.trim().toLowerCase();
   const filtered = users.filter(u => {
-    const matchRole = roleFilter === 'all' || u.role === roleFilter;
+    const matchRole = roleFilter === 'all' ||
+      (roleFilter === 'Administrator' ? isAdminRole(u.role) : u.role === roleFilter);
     const matchStatus = statusFilter === 'all' || u.status === statusFilter;
-    const matchSearch = !searchTerm || 
-      u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (u.profile?.name || '').toLowerCase().includes(searchTerm.toLowerCase());
-    return matchRole && matchStatus;
+    const matchSearch = !term ||
+      (u.email || '').toLowerCase().includes(term) ||
+      (u.profile?.name || '').toLowerCase().includes(term);
+    return matchRole && matchStatus && matchSearch;
   });
 
   const handleStatusClick = (u) => {
     if (u.status === 'Active') {
       setSuspendingUser(u);
       setSuspensionReason('');
+      setReasonError('');
     } else {
       onToggleStatus(u._id, 'Active');
     }
   };
 
+  const closeSuspend = () => { setSuspendingUser(null); setSuspensionReason(''); setReasonError(''); };
+
   const handleConfirmSuspension = () => {
     if (!suspensionReason.trim()) {
-      alert('A suspension reason is required.');
+      setReasonError('A suspension reason is required.');
       return;
     }
     onToggleStatus(suspendingUser._id, 'Suspended', suspensionReason.trim());
-    setSuspendingUser(null);
-    setSuspensionReason('');
+    closeSuspend();
   };
 
   return (
     <div>
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Campus User Management</h1>
-          <p className="page-subtitle">Manage student accounts, verify university credentials, and handle trust & safety actions.</p>
-        </div>
+      <div className="adm-section-head">
+        <h2>Campus User Management</h2>
+        <p>Manage student accounts, verify university credentials, and handle trust &amp; safety actions.</p>
       </div>
 
-      <div className="controls-bar">
-        <div className="search-box">
-          <IconSearch size={14} />
-          <input 
-            type="text" 
-            placeholder="Search by student name or university email..." 
+      <div className="adm-toolbar">
+        <label className="adm-search">
+          <Search size={16} />
+          <input
+            type="text"
+            placeholder="Search by student name or university email…"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            aria-label="Search users"
           />
-        </div>
-        <div className="filter-group">
-          <label className="stat-label">Role:</label>
-          <select 
-            className="custom-select" 
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-          >
-            <option value="all">All Roles</option>
-            <option value="Student">Student</option>
-            <option value="Administrator">Administrator</option>
-          </select>
-          <label className="stat-label" style={{ marginLeft: '0.5rem' }}>Status:</label>
-          <select 
-            className="custom-select" 
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="all">All Statuses</option>
-            <option value="Active">Active</option>
-            <option value="Suspended">Suspended</option>
-          </select>
+        </label>
+        <div className="adm-filters">
+          <label className="adm-filter">
+            Role
+            <select className="adm-select" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
+              <option value="all">All Roles</option>
+              <option value="Student">Student</option>
+              <option value="Administrator">Administrator</option>
+            </select>
+          </label>
+          <label className="adm-filter">
+            Status
+            <select className="adm-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+              <option value="all">All Statuses</option>
+              <option value="Active">Active</option>
+              <option value="Suspended">Suspended</option>
+            </select>
+          </label>
         </div>
       </div>
 
-      <div className="table-container">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Member Name & Program</th>
-              <th>University Email</th>
-              <th>Role</th>
-              <th>Status</th>
-              <th>Domain Verified</th>
-              <th style={{ textAlign: 'right' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.length === 0 ? (
+      <div className="adm-table-card">
+        <div className="adm-table-wrap">
+          <table className="adm-table">
+            <thead>
               <tr>
-                <td colSpan="6" style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
-                  <div style={{ color: 'var(--text-heading)', fontWeight: 500, marginBottom: '0.25rem' }}>No users found</div>
-                  <div style={{ fontSize: '0.75rem' }}>Try adjusting your search query or filter.</div>
-                </td>
+                <th>Member Name &amp; Program</th>
+                <th>University Email</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Domain Verified</th>
+                <th className="right">Actions</th>
               </tr>
-            ) : (
-              filtered.map(u => (
-                <tr key={u._id}>
-                  <td>
-                    <div style={{ fontWeight: 500, color: 'var(--text-heading)' }}>{u.profile?.name || 'Student Member'}</div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                      {u.profile?.program || 'Undergraduate'} {u.profile?.year ? `• Year ${u.profile.year}` : ''}
+            </thead>
+            <tbody>
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan="6">
+                    <div className="adm-empty">
+                      <div className="adm-empty-icon"><Users size={24} /></div>
+                      <b>No users found</b>
+                      <span>Try adjusting your search query or filter.</span>
                     </div>
                   </td>
-                  <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>{u.email}</td>
-                  <td>
-                    <span className={`pill ${u.role === 'Administrator' ? 'pill-primary' : 'pill-default'}`}>
-                      {u.role}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={`pill ${u.status === 'Active' ? 'pill-success' : 'pill-danger'}`}>
-                      {u.status}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={`pill ${u.isVerified ? 'pill-default' : 'pill-secondary'}`}>
-                      {u.isVerified ? 'Verified' : 'Unverified'}
-                    </span>
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    {u.role !== 'Administrator' ? (
-                      <button 
-                        className={`btn btn-sm ${u.status === 'Active' ? 'btn-danger' : 'btn-success'}`}
-                        onClick={() => handleStatusClick(u)}
-                      >
-                        {u.status === 'Active' ? (
-                          <>
-                            <IconSlash size={12} />
-                            <span>Suspend</span>
-                          </>
-                        ) : (
-                          <>
-                            <IconCheck size={12} />
-                            <span>Reactivate</span>
-                          </>
-                        )}
-                      </button>
-                    ) : (
-                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Protected</span>
-                    )}
-                  </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                filtered.map(u => {
+                  const name = u.profile?.name || 'Student Member';
+                  const admin = isAdminRole(u.role);
+                  return (
+                    <tr key={u._id}>
+                      <td>
+                        <div className="adm-person">
+                          <div className="adm-avatar">{initials(name)}</div>
+                          <div>
+                            <div className="adm-cell-title">{name}</div>
+                            <div className="adm-cell-sub">
+                              {u.profile?.program || 'Undergraduate'}{u.profile?.year ? ` • Year ${u.profile.year}` : ''}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>{u.email}</td>
+                      <td><span className={`adm-pill ${admin ? 'teal' : 'gray'}`}>{admin ? 'Administrator' : u.role}</span></td>
+                      <td><span className={`adm-pill ${u.status === 'Active' ? 'green' : 'red'}`}>{u.status}</span></td>
+                      <td>
+                        <span className={`adm-pill ${u.isVerified ? 'blue' : 'gray'}`}>
+                          {u.isVerified && <ShieldCheck size={12} />}
+                          {u.isVerified ? 'Verified' : 'Unverified'}
+                        </span>
+                      </td>
+                      <td className="right">
+                        {!admin ? (
+                          <button
+                            type="button"
+                            className={`adm-btn sm ${u.status === 'Active' ? 'danger' : 'success'}`}
+                            onClick={() => handleStatusClick(u)}
+                          >
+                            {u.status === 'Active' ? <><Ban size={14} /> Suspend</> : <><Check size={14} /> Reactivate</>}
+                          </button>
+                        ) : (
+                          <span className="adm-cell-sub">Protected</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {/* Suspension Modal */}
       {suspendingUser && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h2 className="modal-title">Suspend User: {suspendingUser.profile?.name || suspendingUser.email}</h2>
-              <button className="modal-close" onClick={() => setSuspendingUser(null)}><IconX size={15} /></button>
-            </div>
-            <div className="modal-body">
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.85rem' }}>
-                Suspending this user will immediately block their marketplace listings and prevent new rental transactions.
-              </p>
-              <div className="form-group">
-                <label className="form-label">Mandatory Suspension Reason</label>
-                <textarea 
-                  className="form-textarea" 
-                  placeholder="e.g. Terms violation, multiple unreturned rentals, misrepresented item condition..."
-                  value={suspensionReason}
-                  onChange={(e) => setSuspensionReason(e.target.value)}
-                />
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setSuspendingUser(null)}>Cancel</button>
-              <button className="btn btn-danger" onClick={handleConfirmSuspension}>Confirm Suspension</button>
-            </div>
+        <AdminModal
+          title={`Suspend User: ${suspendingUser.profile?.name || suspendingUser.email}`}
+          onClose={closeSuspend}
+          footer={
+            <>
+              <button type="button" className="adm-btn secondary" onClick={closeSuspend}>Cancel</button>
+              <button type="button" className="adm-btn danger" onClick={handleConfirmSuspension}>Confirm Suspension</button>
+            </>
+          }
+        >
+          <p className="adm-note">
+            Suspending this user will immediately block their marketplace listings and prevent new rental transactions.
+          </p>
+          <div className="adm-field">
+            <label className="adm-label" htmlFor="adm-suspend-reason">Mandatory suspension reason</label>
+            <textarea
+              id="adm-suspend-reason"
+              className={`adm-textarea ${reasonError ? 'invalid' : ''}`}
+              placeholder="e.g. Terms violation, multiple unreturned rentals, misrepresented item condition…"
+              value={suspensionReason}
+              onChange={(e) => { setSuspensionReason(e.target.value); if (reasonError) setReasonError(''); }}
+              autoFocus
+            />
+            {reasonError && <div className="adm-error" role="alert">{reasonError}</div>}
           </div>
-        </div>
+        </AdminModal>
       )}
     </div>
   );

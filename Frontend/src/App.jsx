@@ -30,7 +30,9 @@ import RentalDashboardPage from './features/rental/pages/RentalDashboardPage';
 
 function RootRedirect() {
   const { user } = useAuth();
-  return user ? <Navigate to="/marketplace" replace /> : <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/login" replace />;
+  const isAdmin = user.role === 'Admin' || user.role === 'Administrator';
+  return isAdmin ? <Navigate to="/admin" replace /> : <Navigate to="/marketplace" replace />;
 }
 
 export default function App() {
@@ -51,7 +53,7 @@ export default function App() {
                     <Route
                       path="/profile"
                       element={
-                        <ProtectedRoute>
+                        <ProtectedRoute roleRequired="student">
                           <ProfilePage />
                         </ProtectedRoute>
                       }
@@ -59,7 +61,7 @@ export default function App() {
                     <Route
                       path="/payment-methods"
                       element={
-                        <ProtectedRoute>
+                        <ProtectedRoute roleRequired="student">
                           <PaymentMethodsPage />
                         </ProtectedRoute>
                       }
@@ -67,17 +69,17 @@ export default function App() {
                     <Route
                       path="/sustainability"
                       element={
-                        <ProtectedRoute>
+                        <ProtectedRoute roleRequired="student">
                           <SustainabilityPage />
                         </ProtectedRoute>
                       }
                     />
 
-                    {/* Marketplace Listings */}
+                    {/* Marketplace Listings (Student Only) */}
                     <Route
                       path="/marketplace"
                       element={
-                        <ProtectedRoute>
+                        <ProtectedRoute roleRequired="student">
                           <BrowseListingsPage />
                         </ProtectedRoute>
                       }
@@ -86,7 +88,7 @@ export default function App() {
                     <Route
                       path="/create"
                       element={
-                        <ProtectedRoute>
+                        <ProtectedRoute roleRequired="student">
                           <CreateListingPage />
                         </ProtectedRoute>
                       }
@@ -94,7 +96,7 @@ export default function App() {
                     <Route
                       path="/marketplace/create"
                       element={
-                        <ProtectedRoute>
+                        <ProtectedRoute roleRequired="student">
                           <CreateListingPage />
                         </ProtectedRoute>
                       }
@@ -102,7 +104,7 @@ export default function App() {
                     <Route
                       path="/listings/new"
                       element={
-                        <ProtectedRoute>
+                        <ProtectedRoute roleRequired="student">
                           <CreateListingPage />
                         </ProtectedRoute>
                       }
@@ -114,7 +116,7 @@ export default function App() {
                     <Route
                       path="/marketplace/edit/:id"
                       element={
-                        <ProtectedRoute>
+                        <ProtectedRoute roleRequired="student">
                           <EditListingPage />
                         </ProtectedRoute>
                       }
@@ -122,7 +124,7 @@ export default function App() {
                     <Route
                       path="/listings/:id/edit"
                       element={
-                        <ProtectedRoute>
+                        <ProtectedRoute roleRequired="student">
                           <EditListingPage />
                         </ProtectedRoute>
                       }
@@ -130,7 +132,7 @@ export default function App() {
                     <Route
                       path="/marketplace/:id"
                       element={
-                        <ProtectedRoute>
+                        <ProtectedRoute roleRequired="student">
                           <ListingDetailPage />
                         </ProtectedRoute>
                       }
@@ -138,7 +140,7 @@ export default function App() {
                     <Route
                       path="/listings/:id"
                       element={
-                        <ProtectedRoute>
+                        <ProtectedRoute roleRequired="student">
                           <ListingDetailPage />
                         </ProtectedRoute>
                       }
@@ -147,17 +149,17 @@ export default function App() {
                     <Route
                       path="/my-listings"
                       element={
-                        <ProtectedRoute>
+                        <ProtectedRoute roleRequired="student">
                           <MyListingsPage />
                         </ProtectedRoute>
                       }
                     />
 
-                    {/* Chat & Wishlist */}
+                    {/* Chat & Wishlist (Student Only) */}
                     <Route
                       path="/chat"
                       element={
-                        <ProtectedRoute>
+                        <ProtectedRoute roleRequired="student">
                           <ChatPage />
                         </ProtectedRoute>
                       }
@@ -165,27 +167,27 @@ export default function App() {
                     <Route
                       path="/wishlist"
                       element={
-                        <ProtectedRoute>
+                        <ProtectedRoute roleRequired="student">
                           <WishlistPage />
                         </ProtectedRoute>
                       }
                     />
 
-                    {/* Rental & Transaction Dashboard */}
+                    {/* Rental & Transaction Dashboard (Student Only) */}
                     <Route
                       path="/rentals"
                       element={
-                        <ProtectedRoute>
+                        <ProtectedRoute roleRequired="student">
                           <RentalDashboardPage />
                         </ProtectedRoute>
                       }
                     />
 
-                    {/* Admin Dashboard */}
+                    {/* Admin Dashboard (Administrator Only) */}
                     <Route
                       path="/admin/*"
                       element={
-                        <ProtectedRoute>
+                        <ProtectedRoute roleRequired="admin">
                           <AdminDashboard />
                         </ProtectedRoute>
                       }
