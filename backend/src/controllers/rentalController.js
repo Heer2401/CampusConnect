@@ -139,6 +139,26 @@ const createRental = async (req, res, next) => {
     // Reserve the listing so it cannot be double-booked
     await Listing.findByIdAndUpdate(listingId, { status: 'reserved' });
 
+    // Send notifications to owner and renter
+    const { sendNotification } = require('../services/notificationService');
+    const renterName = req.user.profile?.name || req.user.name || req.user.email || 'A student';
+    sendNotification(req.app, {
+      userId: listing.seller,
+      type: 'rental',
+      title: 'New Rental Request! 📦',
+      message: `${renterName} requested to rent "${listing.title}". Review in your dashboard!`,
+      relatedId: rental._id,
+      relatedModel: 'Rental'
+    });
+    sendNotification(req.app, {
+      userId: req.user._id,
+      type: 'rental',
+      title: 'Rental Request Submitted! 📦',
+      message: `Your request to rent "${listing.title}" is submitted. Awaiting owner approval!`,
+      relatedId: rental._id,
+      relatedModel: 'Rental'
+    });
+
     res.status(201).json({ message: 'Rental request submitted.', rental });
   } catch (error) {
     next(error);
@@ -373,13 +393,23 @@ const completeRental = async (req, res, next) => {
     rental.returnedAt = new Date();
     await rental.save();
 
-    // Notify renter of completion
-    await RentalReminder.create({
-      rentalId: rental._id,
+    // Notify renter and owner of return completion
+    const { sendNotification } = require('../services/notificationService');
+    sendNotification(req.app, {
       userId: rental.renterId,
-      type: 'return_confirmed',
-      scheduledFor: new Date(),
-      sentAt: new Date(),
+      type: 'transaction_update',
+      title: 'Rental Completed! 🎉',
+      message: 'Return confirmed by owner! Thank you for participating in campus sharing.',
+      relatedId: rental._id,
+      relatedModel: 'Rental'
+    });
+    sendNotification(req.app, {
+      userId: rental.ownerId,
+      type: 'transaction_update',
+      title: 'Rental Completed! 🎉',
+      message: 'Item return confirmed! The rental is officially closed.',
+      relatedId: rental._id,
+      relatedModel: 'Rental'
     });
 
     // Update sustainability metrics for renter and owner

@@ -24,26 +24,43 @@ function initSocketServer(io) {
         try {
           const secret = process.env.JWT_SECRET || 'campusconnect_jwt_secret';
           const decoded = jwt.verify(token, secret);
-          const user = await User.findById(decoded.id).select('-password');
-          if (user) {
-            socket.user = user;
-            return next();
+          const userId = decoded.id || decoded._id || decoded.userId;
+          if (userId) {
+            const user = await User.findById(userId).select('-password');
+            if (user) {
+              socket.user = user;
+              return next();
+            }
           }
         } catch (jwtErr) {
           console.warn('[Socket Auth] Token verification failed:', jwtErr.message);
         }
       }
 
+      // Explicit userId fallback (e.g. from authenticated client session)
+      const explicitUserId = socket.handshake.auth?.userId;
+      if (explicitUserId) {
+        try {
+          const user = await User.findById(explicitUserId).select('-password');
+          if (user) {
+            socket.user = user;
+            return next();
+          }
+        } catch (e) {}
+      }
+
       // Dev environment fallback support
-      if (process.env.NODE_ENV !== 'production' && devUser) {
+      if (devUser) {
         try {
           const parsed = typeof devUser === 'string' ? JSON.parse(devUser) : devUser;
-          socket.user = {
-            _id: parsed.id || parsed._id,
-            name: parsed.name,
-            role: parsed.role || 'Student'
-          };
-          return next();
+          if (parsed && (parsed.id || parsed._id)) {
+            socket.user = {
+              _id: parsed.id || parsed._id,
+              name: parsed.name,
+              role: parsed.role || 'Student'
+            };
+            return next();
+          }
         } catch (e) {}
       }
 

@@ -98,14 +98,15 @@ const createTransaction = async (req, res, next) => {
       threadId = thread._id;
 
       const buyerName = req.user.profile?.name || req.user.name || req.user.email || 'A buyer';
-      const systemContent = `🤝 Order Request Placed!\n` +
-        `• Listing: ${listing.title}\n` +
-        `• Type: ${type.toUpperCase()}\n` +
-        `• Amount: ₹${listing.price || 0}\n` +
-        `• Buyer: ${buyerName}\n` +
-        `• Transaction ID: #${txn._id.toString().slice(-6)}\n\n` +
-        `👉 Meetup Coordination:\n` +
-        `Please coordinate here to agree on a campus meetup location and time. When meeting, the seller generates a 6-digit Handover PIN on their Rental Dashboard, and the buyer enters it to confirm receipt!`;
+      const systemContent = `🤝 ORDER REQUEST PLACED\n\n` +
+        `📦 Item: ${listing.title}\n` +
+        `🏷️ Type: ${type.toUpperCase()}\n` +
+        `💰 Amount: ₹${listing.price || 0}\n` +
+        `👤 Buyer: ${buyerName}\n` +
+        `🆔 Order ID: #${txn._id.toString().slice(-6)}\n\n` +
+        `📍 Meetup & Handover Coordination:\n` +
+        `Please coordinate here to agree on a campus meetup location and time.\n` +
+        `During meetup, the seller taps "Show PIN" on their Escrow Dashboard and the buyer enters the 6-digit PIN to confirm receipt!`;
 
       const msg = new Message({
         threadId: thread._id,
@@ -124,13 +125,25 @@ const createTransaction = async (req, res, next) => {
       if (io) {
         io.to(`thread:${thread._id}`).emit('chat_message', msg);
         io.to(`user:${sellerId.toString()}`).emit('chat_message', msg);
+        io.to(`user:${req.user._id.toString()}`).emit('chat_message', msg);
       }
 
+      // Notify Seller
       await sendNotification(req.app, {
         userId: sellerId,
         type: 'order',
-        title: 'New Order Request',
+        title: 'New Order Request! 🛍️',
         message: `${buyerName} placed an order for "${listing.title}". Chat to coordinate campus meetup!`,
+        relatedId: txn._id,
+        relatedModel: 'Transaction',
+      });
+
+      // Notify Buyer (instant order confirmation)
+      await sendNotification(req.app, {
+        userId: req.user._id,
+        type: 'order',
+        title: 'Order Placed Successfully! 🛍️',
+        message: `Your order for "${listing.title}" (₹${listing.price || 0}) is confirmed! Coordinate meetup with the seller in chat.`,
         relatedId: txn._id,
         relatedModel: 'Transaction',
       });
@@ -275,6 +288,34 @@ const confirmTransaction = async (req, res, next) => {
       if (txn.exchangeListingId) {
         await Listing.findByIdAndUpdate(txn.exchangeListingId, { status: 'exchanged' });
       }
+
+      // Notify both parties of completed deal
+      sendNotification(req.app, {
+        userId: txn.buyerId,
+        type: 'transaction_update',
+        title: 'Transaction Completed! 🎉',
+        message: `Deal for transaction #${txn._id.toString().slice(-6)} has been completed.`,
+        relatedId: txn._id,
+        relatedModel: 'Transaction',
+      });
+      sendNotification(req.app, {
+        userId: txn.sellerId,
+        type: 'transaction_update',
+        title: 'Transaction Completed! 🎉',
+        message: `Deal for transaction #${txn._id.toString().slice(-6)} has been completed.`,
+        relatedId: txn._id,
+        relatedModel: 'Transaction',
+      });
+    } else {
+      const otherPartyId = isBuyer ? txn.sellerId : txn.buyerId;
+      sendNotification(req.app, {
+        userId: otherPartyId,
+        type: 'transaction_update',
+        title: 'Handover Confirmed',
+        message: `${isBuyer ? 'Buyer' : 'Seller'} confirmed receipt for transaction #${txn._id.toString().slice(-6)}.`,
+        relatedId: txn._id,
+        relatedModel: 'Transaction',
+      });
     }
 
     await txn.save();
@@ -369,9 +410,19 @@ const verifyHandoverPin = async (req, res, next) => {
     // Send notification to seller
     await sendNotification(req.app, {
       userId: txn.sellerId,
-      type: 'order',
-      title: 'Transaction Completed! 🎉',
-      message: `Handover verified with PIN! Transaction #${txn._id.toString().slice(-6)} is marked as completed.`,
+      type: 'transaction_update',
+      title: 'Handover Completed! 🎉',
+      message: `Meetup PIN verified! Transaction #${txn._id.toString().slice(-6)} is marked as completed.`,
+      relatedId: txn._id,
+      relatedModel: 'Transaction',
+    });
+
+    // Send notification to buyer
+    await sendNotification(req.app, {
+      userId: txn.buyerId,
+      type: 'transaction_update',
+      title: 'Purchase Completed! 🎉',
+      message: `Meetup handover verified for transaction #${txn._id.toString().slice(-6)}. Deal completed!`,
       relatedId: txn._id,
       relatedModel: 'Transaction',
     });
