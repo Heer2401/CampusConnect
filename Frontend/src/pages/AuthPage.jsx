@@ -10,7 +10,9 @@ export default function AuthPage() {
   const [name, setName] = useState('');
   const [program, setProgram] = useState('');
   const [year, setYear] = useState('');
+  const [contactNumber, setContactNumber] = useState('');
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
   const { login, register } = useAuth();
@@ -24,10 +26,13 @@ export default function AuthPage() {
     try {
       if (isLogin) {
         await login(email, password);
+        navigate('/profile');
       } else {
-        await register({ email, password, name, program, year });
+        await register({ email, password, name, program, year, contactNumber });
+        setSuccessMessage('Account created successfully! Please sign in.');
+        setIsLogin(true);
+        setPassword('');
       }
-      navigate('/profile');
     } catch (err) {
       setError(err.message || 'Authentication failed');
     } finally {
@@ -75,7 +80,7 @@ export default function AuthPage() {
         >
           <button
             type="button"
-            onClick={() => { setIsLogin(true); setError(''); }}
+            onClick={() => { setIsLogin(true); setError(''); setSuccessMessage(''); }}
             style={{
               flex: 1,
               padding: '0.55rem',
@@ -94,7 +99,7 @@ export default function AuthPage() {
           </button>
           <button
             type="button"
-            onClick={() => { setIsLogin(false); setError(''); }}
+            onClick={() => { setIsLogin(false); setError(''); setSuccessMessage(''); }}
             style={{
               flex: 1,
               padding: '0.55rem',
@@ -117,6 +122,13 @@ export default function AuthPage() {
           <div className="alert alert-danger">
             <AlertCircle size={18} />
             <span>{error}</span>
+          </div>
+        )}
+
+        {successMessage && (
+          <div className="alert alert-success" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#d1fae5', border: '1px solid #6ee7b7', color: '#065f46', borderRadius: '8px', padding: '0.75rem 1rem', marginBottom: '1rem' }}>
+            <CheckCircle2 size={18} />
+            <span>{successMessage}</span>
           </div>
         )}
 
@@ -161,6 +173,18 @@ export default function AuthPage() {
                     onChange={(e) => setYear(e.target.value)}
                   />
                 </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Contact Number</label>
+                <input
+                  type="tel"
+                  className="form-input"
+                  placeholder="e.g. +91 98765 43210"
+                  value={contactNumber}
+                  onChange={(e) => setContactNumber(e.target.value)}
+                />
+                <div className="form-helper">Include country code, e.g. +91 for India</div>
               </div>
             </>
           )}

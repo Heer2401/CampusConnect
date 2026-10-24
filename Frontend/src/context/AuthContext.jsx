@@ -88,13 +88,13 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
-  const register = async ({ email, password, name, program, year }) => {
+  const register = async ({ email, password, name, program, year, contactNumber }) => {
     let res;
     try {
       res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, name, program, year }),
+        body: JSON.stringify({ email, password, name, program, year, contactNumber }),
       });
     } catch (err) {
       throw new Error('Cannot connect to backend server. Make sure the backend is running on port 5000.');
@@ -111,8 +111,7 @@ export const AuthProvider = ({ children }) => {
       throw new Error(data.message || 'Registration failed');
     }
 
-    setToken(data.token);
-    setUser(data);
+    // Do NOT auto-login after registration — user must sign in explicitly
     return data;
   };
 
