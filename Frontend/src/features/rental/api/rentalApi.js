@@ -96,6 +96,20 @@ export const confirmTransaction = (id) =>
     body: JSON.stringify({}),
   });
 
+/** POST /api/transactions/:id/generate-pin — Seller generates 6-digit handover PIN */
+export const generateTransactionPin = (id) =>
+  request(`/api/transactions/${id}/generate-pin`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+
+/** POST /api/transactions/:id/verify-pin — Buyer verifies 6-digit handover PIN */
+export const verifyTransactionPin = (id, pin) =>
+  request(`/api/transactions/${id}/verify-pin`, {
+    method: 'POST',
+    body: JSON.stringify({ pin }),
+  });
+
 /** PATCH /api/transactions/:id/cancel */
 export const cancelTransaction = (id) =>
   request(`/api/transactions/${id}/cancel`, {

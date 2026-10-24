@@ -15,7 +15,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import {
   getMyRentals,
@@ -26,6 +26,8 @@ import {
   getMyTransactions,
   confirmTransaction,
   cancelTransaction,
+  generateTransactionPin,
+  verifyTransactionPin,
   createRentalRequest,
   getMyRentalRequests,
   getAllRentalRequests,
@@ -143,6 +145,129 @@ function ScanQRModal({ rentalId, onSuccess, onClose }) {
         <button className="rd-btn rd-btn-primary" onClick={handleVerify} disabled={loading}>
           {loading ? 'Verifying...' : 'Verify Handover'}
         </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Show Handover PIN Modal (Seller) ─────────────────────────────────────────
+function ShowPinModal({ transaction, onSuccess, onClose }) {
+  const [pin, setPin] = useState(transaction?.handoverPin || '');
+  const [loading, setLoading] = useState(!transaction?.handoverPin);
+  const [error, setError] = useState('');
+
+  const fetchOrGeneratePin = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await generateTransactionPin(transaction._id);
+      setPin(res.pin);
+      if (onSuccess) onSuccess('Meetup PIN generated!');
+    } catch (err) {
+      setError(err.message || 'Failed to generate PIN');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!transaction?.handoverPin) {
+      fetchOrGeneratePin();
+    }
+  }, [transaction?._id]);
+
+  return (
+    <div className="rd-modal-backdrop" onClick={onClose}>
+      <div className="rd-modal" style={{ maxWidth: 440, textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+        <button className="rd-modal-close" onClick={onClose}>✕</button>
+        <div style={{ fontSize: '2.5rem', marginBottom: '8px' }}>🤝</div>
+        <h3 className="rd-modal-title">In-Person Handover PIN</h3>
+        <p className="rd-modal-sub" style={{ marginBottom: '14px' }}>
+          Item: <strong>{transaction?.listingId?.title || 'Listing'}</strong><br />
+          Show this 6-digit code to the buyer during your meetup:
+        </p>
+
+        {loading ? (
+          <div className="rd-spinner" style={{ margin: '20px auto' }} />
+        ) : error ? (
+          <div className="rd-error-msg">{error}</div>
+        ) : (
+          <div className="rd-pin-display-box">
+            <div className="rd-pin-digits">{pin}</div>
+            <p className="rd-pin-instruction">Buyer will enter this on their device to complete the exchange.</p>
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '16px' }}>
+          <button className="rd-btn rd-btn-secondary" onClick={fetchOrGeneratePin} disabled={loading}>
+            🔄 Regenerate
+          </button>
+          <button className="rd-btn rd-btn-primary" onClick={onClose}>
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Verify Handover PIN Modal (Buyer) ────────────────────────────────────────
+function VerifyPinModal({ transaction, onSuccess, onClose }) {
+  const [pin, setPin] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleVerify = async (e) => {
+    e?.preventDefault();
+    if (!pin.trim() || pin.trim().length !== 6) {
+      setError('Please enter the 6-digit PIN.');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      await verifyTransactionPin(transaction._id, pin.trim());
+      onSuccess('Handover verified! Transaction completed successfully 🎉');
+      onClose();
+    } catch (err) {
+      setError(err.message || 'Invalid PIN. Please verify with the seller.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="rd-modal-backdrop" onClick={onClose}>
+      <div className="rd-modal" style={{ maxWidth: 440, textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+        <button className="rd-modal-close" onClick={onClose}>✕</button>
+        <div style={{ fontSize: '2.5rem', marginBottom: '8px' }}>🔐</div>
+        <h3 className="rd-modal-title">Verify Meetup Handover</h3>
+        <p className="rd-modal-sub" style={{ marginBottom: '14px' }}>
+          Item: <strong>{transaction?.listingId?.title || 'Listing'}</strong><br />
+          Enter the 6-digit PIN displayed on the seller's screen:
+        </p>
+
+        <form onSubmit={handleVerify}>
+          <input
+            className="rd-pin-input"
+            maxLength={6}
+            placeholder="••••••"
+            value={pin}
+            onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+            autoFocus
+          />
+
+          {error && <p className="rd-error-msg" style={{ marginTop: '8px' }}>{error}</p>}
+
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '16px' }}>
+            <button type="button" className="rd-btn rd-btn-secondary" onClick={onClose} disabled={loading}>
+              Cancel
+            </button>
+            <button type="submit" className="rd-btn rd-btn-verify" disabled={loading || pin.trim().length !== 6}>
+              {loading ? 'Verifying...' : 'Verify & Complete'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
@@ -477,7 +602,7 @@ function RentalsTable({ rentals, role, userId, onAction, onShowQR, onScanQR, onC
 }
 
 // ─── Transactions Table ───────────────────────────────────────────────────────
-function TransactionsTable({ transactions, userId, onConfirm, onCancel }) {
+function TransactionsTable({ transactions, userId, onConfirm, onCancel, onShowPin, onVerifyPin, onChat }) {
   if (!transactions.length) {
     return <div className="rd-empty">No transactions found.</div>;
   }
@@ -492,7 +617,7 @@ function TransactionsTable({ transactions, userId, onConfirm, onCancel }) {
             <th>Amount</th>
             <th>Other Party</th>
             <th>Status</th>
-            <th>Action</th>
+            <th>Handover / Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -502,23 +627,55 @@ function TransactionsTable({ transactions, userId, onConfirm, onCancel }) {
               ? t.sellerId?.profile?.name || t.sellerId?.email || '—'
               : t.buyerId?.profile?.name || t.buyerId?.email || '—';
             const myRole = isBuyer ? 'Buyer' : 'Seller';
+            const isOngoing = ['pending', 'payment_held', 'buyer_confirmed', 'seller_confirmed'].includes(t.status);
             const alreadyConfirmed =
               (isBuyer && t.buyerConfirmedAt) || (!isBuyer && t.sellerConfirmedAt);
-            const canConfirm = !alreadyConfirmed &&
-              ['pending', 'payment_held', 'buyer_confirmed', 'seller_confirmed'].includes(t.status);
+            const canConfirm = !alreadyConfirmed && isOngoing;
             const canCancel = ['pending', 'payment_held'].includes(t.status);
 
             return (
               <tr key={t._id}>
-                <td className="rd-td-item">{t.listingId?.title || '—'}</td>
+                <td className="rd-td-item">
+                  <div style={{ fontWeight: 600 }}>{t.listingId?.title || '—'}</div>
+                  <div style={{ fontSize: '11px', color: '#94a3b8' }}>ID: #{t._id?.slice(-6)}</div>
+                </td>
                 <td>
                   <span className={`rd-type-pill rd-type-${t.type}`}>{t.type}</span>
-                  <span className="rd-my-role">({myRole})</span>
+                  <span className="rd-my-role" style={{ marginLeft: 6 }}>({myRole})</span>
                 </td>
-                <td>₹{t.amount ?? '—'}</td>
+                <td>₹{t.amount ?? 0}</td>
                 <td>{counterpart}</td>
                 <td><StatusBadge status={t.status} /></td>
-                <td className="rd-actions">
+                <td className="rd-actions" style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  {/* Meetup Handover PIN buttons */}
+                  {isOngoing && !isBuyer && (
+                    <button
+                      className="rd-btn rd-btn-sm rd-btn-pin"
+                      title="Show or generate the 6-digit PIN for in-person meetup"
+                      onClick={() => onShowPin(t)}
+                    >
+                      🔑 {t.handoverPin ? `PIN: ${t.handoverPin}` : 'Show PIN'}
+                    </button>
+                  )}
+                  {isOngoing && isBuyer && (
+                    <button
+                      className="rd-btn rd-btn-sm rd-btn-verify"
+                      title="Enter the 6-digit code provided by seller"
+                      onClick={() => onVerifyPin(t)}
+                    >
+                      🔐 Enter PIN
+                    </button>
+                  )}
+
+                  {/* Chat button to coordinate meetup */}
+                  <button
+                    className="rd-btn rd-btn-secondary rd-btn-sm"
+                    title="Chat with other party to decide meetup time & place"
+                    onClick={() => onChat(t)}
+                  >
+                    💬 Chat
+                  </button>
+
                   {canConfirm && (
                     <button className="rd-btn rd-btn-success rd-btn-sm" onClick={() => onConfirm(t._id)}>
                       Confirm Receipt
@@ -529,9 +686,10 @@ function TransactionsTable({ transactions, userId, onConfirm, onCancel }) {
                       Cancel
                     </button>
                   )}
+
                   {t.status === 'completed' && <span className="rd-done-label">Done ✓</span>}
                   {t.status === 'cancelled' && <span className="rd-done-label">Cancelled</span>}
-                  {alreadyConfirmed && canConfirm === false && t.status !== 'completed' && t.status !== 'cancelled' && (
+                  {alreadyConfirmed && !canConfirm && t.status !== 'completed' && t.status !== 'cancelled' && (
                     <span className="rd-done-label">Awaiting other party</span>
                   )}
                 </td>
@@ -577,8 +735,9 @@ export default function RentalDashboardPage() {
   const userId = user?._id;
 
   const navigate = useNavigate();
+  const location = useLocation();
   const [role, setRole] = useState('renter'); // 'renter' | 'owner'
-  const [activeTab, setActiveTab] = useState('Active Rentals');
+  const [activeTab, setActiveTab] = useState(location.state?.tab || 'Active Rentals');
   const [rentals, setRentals] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [itemRequests, setItemRequests] = useState([]);
@@ -590,8 +749,19 @@ export default function RentalDashboardPage() {
   const [showQRFor, setShowQRFor] = useState(null);
   const [scanQRFor, setScanQRFor] = useState(null);
   const [showRequestModal, setShowRequestModal] = useState(false);
+  const [showPinFor, setShowPinFor] = useState(null);
+  const [verifyPinFor, setVerifyPinFor] = useState(null);
 
   const showToast = (message, type = 'success') => setToast({ message, type });
+
+  useEffect(() => {
+    if (location.state?.tab) {
+      setActiveTab(location.state.tab);
+    }
+    if (location.state?.message) {
+      showToast(location.state.message);
+    }
+  }, [location.state]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -760,6 +930,9 @@ export default function RentalDashboardPage() {
             userId={userId}
             onConfirm={handleConfirmTxn}
             onCancel={handleCancelTxn}
+            onShowPin={(txn) => setShowPinFor(txn)}
+            onVerifyPin={(txn) => setVerifyPinFor(txn)}
+            onChat={() => navigate('/chat')}
           />
         ) : activeTab === 'Item Requests' ? (
           <ItemRequestsTable
@@ -793,6 +966,20 @@ export default function RentalDashboardPage() {
           rentalId={scanQRFor}
           onSuccess={(msg) => { showToast(msg); loadData(); }}
           onClose={() => setScanQRFor(null)}
+        />
+      )}
+      {showPinFor && (
+        <ShowPinModal
+          transaction={showPinFor}
+          onSuccess={(msg) => { showToast(msg); loadData(); }}
+          onClose={() => { setShowPinFor(null); loadData(); }}
+        />
+      )}
+      {verifyPinFor && (
+        <VerifyPinModal
+          transaction={verifyPinFor}
+          onSuccess={(msg) => { showToast(msg); loadData(); }}
+          onClose={() => { setVerifyPinFor(null); loadData(); }}
         />
       )}
       {showRequestModal && (
