@@ -29,10 +29,16 @@ const registerUser = async (req, res, next) => {
       return res.status(400).json({ message: 'Email and password are required' });
     }
 
-    // Check for valid university email domain (FR-1.1, NFR-3.4)
+    // Check for valid institute email domain (.edu, .ac.in, etc.)
     const normalizedEmail = email.toLowerCase().trim();
-    const isEdu = normalizedEmail.endsWith('.edu') || normalizedEmail.endsWith('.ac.in') || normalizedEmail.includes('.edu.');
-    if (!isEdu) {
+    const isInstituteDomain =
+      normalizedEmail.endsWith('.edu') ||
+      normalizedEmail.endsWith('.ac.in') ||
+      normalizedEmail.endsWith('.edu.in') ||
+      normalizedEmail.includes('.edu.') ||
+      normalizedEmail.includes('.ac.');
+
+    if (!isInstituteDomain) {
       return res.status(400).json({ message: 'Must use a valid university email address (.edu or .ac.in)' });
     }
 
@@ -44,6 +50,7 @@ const registerUser = async (req, res, next) => {
     const user = await User.create({
       email: normalizedEmail,
       password,
+      isVerified: isInstituteDomain, // Auto-verified for institute domains, false otherwise
       profile: {
         name: name || '',
         program: program || '',
