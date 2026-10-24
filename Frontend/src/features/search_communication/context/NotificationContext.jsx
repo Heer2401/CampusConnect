@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { notificationsApi } from '../api/notificationsApi';
 import { useSocket } from './SocketContext';
-import { useAuth } from '../../marketplace/hooks/useAuth';
+import { useAuth } from '../../../context/AuthContext';
 
 const NotificationContext = createContext(null);
 
@@ -50,11 +50,13 @@ export const NotificationProvider = ({ children }) => {
     };
 
     socket.on('notification', handleNewNotification);
+    socket.on('connect', fetchNotifications);
 
     return () => {
       socket.off('notification', handleNewNotification);
+      socket.off('connect', fetchNotifications);
     };
-  }, [socket]);
+  }, [socket, fetchNotifications]);
 
   const markAsRead = async (id) => {
     try {

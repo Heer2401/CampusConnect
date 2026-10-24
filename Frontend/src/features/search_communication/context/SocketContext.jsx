@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { io } from 'socket.io-client';
-import { useAuth } from '../../marketplace/hooks/useAuth';
+import { useAuth } from '../../../context/AuthContext';
 
 const SocketContext = createContext(null);
 
@@ -11,9 +11,9 @@ export const SocketProvider = ({ children }) => {
   const socketRef = useRef(null);
 
   useEffect(() => {
-    // Only connect if user is authenticated (either JWT token or dev user)
+    // Connect with JWT token or devUser fallback
+    const authToken = token || localStorage.getItem('cc_token') || localStorage.getItem('token');
     const devUser = localStorage.getItem('devUser');
-    const authToken = token || localStorage.getItem('token');
 
     if (!user && !authToken && !devUser) {
       if (socketRef.current) {
@@ -30,11 +30,14 @@ export const SocketProvider = ({ children }) => {
     const newSocket = io(socketUrl, {
       auth: {
         token: authToken,
-        devUser: devUser ? JSON.parse(devUser) : (user ? { id: user._id, role: user.role, name: user.name } : null)
+        userId: user?._id || user?.id,
+        devUser: user
+          ? { id: user._id || user.id, role: user.role, name: user.profile?.name || user.name }
+          : (devUser ? JSON.parse(devUser) : null)
       },
       transports: ['websocket', 'polling'],
-      reconnectionAttempts: 5,
-      reconnectionDelay: 2000
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000
     });
 
     socketRef.current = newSocket;
