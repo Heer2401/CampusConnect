@@ -16,6 +16,8 @@ const Listing = require('../models/Listing');
 const RentalReminder = require('../models/RentalReminder');
 const QRCode = require('qrcode');
 const { randomUUID: uuidv4 } = require('crypto');
+const { computeUserSustainability } = require('./sustainabilityController');
+
 
 /* ─────────────────────────────────────────────────────────────────────────
    ALLOWED STATUS TRANSITIONS
@@ -99,11 +101,11 @@ const createRental = async (req, res, next) => {
     if (!listing) {
       return res.status(404).json({ message: 'Listing not found.' });
     }
-    if (listing.listingType !== 'Rent') {
+    if (listing.listingType !== 'rent') {
       return res.status(400).json({ message: 'This listing is not available for rent.' });
     }
-    if (listing.status !== 'approved') {
-      return res.status(400).json({ message: 'Listing is not approved yet.' });
+    if (!['approved', 'active'].includes(listing.status)) {
+      return res.status(400).json({ message: 'Listing is not currently available for rental.' });
     }
 
     // Cannot rent your own item
@@ -129,9 +131,13 @@ const createRental = async (req, res, next) => {
       ownerId: listing.seller,
       startDate: start,
       dueDate: due,
-      price: listing.price,
+      price: listing.rentalRate || listing.price || 0,
+      deposit: listing.deposit || 0,
       status: 'requested',
     });
+
+    // Reserve the listing so it cannot be double-booked
+    await Listing.findByIdAndUpdate(listingId, { status: 'reserved' });
 
     res.status(201).json({ message: 'Rental request submitted.', rental });
   } catch (error) {
@@ -290,6 +296,8 @@ const updateRentalStatus = async (req, res, next) => {
         relatedId: rental._id,
         relatedModel: 'Rental'
       });
+      // Un-reserve the listing so it is available again
+      await Listing.findByIdAndUpdate(rental.listingId, { status: 'active' });
     }
 
     await rental.save();
@@ -373,6 +381,10 @@ const completeRental = async (req, res, next) => {
       scheduledFor: new Date(),
       sentAt: new Date(),
     });
+
+    // Update sustainability metrics for renter and owner
+    computeUserSustainability(rental.renterId).catch((err) => console.error('[sustainability] renter err:', err.message));
+    computeUserSustainability(rental.ownerId).catch((err) => console.error('[sustainability] owner err:', err.message));
 
     res.json({ message: 'Rental completed successfully.', rental });
   } catch (error) {
