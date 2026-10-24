@@ -1,11 +1,16 @@
-﻿/**
+/**
  * Charmi Bhayani (202512028) - Rental & Transaction Management
  * RentalDashboardPage.jsx
  *
  * Fully live - all data fetched from backend via rentalApi.js.
  * No hardcoded mock data. Falls back to empty state with user-friendly message.
  *
- * Tabs:   Active Rentals | Requests | Rental History | Transactions
+ * Tabs:
+ *   - Active Rentals: Ongoing, pending approval, and overdue rentals
+ *   - Item Requests: Free-form requests for unlisted items (e.g. calculator for 2 days)
+ *   - Rental History: Completed and cancelled rentals
+ *   - Transactions: Escrow transaction statuses
+ *
  * Modes:  Renter view  /  Owner view  (toggled via role switcher)
  */
 
@@ -17,10 +22,13 @@ import {
   getRentalQR,
   verifyHandover,
   completeRental,
-  createRental,
   getMyTransactions,
   confirmTransaction,
   cancelTransaction,
+  createRentalRequest,
+  getMyRentalRequests,
+  getAllRentalRequests,
+  cancelRentalRequest,
 } from '../api/rentalApi';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -28,15 +36,17 @@ const fmt = (date) =>
   date ? new Date(date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
 const STATUS_STYLES = {
-  active:     'status-active',
-  approved:   'status-approved',
-  requested:  'status-requested',
-  completed:  'status-completed',
-  cancelled:  'status-cancelled',
-  overdue:    'status-overdue',
-  pending:    'status-requested',
-  payment_held: 'status-approved',
-  buyer_confirmed: 'status-approved',
+  active:           'status-active',
+  approved:         'status-approved',
+  requested:        'status-requested',
+  completed:        'status-completed',
+  cancelled:        'status-cancelled',
+  overdue:          'status-overdue',
+  open:             'status-active',
+  fulfilled:        'status-completed',
+  pending:          'status-requested',
+  payment_held:     'status-approved',
+  buyer_confirmed:  'status-approved',
   seller_confirmed: 'status-approved',
 };
 
@@ -136,24 +146,49 @@ function ScanQRModal({ rentalId, onSuccess, onClose }) {
   );
 }
 
-// ─── Request Rental Modal ─────────────────────────────────────────────────────
-function RequestRentalModal({ onSuccess, onClose }) {
-  const [form, setForm] = useState({ listingId: '', startDate: '', dueDate: '', message: '' });
+// ─── Request Item Modal (Free-form, no listing ID needed) ─────────────────────
+function RequestItemModal({ onSuccess, onClose }) {
+  const todayStr = new Date().toISOString().split('T')[0];
+  const [form, setForm] = useState({
+    itemName: '',
+    category: 'Electronics',
+    startDate: todayStr,
+    dueDate: '',
+    budgetPerDay: '',
+    description: '',
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = async () => {
-    if (!form.listingId || !form.startDate || !form.dueDate) {
-      setError('Listing ID, start date and due date are required.');
+  const handleSubmit = async (e) => {
+    e?.preventDefault();
+    if (!form.itemName.trim()) {
+      setError('Please provide the name of the item you need.');
       return;
     }
-    setLoading(true); setError('');
+    if (!form.startDate || !form.dueDate) {
+      setError('Both start date and return date are required.');
+      return;
+    }
+    if (new Date(form.startDate) >= new Date(form.dueDate)) {
+      setError('Start date must be before return date.');
+      return;
+    }
+    setLoading(true);
+    setError('');
     try {
-      await createRental(form);
-      onSuccess('Rental request submitted successfully!');
+      await createRentalRequest({
+        itemName: form.itemName.trim(),
+        category: form.category,
+        startDate: form.startDate,
+        dueDate: form.dueDate,
+        budgetPerDay: form.budgetPerDay ? Number(form.budgetPerDay) : null,
+        description: form.description.trim(),
+      });
+      onSuccess('Rental request posted! Campus owners can now see what you need.');
       onClose();
-    } catch (e) {
-      setError(e.message);
+    } catch (err) {
+      setError(err.message || 'Failed to submit rental request.');
     } finally {
       setLoading(false);
     }
@@ -161,31 +196,192 @@ function RequestRentalModal({ onSuccess, onClose }) {
 
   return (
     <div className="rd-modal-backdrop" onClick={onClose}>
-      <div className="rd-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="rd-modal" style={{ maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
         <button className="rd-modal-close" onClick={onClose}>✕</button>
-        <h3 className="rd-modal-title">Request a Rental</h3>
-        <label className="rd-label">Listing ID</label>
-        <input className="rd-input" placeholder="Paste the listing ID..."
-          value={form.listingId} onChange={(e) => setForm({ ...form, listingId: e.target.value })} />
-        <label className="rd-label">Start Date</label>
-        <input className="rd-input" type="date"
-          value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
-        <label className="rd-label">Due Date</label>
-        <input className="rd-input" type="date"
-          value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} />
-        <label className="rd-label">Message (optional)</label>
-        <textarea className="rd-input rd-textarea" placeholder="Message to owner..."
-          value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} />
-        {error && <p className="rd-error-msg">{error}</p>}
-        <button className="rd-btn rd-btn-primary" onClick={handleSubmit} disabled={loading}>
-          {loading ? 'Submitting...' : 'Submit Request'}
-        </button>
+        <h3 className="rd-modal-title">Request an Item on Rent</h3>
+        <p className="rd-modal-sub">
+          Can't find what you need in the marketplace? Post your requirement so students with the item can connect with you.
+        </p>
+
+        <form onSubmit={handleSubmit}>
+          <label className="rd-label">Item Name *</label>
+          <input
+            className="rd-input"
+            placeholder="e.g. Scientific Calculator (Casio fx-991EX), Lab Coat, Drafter..."
+            value={form.itemName}
+            onChange={(e) => setForm({ ...form, itemName: e.target.value })}
+            autoFocus
+          />
+
+          <div className="rd-grid-2">
+            <div>
+              <label className="rd-label">Category</label>
+              <select
+                className="rd-input"
+                value={form.category}
+                onChange={(e) => setForm({ ...form, category: e.target.value })}
+              >
+                <option value="Electronics">Electronics & Gadgets</option>
+                <option value="Books">Books & Study Material</option>
+                <option value="Lab Equipment">Lab Equipment</option>
+                <option value="Stationery">Stationery</option>
+                <option value="Sports">Sports & Fitness</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label className="rd-label">Daily Budget (₹, optional)</label>
+              <input
+                className="rd-input"
+                type="number"
+                min="0"
+                placeholder="e.g. 20 (or blank for flexible)"
+                value={form.budgetPerDay}
+                onChange={(e) => setForm({ ...form, budgetPerDay: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div className="rd-grid-2">
+            <div>
+              <label className="rd-label">Needed From *</label>
+              <input
+                className="rd-input"
+                type="date"
+                min={todayStr}
+                value={form.startDate}
+                onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="rd-label">Needed Until *</label>
+              <input
+                className="rd-input"
+                type="date"
+                min={form.startDate || todayStr}
+                value={form.dueDate}
+                onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <label className="rd-label">Details / Urgency (optional)</label>
+          <textarea
+            className="rd-input rd-textarea"
+            placeholder="e.g. Needed for 2 days for end-sem exam, prefer working condition..."
+            rows={3}
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+          />
+
+          {error && <p className="rd-error-msg">{error}</p>}
+
+          <div style={{ marginTop: 20, display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+            <button
+              type="button"
+              className="rd-btn"
+              style={{ background: 'transparent', color: '#9ca3af' }}
+              onClick={onClose}
+            >
+              Cancel
+            </button>
+            <button type="submit" className="rd-btn rd-btn-primary" disabled={loading}>
+              {loading ? 'Posting...' : 'Post Request'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
 }
 
-// ─── Rentals Table ────────────────────────────────────────────────────────────
+// ─── Item Requests Table (Unlisted Items Needed) ─────────────────────────────
+function ItemRequestsTable({ itemRequests, role, userId, onCancel, onRequestNew }) {
+  if (!itemRequests.length) {
+    return (
+      <div className="rd-empty" style={{ textAlign: 'center', padding: '40px 20px' }}>
+        <div style={{ fontSize: 36, marginBottom: 12 }}>🔍</div>
+        <h4 style={{ color: 'var(--text-primary)', margin: '0 0 8px' }}>
+          {role === 'renter' ? 'No item requests yet' : 'No open requests from students'}
+        </h4>
+        <p style={{ color: 'var(--text-muted)', fontSize: 14, maxWidth: 420, margin: '0 auto 16px' }}>
+          {role === 'renter'
+            ? "Looking for an item like a calculator, lab kit, or book that isn't listed on the marketplace? Post a request so owners can help!"
+            : "No students currently have open requests for items. Check back later!"}
+        </p>
+        {role === 'renter' && (
+          <button className="rd-btn rd-btn-primary" onClick={onRequestNew}>
+            + Request an Item
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="rd-table-wrap">
+      <table className="rd-table">
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th>{role === 'owner' ? 'Requested By' : 'Category'}</th>
+            <th>Required Duration</th>
+            <th>Budget</th>
+            <th>Details</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {itemRequests.map((req) => {
+            const isMyRequest = req.requesterId?._id === userId || req.requesterId === userId;
+            const requesterName = req.requesterId?.profile?.name || req.requesterId?.email || 'Student';
+            const daysCount = Math.max(
+              1,
+              Math.ceil((new Date(req.dueDate) - new Date(req.startDate)) / (1000 * 60 * 60 * 24))
+            );
+
+            return (
+              <tr key={req._id}>
+                <td className="rd-td-item">
+                  <div>{req.itemName}</div>
+                  <span className="rd-tag">{req.category || 'Other'}</span>
+                </td>
+                <td>{role === 'owner' ? requesterName : req.category || '—'}</td>
+                <td>
+                  <div>{fmt(req.startDate)} → {fmt(req.dueDate)}</div>
+                  <small style={{ color: 'var(--text-muted)' }}>({daysCount} day{daysCount > 1 ? 's' : ''})</small>
+                </td>
+                <td>
+                  {req.budgetPerDay ? `₹${req.budgetPerDay}/day` : <span style={{ color: 'var(--text-muted)' }}>Flexible</span>}
+                </td>
+                <td style={{ maxWidth: 220, fontSize: 13, color: 'var(--text-secondary)' }}>
+                  {req.description || '—'}
+                </td>
+                <td><StatusBadge status={req.status} /></td>
+                <td className="rd-actions">
+                  {isMyRequest && req.status === 'open' && (
+                    <button
+                      className="rd-btn rd-btn-danger rd-btn-sm"
+                      onClick={() => onCancel(req._id)}
+                    >
+                      Cancel Request
+                    </button>
+                  )}
+                  {(!isMyRequest || req.status !== 'open') && (
+                    <span className="rd-done-label">{req.status === 'open' ? 'Open' : '—'}</span>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ─── Rentals Table (Listing-based Rentals) ────────────────────────────────────
 function RentalsTable({ rentals, role, userId, onAction, onShowQR, onScanQR, onConfirmReturn }) {
   if (!rentals.length) {
     return <div className="rd-empty">No rentals found.</div>;
@@ -211,7 +407,6 @@ function RentalsTable({ rentals, role, userId, onAction, onShowQR, onScanQR, onC
               role === 'owner'
                 ? r.renterId?.profile?.name || r.renterId?.email || '—'
                 : r.ownerId?.profile?.name || r.ownerId?.email || '—';
-            const isOwner = r.ownerId?._id === userId || r.ownerId?.toString?.() === userId;
 
             return (
               <tr key={r._id}>
@@ -335,9 +530,9 @@ function TransactionsTable({ transactions, userId, onConfirm, onCancel }) {
 }
 
 // ─── Stat Cards ───────────────────────────────────────────────────────────────
-function StatCards({ rentals, transactions }) {
-  const active    = rentals.filter((r) => r.status === 'active').length;
-  const pending   = rentals.filter((r) => r.status === 'requested').length;
+function StatCards({ rentals, transactions, itemRequests }) {
+  const active    = rentals.filter((r) => ['requested', 'approved', 'active', 'overdue'].includes(r.status)).length;
+  const requests  = itemRequests.filter((r) => r.status === 'open').length;
   const completed = rentals.filter((r) => r.status === 'completed').length;
   const txnTotal  = transactions.length;
 
@@ -345,7 +540,7 @@ function StatCards({ rentals, transactions }) {
     <div className="rd-stat-grid">
       {[
         { label: 'Active Rentals', value: active, icon: '📦' },
-        { label: 'Pending Requests', value: pending, icon: '⏳' },
+        { label: 'Item Requests', value: requests, icon: '📋' },
         { label: 'Completed Rentals', value: completed, icon: '✅' },
         { label: 'Transactions', value: txnTotal, icon: '💳' },
       ].map((s) => (
@@ -360,7 +555,7 @@ function StatCards({ rentals, transactions }) {
 }
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
-const TABS = ['Active Rentals', 'Requests', 'Rental History', 'Transactions'];
+const TABS = ['Active Rentals', 'Item Requests', 'Rental History', 'Transactions'];
 
 export default function RentalDashboardPage() {
   const { user } = useAuth();
@@ -370,6 +565,7 @@ export default function RentalDashboardPage() {
   const [activeTab, setActiveTab] = useState('Active Rentals');
   const [rentals, setRentals] = useState([]);
   const [transactions, setTransactions] = useState([]);
+  const [itemRequests, setItemRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState({ message: '', type: 'success' });
 
@@ -383,12 +579,14 @@ export default function RentalDashboardPage() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [rentalRes, txnRes] = await Promise.all([
+      const [rentalRes, txnRes, reqRes] = await Promise.all([
         getMyRentals({ role }),
         getMyTransactions({}),
+        role === 'renter' ? getMyRentalRequests() : getAllRentalRequests(),
       ]);
       setRentals(rentalRes.rentals || []);
       setTransactions(txnRes.transactions || []);
+      setItemRequests(reqRes.requests || []);
     } catch (e) {
       showToast(e.message || 'Failed to load data.', 'error');
     } finally {
@@ -400,11 +598,18 @@ export default function RentalDashboardPage() {
 
   // ── Filter rentals per tab
   const filteredRentals = (() => {
-    if (activeTab === 'Active Rentals') return rentals.filter((r) => ['active', 'overdue'].includes(r.status));
-    if (activeTab === 'Requests')       return rentals.filter((r) => ['requested', 'approved'].includes(r.status));
+    if (activeTab === 'Active Rentals') return rentals.filter((r) => ['requested', 'approved', 'active', 'overdue'].includes(r.status));
     if (activeTab === 'Rental History') return rentals.filter((r) => ['completed', 'cancelled'].includes(r.status));
     return [];
   })();
+
+  // ── In Owner view, exclude own requests from community requests
+  const visibleItemRequests = role === 'owner'
+    ? itemRequests.filter((r) => {
+        const reqUserId = r.requesterId?._id?.toString?.() || r.requesterId?.toString?.();
+        return reqUserId && userId && reqUserId !== userId.toString();
+      })
+    : itemRequests;
 
   // ── Actions
   const handleStatusUpdate = async (id, status, successMsg) => {
@@ -439,6 +644,14 @@ export default function RentalDashboardPage() {
     } catch (e) { showToast(e.message, 'error'); }
   };
 
+  const handleCancelItemRequest = async (id) => {
+    try {
+      await cancelRentalRequest(id);
+      showToast('Rental request cancelled.');
+      loadData();
+    } catch (e) { showToast(e.message, 'error'); }
+  };
+
   return (
     <div className="rd-page">
       {/* Toast */}
@@ -450,7 +663,7 @@ export default function RentalDashboardPage() {
       <div className="rd-header">
         <div>
           <h1 className="rd-title">Rental Dashboard</h1>
-          <p className="rd-subtitle">Manage your active rentals, requests, history, and transactions.</p>
+          <p className="rd-subtitle">Manage your active rentals, item requests, rental history, and transactions.</p>
         </div>
         <div className="rd-header-actions">
           <button
@@ -462,14 +675,14 @@ export default function RentalDashboardPage() {
           </button>
           {role === 'renter' && (
             <button className="rd-btn rd-btn-primary" onClick={() => setShowRequestModal(true)}>
-              + Request Rental
+              + Request an Item
             </button>
           )}
         </div>
       </div>
 
       {/* Stat Cards */}
-      <StatCards rentals={rentals} transactions={transactions} />
+      <StatCards rentals={rentals} transactions={transactions} itemRequests={visibleItemRequests} />
 
       {/* Tabs */}
       <div className="rd-tabs">
@@ -480,11 +693,11 @@ export default function RentalDashboardPage() {
             onClick={() => setActiveTab(tab)}
           >
             {tab}
-            {tab === 'Active Rentals' && rentals.filter(r => ['active','overdue'].includes(r.status)).length > 0 && (
-              <span className="rd-tab-badge">{rentals.filter(r => ['active','overdue'].includes(r.status)).length}</span>
+            {tab === 'Active Rentals' && rentals.filter(r => ['requested', 'approved', 'active', 'overdue'].includes(r.status)).length > 0 && (
+              <span className="rd-tab-badge">{rentals.filter(r => ['requested', 'approved', 'active', 'overdue'].includes(r.status)).length}</span>
             )}
-            {tab === 'Requests' && rentals.filter(r => r.status === 'requested').length > 0 && (
-              <span className="rd-tab-badge rd-tab-badge-warn">{rentals.filter(r => r.status === 'requested').length}</span>
+            {tab === 'Item Requests' && visibleItemRequests.filter(r => r.status === 'open').length > 0 && (
+              <span className="rd-tab-badge rd-tab-badge-warn">{visibleItemRequests.filter(r => r.status === 'open').length}</span>
             )}
           </button>
         ))}
@@ -503,6 +716,14 @@ export default function RentalDashboardPage() {
             userId={userId}
             onConfirm={handleConfirmTxn}
             onCancel={handleCancelTxn}
+          />
+        ) : activeTab === 'Item Requests' ? (
+          <ItemRequestsTable
+            itemRequests={visibleItemRequests}
+            role={role}
+            userId={userId}
+            onCancel={handleCancelItemRequest}
+            onRequestNew={() => setShowRequestModal(true)}
           />
         ) : (
           <RentalsTable
@@ -529,7 +750,7 @@ export default function RentalDashboardPage() {
         />
       )}
       {showRequestModal && (
-        <RequestRentalModal
+        <RequestItemModal
           onSuccess={(msg) => { showToast(msg); loadData(); }}
           onClose={() => setShowRequestModal(false)}
         />

@@ -36,6 +36,7 @@ app.use('/api/notifications', require('./routes/notificationRoutes'));
 
 // Charmi Bhayani — Rental & Transaction Management
 app.use('/api/rentals', require('./routes/rentalRoutes'));
+app.use('/api/rental-requests', require('./routes/rentalRequestRoutes'));
 app.use('/api/transactions', require('./routes/transactionRoutes'));
 
 // Static serving for React Frontend (Kajal Varlani - FR-6.1 to FR-6.5)

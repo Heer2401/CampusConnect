@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Charmi Bhayani (202512028) - Rental & Transaction Management
  * rentalApi.js - API service layer connecting to backend endpoints.
  *
@@ -102,3 +102,29 @@ export const cancelTransaction = (id) =>
     method: 'PATCH',
     body: JSON.stringify({}),
   });
+
+// ─── RENTAL ITEM REQUEST ENDPOINTS (free-form, no listing ID needed) ───────────
+
+/** POST /api/rental-requests — Student posts a request for an item not yet listed */
+export const createRentalRequest = (data) =>
+  request('/api/rental-requests', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+
+/** GET /api/rental-requests/my — Get requests made by the current user */
+export const getMyRentalRequests = () => request('/api/rental-requests/my');
+
+/** GET /api/rental-requests — Browse open requests from all students */
+export const getAllRentalRequests = (params = {}) => {
+  const qs = new URLSearchParams(params).toString();
+  return request(`/api/rental-requests${qs ? `?${qs}` : ''}`);
+};
+
+/** PATCH /api/rental-requests/:id/cancel — Requester cancels their own request */
+export const cancelRentalRequest = (id) =>
+  request(`/api/rental-requests/${id}/cancel`, {
+    method: 'PATCH',
+    body: JSON.stringify({}),
+  });
+

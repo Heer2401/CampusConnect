@@ -1660,9 +1660,26 @@ body {
   text-align: center;
 }
 
+.rd-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.rd-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  background: rgba(99, 102, 241, 0.12);
+  color: #a5b4fc;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+}
+
 /* Responsive */
 @media (max-width: 640px) {
   .rd-header { flex-direction: column; }
   .rd-table th, .rd-table td { padding: 10px 12px; }
   .rd-stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .rd-grid-2 { grid-template-columns: 1fr; }
 }

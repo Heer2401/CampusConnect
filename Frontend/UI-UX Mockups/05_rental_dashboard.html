@@ -1,10 +1,19 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><link rel="stylesheet" href="style.css"></head>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="style.css">
+</head>
+
 <body>
   <div class="topbar">
     <div class="brand"><span class="dot"></span>CampusConnect</div>
-    <nav><span>Browse</span><span>Wanted Posts</span><span>Chats</span><span class="active">Rentals</span><span>Sustainability</span></nav>
-    <div class="user"><div class="avatar">AP</div>Ananya P.</div>
+    <nav><span>Browse</span><span>Wanted Posts</span><span>Chats</span><span
+        class="active">Rentals</span><span>Sustainability</span></nav>
+    <div class="user">
+      <div class="avatar">AP</div>Ananya P.
+    </div>
   </div>
   <div class="page">
     <h1>Rental Dashboard</h1>
@@ -15,33 +24,58 @@
     </div>
     <div class="card">
       <table>
-        <tr><th>Item</th><th>Renter</th><th>Due Date</th><th>Status</th><th>Action</th></tr>
         <tr>
-          <td>Scientific Calculator</td><td>Aman R.</td><td>Aug 20</td>
+          <th>Item</th>
+          <th>Renter</th>
+          <th>Due Date</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+        <tr>
+          <td>Scientific Calculator</td>
+          <td>Aman R.</td>
+          <td>Aug 20</td>
           <td><span class="pill pill-green">Active</span></td>
           <td><button class="btn btn-primary" style="padding:6px 12px;font-size:12px;">QR Handover</button></td>
         </tr>
         <tr>
-          <td>Study Lamp</td><td>Riya K.</td><td>Aug 18</td>
+          <td>Study Lamp</td>
+          <td>Riya K.</td>
+          <td>Aug 18</td>
           <td><span class="pill pill-yellow">Due Soon</span></td>
           <td><button class="btn btn-secondary" style="padding:6px 12px;font-size:12px;">Send Reminder</button></td>
         </tr>
         <tr>
-          <td>Drafting Kit</td><td>Om P.</td><td>Aug 25</td>
+          <td>Drafting Kit</td>
+          <td>Om P.</td>
+          <td>Aug 25</td>
           <td><span class="pill pill-green">Active</span></td>
           <td><button class="btn btn-secondary" style="padding:6px 12px;font-size:12px;">View Details</button></td>
         </tr>
         <tr>
-          <td>Mini Fridge</td><td>Sana T.</td><td>Aug 12</td>
+          <td>Mini Fridge</td>
+          <td>Sana T.</td>
+          <td>Aug 12</td>
           <td><span class="pill pill-gray">Overdue</span></td>
           <td><button class="btn btn-danger" style="padding:6px 12px;font-size:12px;">Escalate</button></td>
         </tr>
       </table>
     </div>
     <div class="grid3" style="margin-top:20px;">
-      <div class="stat-card"><div class="muted">Active Rentals</div><div class="stat-num">6</div></div>
-      <div class="stat-card"><div class="muted">Due This Week</div><div class="stat-num">2</div></div>
-      <div class="stat-card"><div class="muted">Completed (All Time)</div><div class="stat-num">21</div></div>
+      <div class="stat-card">
+        <div class="muted">Active Rentals</div>
+        <div class="stat-num">6</div>
+      </div>
+      <div class="stat-card">
+        <div class="muted">Due This Week</div>
+        <div class="stat-num">2</div>
+      </div>
+      <div class="stat-card">
+        <div class="muted">Completed (All Time)</div>
+        <div class="stat-num">21</div>
+      </div>
     </div>
   </div>
-</body></html>
+</body>
+
+</html>
