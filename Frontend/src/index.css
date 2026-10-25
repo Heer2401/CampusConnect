@@ -996,17 +996,32 @@ body {
 }
 
 .brand-name {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 700;
   letter-spacing: -0.02em;
   color: white;
+  line-height: 1.15;
+}
+
+.brand-text-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-subtitle {
+  font-size: 0.65rem;
+  color: #94a3b8;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  font-weight: 500;
+  margin-top: 2px;
 }
 
 /* Center Nav Links */
 .nav-links {
   display: flex;
   align-items: center;
-  gap: 0;
+  gap: 0.25rem;
   flex: 1;
 }
 
@@ -1015,13 +1030,13 @@ body {
   text-decoration: none;
   font-size: 0.875rem;
   font-weight: 500;
-  padding: 0 0.9rem;
+  padding: 0 1rem;
   height: 56px;
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  border-bottom: 2px solid transparent;
-  transition: color 0.15s, border-color 0.15s;
+  gap: 0.45rem;
+  border-bottom: 3px solid transparent;
+  transition: all 0.15s;
   white-space: nowrap;
 }
 
@@ -1031,6 +1046,9 @@ body {
 
 .nav-link.active {
   color: white;
+  background: #12283e;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
   border-bottom-color: #20c997;
   font-weight: 600;
 }
@@ -1107,8 +1125,8 @@ body {
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #20c997 0%, #0ea5e9 100%);
-  color: #0d1b2a;
+  background: #00b4d8;
+  color: #0b192c;
   font-size: 0.8rem;
   font-weight: 800;
   display: flex;
@@ -2770,4 +2788,35 @@ body {
 
 .txn-row-sub { font-size: 0.75rem; color: #94a3b8; }
 
+/* Global Marketplace & Card Grids */
+.grid4 {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 20px !important;
+}
 
+.grid3 {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 20px !important;
+}
+
+@media (max-width: 1200px) {
+  .grid4 {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .grid4,
+  .grid3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .grid4,
+  .grid3 {
+    grid-template-columns: 1fr !important;
+  }
+}

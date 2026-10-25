@@ -65,7 +65,10 @@ export default function Navbar() {
         {/* ── Brand Logo (Left) ──────────────────────────────────────── */}
         <NavLink to={isAdmin ? '/admin' : '/marketplace'} className="brand-wrapper">
           <div className="brand-logo-icon">CC</div>
-          <div className="brand-name">CampusConnect</div>
+          <div className="brand-text-col">
+            <div className="brand-name">CampusConnect</div>
+            <div className="brand-subtitle">Smart Campus Exchange</div>
+          </div>
         </NavLink>
 
         {/* ── Nav Links (Center) ────────────────────────────────────── */}
@@ -130,15 +133,6 @@ export default function Navbar() {
           <div className="nav-actions">
             {!isAdmin && (
               <>
-                {/* Sell Button */}
-                <button
-                  className="nav-sell-btn"
-                  onClick={() => navigate('/marketplace/create')}
-                >
-                  <Plus size={15} />
-                  Sell
-                </button>
-
                 {/* Wishlist Heart Icon */}
                 <NavLink
                   to="/wishlist"

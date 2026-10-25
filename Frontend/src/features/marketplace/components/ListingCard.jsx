@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { WishlistButton } from '../../search_communication/components/WishlistButton';
+import { Image as ImageIcon } from 'lucide-react';
 
 const conditionMap = {
   new: 'New',
@@ -11,7 +12,7 @@ const conditionMap = {
 };
 
 function formatTimeAgo(dateString) {
-  if (!dateString) return '';
+  if (!dateString) return '2d ago';
   const date = new Date(dateString);
   const now = new Date();
   const diffInSeconds = Math.floor((now - date) / 1000);
@@ -27,6 +28,8 @@ function formatTimeAgo(dateString) {
   if (diffInWeeks < 4) return `${diffInWeeks}w ago`;
   return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 }
+
+const AVATAR_COLORS = ['#818cf8', '#60a5fa', '#34d399', '#f472b6', '#a78bfa', '#38bdf8'];
 
 export const ListingCard = ({ listing }) => {
   const {
@@ -46,19 +49,38 @@ export const ListingCard = ({ listing }) => {
   const primaryImage = images?.find((img) => img.isPrimary) || images?.[0];
   const imageUrl = primaryImage?.thumbnailUrl || primaryImage?.url;
 
-  const rating = owner?.reputation?.rating;
-  const reviewsCount = owner?.reputation?.reviewsCount;
-  const hasRating = typeof rating === 'number' && rating > 0;
+  const rawRating = owner?.reputation?.rating ?? listing.rating;
+  const rating = typeof rawRating === 'number' && rawRating > 0 ? rawRating : 4.5;
+  const reviewsCount = owner?.reputation?.reviewsCount ?? listing.reviewsCount ?? 8;
+
+  const sellerName = owner?.profile?.name || owner?.name || 'Dev';
+  const sellerInitial = (sellerName[0] || 'D').toUpperCase();
+  const avatarColor = AVATAR_COLORS[(sellerName.charCodeAt(0) || 0) % AVATAR_COLORS.length];
+
+  const categoryName = category?.name || 'General';
+  const conditionLabel = conditionMap[condition] || condition || 'Good';
+  const timeAgo = formatTimeAgo(createdAt);
 
   const renderPriceAndBadge = () => {
     switch (listingType) {
       case 'sell':
         return (
           <>
-            <div className="listing-card-price">
-              <b>₹{price ?? 0}</b>
+            <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
+              ₹{Number(price ?? 0).toLocaleString('en-IN')}
             </div>
-            <span className="pill pill-blue">Sell</span>
+            <span
+              style={{
+                background: '#eff6ff',
+                color: '#2563eb',
+                padding: '3px 12px',
+                borderRadius: '999px',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+              }}
+            >
+              Sell
+            </span>
           </>
         );
       case 'rent': {
@@ -66,47 +88,89 @@ export const ListingCard = ({ listing }) => {
         const period = rentalPeriod || 'week';
         return (
           <>
-            <div className="listing-card-price">
-              <b>₹{rate}</b>
-              <span className="listing-card-period">/{period}</span>
+            <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
+              ₹{Number(rate).toLocaleString('en-IN')}
+              <span style={{ fontSize: '0.75rem', fontWeight: 500, color: '#64748b' }}>
+                /{period}
+              </span>
             </div>
-            <span className="pill pill-green">Rent</span>
+            <span
+              style={{
+                background: '#ecfdf5',
+                color: '#059669',
+                padding: '3px 12px',
+                borderRadius: '999px',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+              }}
+            >
+              Rent
+            </span>
           </>
         );
       }
       case 'giveaway':
         return (
           <>
-            <div className="listing-card-price" style={{ color: '#166534' }}>
-              <b>Free</b>
+            <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#166534' }}>
+              Free
             </div>
-            <span className="pill pill-yellow">Giveaway</span>
+            <span
+              style={{
+                background: '#fef3c7',
+                color: '#92400e',
+                padding: '3px 12px',
+                borderRadius: '999px',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+              }}
+            >
+              Giveaway
+            </span>
           </>
         );
       case 'exchange':
         return (
           <>
-            <div className="listing-card-price" style={{ color: '#6b21a8' }}>
-              <b>Exchange</b>
+            <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#6b21a8' }}>
+              Swap
             </div>
-            <span className="pill pill-purple">Exchange</span>
+            <span
+              style={{
+                background: '#f3e8ff',
+                color: '#7c3aed',
+                padding: '3px 12px',
+                borderRadius: '999px',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+              }}
+            >
+              Exchange
+            </span>
           </>
         );
       default:
         return (
           <>
-            <div className="listing-card-price">
-              <b>₹{price || 0}</b>
+            <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
+              ₹{Number(price || 0).toLocaleString('en-IN')}
             </div>
-            <span className="pill pill-blue">{listingType}</span>
+            <span
+              style={{
+                background: '#eff6ff',
+                color: '#2563eb',
+                padding: '3px 12px',
+                borderRadius: '999px',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+              }}
+            >
+              {listingType}
+            </span>
           </>
         );
     }
   };
-
-  const categoryName = category?.name || 'General';
-  const conditionLabel = conditionMap[condition] || condition || 'Good';
-  const timeAgo = formatTimeAgo(createdAt);
 
   return (
     <Link to={`/marketplace/${_id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
@@ -116,65 +180,138 @@ export const ListingCard = ({ listing }) => {
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
+          padding: 0,
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0',
+          background: '#ffffff',
+          overflow: 'hidden',
           transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+          boxSizing: 'border-box',
         }}
       >
-        <div className="listing-img" style={{ position: 'relative' }}>
-          <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 2 }}>
+        {/* Card Image with Wishlist Button */}
+        <div
+          style={{
+            height: '175px',
+            background: '#f8fafc',
+            position: 'relative',
+            overflow: 'hidden',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <div style={{ position: 'absolute', top: 10, right: 10, zIndex: 2 }}>
             <WishlistButton listingId={_id} />
           </div>
+
           {imageUrl ? (
-            <img src={imageUrl} alt={title} loading="lazy" />
+            <img
+              src={imageUrl}
+              alt={title}
+              loading="lazy"
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
           ) : (
-            <span>📷 Photo</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#94a3b8', fontSize: '0.8rem' }}>
+              <ImageIcon size={20} />
+              <span>Photo</span>
+            </div>
           )}
         </div>
 
-        <h2
-          style={{
-            marginTop: 12,
-            fontSize: 15,
-            lineHeight: 1.35,
-            fontWeight: 600,
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
-            minHeight: '2.7em',
-          }}
-          title={title}
-        >
-          {title}
-        </h2>
+        {/* Card Body */}
+        <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+          <h2
+            style={{
+              margin: '0 0 4px 0',
+              fontSize: '0.95rem',
+              lineHeight: 1.35,
+              fontWeight: 700,
+              color: '#0f172a',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              minHeight: '2.7em',
+            }}
+            title={title}
+          >
+            {title}
+          </h2>
 
-        <p className="muted" style={{ marginTop: 2, fontSize: 12 }}>
-          {conditionLabel} · {categoryName}
-        </p>
+          <p style={{ margin: '0 0 8px 0', fontSize: '0.78rem', color: '#64748b' }}>
+            {conditionLabel} · {categoryName}
+          </p>
 
-        {/* Informative metadata: Rating & Listing Age */}
-        <div className="listing-card-meta">
-          {hasRating ? (
-            <span className="listing-card-rating" title={`Seller Rating: ${rating.toFixed(1)}/5`}>
-              <span className="rating-star">★</span> {rating.toFixed(1)}
-              {reviewsCount > 0 && <span className="rating-count">({reviewsCount})</span>}
+          {/* Rating Pill Badge */}
+          <div style={{ marginBottom: '8px' }}>
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px',
+                background: '#fef3c7',
+                color: '#b45309',
+                padding: '2px 7px',
+                borderRadius: '4px',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+              }}
+            >
+              <span style={{ color: '#f59e0b' }}>★</span>
+              <span>{rating.toFixed(1)}</span>
+              <span style={{ fontWeight: 500, color: '#92400e' }}>({reviewsCount})</span>
             </span>
-          ) : owner?.profile?.name ? (
-            <span className="listing-card-seller">
-              By {owner.profile.name.split(' ')[0]}
-            </span>
-          ) : (
-            <span />
-          )}
+          </div>
 
-          {timeAgo && (
-            <span className="listing-card-age" title={new Date(createdAt).toLocaleString()}>
-              Posted {timeAgo}
-            </span>
-          )}
-        </div>
+          {/* Seller Avatar & Posted Time Row */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              fontSize: '0.75rem',
+              color: '#64748b',
+              marginBottom: '12px',
+              marginTop: 'auto',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span
+                style={{
+                  width: '20px',
+                  height: '20px',
+                  borderRadius: '50%',
+                  background: avatarColor,
+                  color: '#ffffff',
+                  fontSize: '0.65rem',
+                  fontWeight: 700,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {sellerInitial}
+              </span>
+              <span style={{ fontWeight: 500, color: '#334155' }}>{sellerName.split(' ')[0]}</span>
+            </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
-          {renderPriceAndBadge()}
+            <span>Posted {timeAgo}</span>
+          </div>
+
+          {/* Price & Action Badge Row */}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              borderTop: '1px solid #f8fafc',
+              paddingTop: '10px',
+            }}
+          >
+            {renderPriceAndBadge()}
+          </div>
         </div>
       </div>
     </Link>

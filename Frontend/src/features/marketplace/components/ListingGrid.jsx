@@ -2,15 +2,32 @@ import React from 'react';
 import { Package } from 'lucide-react';
 import { ListingCard } from './ListingCard';
 
-export const ListingGrid = ({ listings = [], loading = false, error = null, onRetry, gridClass = 'grid3' }) => {
+export const ListingGrid = ({
+  listings = [],
+  loading = false,
+  error = null,
+  onRetry,
+  gridClass = 'grid4',
+}) => {
+  const isGrid3 = gridClass === 'grid3';
+  const gridStyle = {
+    display: 'grid',
+    gridTemplateColumns: isGrid3
+      ? 'repeat(auto-fill, minmax(280px, 1fr))'
+      : 'repeat(auto-fill, minmax(240px, 1fr))',
+    gap: '20px',
+  };
+
   if (loading) {
     return (
-      <div className={gridClass}>
-        {[1, 2, 3, 4, 5, 6].map(n => (
-          <div key={n} className="card" style={{ height: 240, opacity: 0.6 }}>
-            <div className="listing-img" style={{ animation: 'pulse 1.5s infinite' }}>Loading...</div>
-            <div style={{ height: 16, background: '#e2e8f0', marginTop: 12, borderRadius: 4 }} />
-            <div style={{ height: 12, background: '#e2e8f0', marginTop: 8, width: '60%', borderRadius: 4 }} />
+      <div className={gridClass} style={gridStyle}>
+        {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+          <div key={n} className="card" style={{ height: 280, opacity: 0.6, padding: 0, borderRadius: 12 }}>
+            <div className="listing-img" style={{ height: 160, animation: 'pulse 1.5s infinite' }}>Loading...</div>
+            <div style={{ padding: '14px 16px' }}>
+              <div style={{ height: 16, background: '#e2e8f0', borderRadius: 4 }} />
+              <div style={{ height: 12, background: '#e2e8f0', marginTop: 8, width: '60%', borderRadius: 4 }} />
+            </div>
           </div>
         ))}
       </div>
@@ -43,8 +60,8 @@ export const ListingGrid = ({ listings = [], loading = false, error = null, onRe
   }
 
   return (
-    <div className={gridClass}>
-      {listings.map(item => (
+    <div className={gridClass} style={gridStyle}>
+      {listings.map((item) => (
         <ListingCard key={item._id} listing={item} />
       ))}
     </div>

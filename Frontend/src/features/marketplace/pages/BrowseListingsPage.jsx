@@ -4,7 +4,115 @@ import { useListings } from '../hooks/useListings';
 import { useCategories } from '../hooks/useCategories';
 import { ListingGrid } from '../components/ListingGrid';
 import { ListingFilters } from '../components/ListingFilters';
+import {
+  Search,
+  Plus,
+  SlidersHorizontal,
+  LayoutGrid,
+  BookOpen,
+  FileText,
+  FileSpreadsheet,
+  Laptop,
+  FlaskConical,
+  Home,
+  ChevronRight,
+  X,
+} from 'lucide-react';
 import '../marketplace.css';
+
+// Collegiate Campus Illustration SVG for hero banner
+function CampusIllustration() {
+  return (
+    <svg
+      width="280"
+      height="95"
+      viewBox="0 0 280 95"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ flexShrink: 0 }}
+      className="marketplace-hero-skyline"
+    >
+      {/* Soft background foliage */}
+      <circle cx="195" cy="62" r="16" fill="#86efac" fillOpacity="0.4" />
+      <circle cx="212" cy="58" r="20" fill="#4ade80" fillOpacity="0.3" />
+      <circle cx="248" cy="60" r="18" fill="#86efac" fillOpacity="0.35" />
+      <circle cx="266" cy="65" r="14" fill="#22c55e" fillOpacity="0.25" />
+
+      {/* Subtle clouds */}
+      <path
+        d="M238 24a7 7 0 0 1 13 0 5 5 0 0 1 7 5h-24a4 4 0 0 1 4-5z"
+        fill="#e0f2fe"
+        fillOpacity="0.7"
+      />
+      <path
+        d="M182 28a6 6 0 0 1 11 0 4 4 0 0 1 6 4h-20a3 3 0 0 1 3-4z"
+        fill="#e0f2fe"
+        fillOpacity="0.6"
+      />
+
+      {/* Ground Line */}
+      <line x1="160" y1="82" x2="278" y2="82" stroke="#cbd5e1" strokeWidth="1.2" strokeLinecap="round" />
+
+      {/* Left Wing */}
+      <rect x="175" y="56" width="32" height="26" fill="#ffffff" stroke="#93c5fd" strokeWidth="1.2" />
+      <line x1="175" y1="56" x2="207" y2="56" stroke="#60a5fa" strokeWidth="1.5" />
+      {/* Left Wing Windows */}
+      <rect x="180" y="60" width="5" height="7" rx="1" fill="#f0f9ff" stroke="#93c5fd" strokeWidth="0.8" />
+      <rect x="189" y="60" width="5" height="7" rx="1" fill="#f0f9ff" stroke="#93c5fd" strokeWidth="0.8" />
+      <rect x="198" y="60" width="5" height="7" rx="1" fill="#f0f9ff" stroke="#93c5fd" strokeWidth="0.8" />
+      <rect x="180" y="70" width="5" height="7" rx="1" fill="#f0f9ff" stroke="#93c5fd" strokeWidth="0.8" />
+      <rect x="189" y="70" width="5" height="7" rx="1" fill="#f0f9ff" stroke="#93c5fd" strokeWidth="0.8" />
+      <rect x="198" y="70" width="5" height="7" rx="1" fill="#f0f9ff" stroke="#93c5fd" strokeWidth="0.8" />
+
+      {/* Right Wing */}
+      <rect x="235" y="56" width="32" height="26" fill="#ffffff" stroke="#93c5fd" strokeWidth="1.2" />
+      <line x1="235" y1="56" x2="267" y2="56" stroke="#60a5fa" strokeWidth="1.5" />
+      {/* Right Wing Windows */}
+      <rect x="240" y="60" width="5" height="7" rx="1" fill="#f0f9ff" stroke="#93c5fd" strokeWidth="0.8" />
+      <rect x="249" y="60" width="5" height="7" rx="1" fill="#f0f9ff" stroke="#93c5fd" strokeWidth="0.8" />
+      <rect x="258" y="60" width="5" height="7" rx="1" fill="#f0f9ff" stroke="#93c5fd" strokeWidth="0.8" />
+      <rect x="240" y="70" width="5" height="7" rx="1" fill="#f0f9ff" stroke="#93c5fd" strokeWidth="0.8" />
+      <rect x="249" y="70" width="5" height="7" rx="1" fill="#f0f9ff" stroke="#93c5fd" strokeWidth="0.8" />
+      <rect x="258" y="70" width="5" height="7" rx="1" fill="#f0f9ff" stroke="#93c5fd" strokeWidth="0.8" />
+
+      {/* Center Clock Tower */}
+      <rect x="207" y="42" width="28" height="40" fill="#ffffff" stroke="#60a5fa" strokeWidth="1.2" />
+      {/* Tower Roof */}
+      <polygon points="207,42 221,22 235,42" fill="#ffffff" stroke="#3b82f6" strokeWidth="1.2" />
+      <line x1="221" y1="22" x2="221" y2="15" stroke="#2563eb" strokeWidth="1.2" />
+      <circle cx="221" cy="14" r="1.5" fill="#2563eb" />
+
+      {/* Clock Face */}
+      <circle cx="221" cy="33" r="5" fill="#f0f9ff" stroke="#3b82f6" strokeWidth="1" />
+      <line x1="221" y1="33" x2="221" y2="30.5" stroke="#1d4ed8" strokeWidth="0.8" />
+      <line x1="221" y1="33" x2="223.5" y2="33" stroke="#1d4ed8" strokeWidth="0.8" />
+
+      {/* Center Arch Entrance */}
+      <path d="M217 82 v-7 a4 4 0 0 1 8 0 v7 z" fill="#dbeafe" stroke="#3b82f6" strokeWidth="1" />
+
+      {/* Tower Windows */}
+      <rect x="211" y="47" width="5" height="7" rx="1" fill="#eff6ff" stroke="#60a5fa" strokeWidth="0.8" />
+      <rect x="225" y="47" width="5" height="7" rx="1" fill="#eff6ff" stroke="#60a5fa" strokeWidth="0.8" />
+    </svg>
+  );
+}
+
+const LISTING_TYPES = [
+  { id: '', label: 'All' },
+  { id: 'sell', label: 'Sell' },
+  { id: 'rent', label: 'Rent' },
+  { id: 'exchange', label: 'Exchange' },
+  { id: 'giveaway', label: 'Giveaway' },
+];
+
+const PRESET_CATEGORIES = [
+  { name: 'Books & Textbooks', icon: BookOpen },
+  { name: 'Notes & Study Material', icon: FileText },
+  { name: 'Question Papers', icon: FileSpreadsheet },
+  { name: 'Electronics & Gadgets', icon: Laptop },
+  { name: 'Lab Equipment', icon: FlaskConical },
+  { name: 'Hostel & Room Essentials', icon: Home },
+];
 
 export const BrowseListingsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -24,26 +132,16 @@ export const BrowseListingsPage = () => {
 
   const { listings, meta, loading, error, setFilters, refetch } = useListings(currentFilters);
   const [searchInput, setSearchInput] = useState(currentFilters.q);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  // User specifically requested: "keep filter off in start with option to show filter"
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
-  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
-  const categoryDropdownRef = useRef(null);
+  const categoryScrollRef = useRef(null);
 
   useEffect(() => {
     setSearchInput(searchParams.get('q') || '');
     setFilters(currentFilters);
   }, [searchParams]);
-
-  // Close category dropdown on outside click
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(e.target)) {
-        setIsCategoryDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   const updateUrlParams = (newParams) => {
     const updated = { ...currentFilters, ...newParams };
@@ -62,91 +160,48 @@ export const BrowseListingsPage = () => {
   };
 
   const handleSearchSubmit = (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     updateUrlParams({ q: searchInput.trim(), page: 1 });
   };
 
-  const selectedCategoryObj = categories.find((c) => c._id === currentFilters.category);
+  const scrollCategoriesRight = () => {
+    if (categoryScrollRef.current) {
+      categoryScrollRef.current.scrollBy({ left: 180, behavior: 'smooth' });
+    }
+  };
 
-  // Active filter count (excluding pagination & default sort)
-  const activeFilterCount = [
-    currentFilters.q,
-    currentFilters.category,
-    currentFilters.listingType,
-    currentFilters.condition,
-    currentFilters.status,
-    currentFilters.minPrice || currentFilters.maxPrice,
-  ].filter(Boolean).length;
-
-  // Build applied chips for display above results
+  // Build active filter chips for display
   const appliedChips = [];
+  if (currentFilters.status) {
+    appliedChips.push({
+      key: 'status',
+      label: currentFilters.status === 'available' ? 'Available' : currentFilters.status,
+      onRemove: () => updateUrlParams({ status: '', page: 1 }),
+    });
+  } else {
+    // Show "Available" chip by default when no status filter is applied, matching Image 2
+    appliedChips.push({
+      key: 'status',
+      label: 'Available',
+      onRemove: () => updateUrlParams({ status: 'all', page: 1 }),
+    });
+  }
+
   if (currentFilters.listingType) {
-    const typeLabels = {
-      sell: 'Sell',
-      rent: 'Rent',
-      exchange: 'Exchange',
-      giveaway: 'Giveaway',
-    };
+    const typeObj = LISTING_TYPES.find((t) => t.id === currentFilters.listingType);
     appliedChips.push({
       key: 'listingType',
-      label: typeLabels[currentFilters.listingType] || currentFilters.listingType,
+      label: typeObj ? typeObj.label : currentFilters.listingType,
       onRemove: () => updateUrlParams({ listingType: '', page: 1 }),
     });
   }
 
   if (currentFilters.category) {
+    const selectedCat = categories.find((c) => c._id === currentFilters.category);
     appliedChips.push({
       key: 'category',
-      label: selectedCategoryObj?.name || 'Category',
+      label: selectedCat ? selectedCat.name : 'Category',
       onRemove: () => updateUrlParams({ category: '', page: 1 }),
-    });
-  }
-
-  if (currentFilters.minPrice && currentFilters.maxPrice) {
-    appliedChips.push({
-      key: 'price',
-      label: `₹${currentFilters.minPrice} - ₹${currentFilters.maxPrice}`,
-      onRemove: () => updateUrlParams({ minPrice: '', maxPrice: '', page: 1 }),
-    });
-  } else if (currentFilters.minPrice) {
-    appliedChips.push({
-      key: 'minPrice',
-      label: `From ₹${currentFilters.minPrice}`,
-      onRemove: () => updateUrlParams({ minPrice: '', page: 1 }),
-    });
-  } else if (currentFilters.maxPrice) {
-    appliedChips.push({
-      key: 'maxPrice',
-      label: `Under ₹${currentFilters.maxPrice}`,
-      onRemove: () => updateUrlParams({ maxPrice: '', page: 1 }),
-    });
-  }
-
-  if (currentFilters.condition) {
-    const condLabels = {
-      new: 'New',
-      like_new: 'Like New',
-      good: 'Good',
-      fair: 'Fair',
-      poor: 'Poor',
-    };
-    appliedChips.push({
-      key: 'condition',
-      label: condLabels[currentFilters.condition] || currentFilters.condition,
-      onRemove: () => updateUrlParams({ condition: '', page: 1 }),
-    });
-  }
-
-  if (currentFilters.status) {
-    const statusLabels = {
-      reserved: 'Reserved',
-      rented: 'Rented',
-      sold: 'Sold',
-    };
-    appliedChips.push({
-      key: 'status',
-      label: `Status: ${statusLabels[currentFilters.status] || currentFilters.status}`,
-      onRemove: () => updateUrlParams({ status: '', page: 1 }),
     });
   }
 
@@ -161,214 +216,467 @@ export const BrowseListingsPage = () => {
     });
   }
 
-  // Listing Types definition
-  const LISTING_TYPES = [
-    { id: '', label: 'All' },
-    { id: 'sell', label: 'Sell' },
-    { id: 'rent', label: 'Rent' },
-    { id: 'exchange', label: 'Exchange' },
-    { id: 'giveaway', label: 'Giveaway' },
-  ];
-
-  // Frequently used categories for desktop quick chips (first 5-6)
-  const quickCategories = categories.slice(0, 5);
-
   return (
-    <div className="marketplace-page page">
-      {/* ── Top Search & Actions Bar ─────────────────────────────────────────── */}
-      <div className="browse-header">
-        <form onSubmit={handleSearchSubmit} style={{ display: 'flex', flex: 1, gap: 10 }}>
-          <input
-            placeholder="Search items, e.g. 'calculus textbook' or 'table lamp'"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-          />
-          <button type="submit" className="btn btn-secondary">
-            Search
-          </button>
-          {searchInput && (
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => {
-                setSearchInput('');
-                updateUrlParams({ q: '', page: 1 });
+    <div
+      className="marketplace-page page"
+      style={{
+        maxWidth: '1240px',
+        margin: '0 auto',
+        padding: '1.75rem 1.25rem 3rem',
+        boxSizing: 'border-box',
+      }}
+    >
+      {/* ── 1. Hero Header Banner (with campus illustration) ─────────────────── */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-end',
+          marginBottom: '1.5rem',
+          flexWrap: 'wrap',
+          gap: '1rem',
+        }}
+      >
+        <div>
+          <h1
+            style={{
+              fontSize: '1.85rem',
+              fontWeight: 800,
+              color: '#0f172a',
+              letterSpacing: '-0.02em',
+              margin: '0 0 6px 0',
+            }}
+          >
+            Find what you need on campus
+          </h1>
+          <p
+            style={{
+              fontSize: '0.95rem',
+              color: '#64748b',
+              margin: 0,
+            }}
+          >
+            Buy, rent, exchange, or give away essentials with fellow students.
+          </p>
+        </div>
+
+        <CampusIllustration />
+      </div>
+
+      {/* ── 2. Search Row & + New Listing Button ──────────────────────────────── */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          marginBottom: '1.25rem',
+          flexWrap: 'wrap',
+        }}
+      >
+        <form
+          onSubmit={handleSearchSubmit}
+          style={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            minWidth: '280px',
+          }}
+        >
+          {/* Search Input with Magnifying Glass icon */}
+          <div
+            style={{
+              flex: 1,
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'center',
+            }}
+          >
+            <Search
+              size={18}
+              color="#94a3b8"
+              style={{
+                position: 'absolute',
+                left: '14px',
+                pointerEvents: 'none',
               }}
-              title="Clear search"
-            >
-              ✕
-            </button>
-          )}
+            />
+            <input
+              type="text"
+              placeholder="Search items, e.g. 'calculus textbook' or 'table lamp'"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              style={{
+                width: '100%',
+                height: '44px',
+                padding: '0 14px 0 42px',
+                borderRadius: '8px',
+                border: '1px solid #e2e8f0',
+                fontSize: '0.875rem',
+                color: '#0f172a',
+                outline: 'none',
+                background: '#ffffff',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
+          {/* Solid Blue Search Button */}
+          <button
+            type="submit"
+            style={{
+              height: '44px',
+              padding: '0 20px',
+              background: '#1d4ed8',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              fontWeight: 600,
+              fontSize: '0.875rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
+          >
+            <Search size={15} />
+            <span>Search</span>
+          </button>
         </form>
-        <Link to="/marketplace/create" className="btn btn-primary">
-          + New Listing
+
+        {/* Soft Blue "+ New Listing" Button */}
+        <Link
+          to="/marketplace/create"
+          style={{
+            height: '44px',
+            padding: '0 18px',
+            background: '#eff6ff',
+            border: '1px solid #bfdbfe',
+            color: '#2563eb',
+            borderRadius: '8px',
+            fontWeight: 600,
+            fontSize: '0.875rem',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            textDecoration: 'none',
+            flexShrink: 0,
+          }}
+        >
+          <Plus size={16} />
+          <span>New Listing</span>
         </Link>
       </div>
 
-      {/* ── Problem 1: Separate Control 1: Listing Type Segmented Control ──────── */}
-      <div className="listing-type-row">
-        <span className="control-label">Listing Type:</span>
-        <div className="type-segmented-group">
-          {LISTING_TYPES.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              className={`type-pill-btn ${currentFilters.listingType === t.id ? 'active' : ''}`}
-              onClick={() => updateUrlParams({ listingType: t.id, page: 1 })}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* ── 3. Listing Type Row ──────────────────────────────────────────────── */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          marginBottom: '1rem',
+          flexWrap: 'wrap',
+        }}
+      >
+        <span
+          style={{
+            fontSize: '0.85rem',
+            color: '#475569',
+            fontWeight: 500,
+            minWidth: '85px',
+          }}
+        >
+          Listing type
+        </span>
 
-      {/* ── Problem 1: Separate Control 2: Category Dropdown & Quick Chips ─────── */}
-      <div className="category-row">
-        {/* Category Dropdown Control ("All Categories ▼") */}
-        <div className="category-dropdown-wrapper" ref={categoryDropdownRef}>
-          <button
-            type="button"
-            className={`category-dropdown-btn ${currentFilters.category ? 'active' : ''}`}
-            onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
-          >
-            <span>{selectedCategoryObj ? selectedCategoryObj.name : 'All Categories'}</span>
-            <span style={{ fontSize: 10, marginLeft: 2 }}>{isCategoryDropdownOpen ? '▲' : '▼'}</span>
-          </button>
-
-          {isCategoryDropdownOpen && (
-            <div className="category-dropdown-menu">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          {LISTING_TYPES.map((t) => {
+            const isActive = currentFilters.listingType === t.id;
+            return (
               <button
+                key={t.id}
                 type="button"
-                className={`category-menu-item ${!currentFilters.category ? 'active' : ''}`}
-                onClick={() => {
-                  updateUrlParams({ category: '', page: 1 });
-                  setIsCategoryDropdownOpen(false);
+                onClick={() => updateUrlParams({ listingType: t.id, page: 1 })}
+                style={{
+                  background: isActive ? '#0f172a' : '#ffffff',
+                  color: isActive ? '#ffffff' : '#334155',
+                  border: isActive ? '1px solid #0f172a' : '1px solid #e2e8f0',
+                  borderRadius: '999px',
+                  padding: '6px 18px',
+                  fontSize: '0.8rem',
+                  fontWeight: isActive ? 700 : 500,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
                 }}
               >
-                <span>All Categories</span>
-                <span>✓</span>
+                {t.label}
               </button>
-              {categories.map((cat) => (
-                <button
-                  key={cat._id}
-                  type="button"
-                  className={`category-menu-item ${currentFilters.category === cat._id ? 'active' : ''}`}
-                  onClick={() => {
-                    updateUrlParams({ category: cat._id, page: 1 });
-                    setIsCategoryDropdownOpen(false);
-                  }}
-                >
-                  <span>{cat.name}</span>
-                  {cat.listingCount !== undefined && (
-                    <span style={{ fontSize: 11, color: '#94a3b8' }}>({cat.listingCount})</span>
-                  )}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Horizontally scrollable quick category chips */}
-        <div className="category-scroll-container">
-          {quickCategories.map((cat) => (
-            <span
-              key={cat._id}
-              className={`chip ${currentFilters.category === cat._id ? 'active' : ''}`}
-              style={{ margin: 0 }}
-              onClick={() => {
-                const nextVal = currentFilters.category === cat._id ? '' : cat._id;
-                updateUrlParams({ category: nextVal, page: 1 });
-              }}
-            >
-              {cat.name}
-            </span>
-          ))}
+            );
+          })}
         </div>
       </div>
 
-      {/* ── Problem 2: Marketplace Results Toolbar (Toggle & Count & Sort) ────── */}
-      <div className="marketplace-toolbar">
-        <div className="marketplace-toolbar-left">
+      {/* ── 4. Categories Row (Horizontal scroll with icons & arrow) ──────────── */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          marginBottom: '1.25rem',
+          position: 'relative',
+        }}
+      >
+        <span
+          style={{
+            fontSize: '0.85rem',
+            color: '#475569',
+            fontWeight: 500,
+            minWidth: '85px',
+            flexShrink: 0,
+          }}
+        >
+          Categories
+        </span>
+
+        {/* Horizontally scrollable category pills */}
+        <div
+          ref={categoryScrollRef}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            overflowX: 'auto',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+            whiteSpace: 'nowrap',
+            flex: 1,
+            padding: '2px 0',
+          }}
+        >
+          {/* All Categories Pill */}
           <button
             type="button"
-            className={`btn-filter-toggle ${isSidebarOpen ? 'active' : ''}`}
-            onClick={() => {
-              if (window.innerWidth < 860) {
-                setIsMobileDrawerOpen(true);
-              } else {
-                setIsSidebarOpen(!isSidebarOpen);
-              }
+            onClick={() => updateUrlParams({ category: '', page: 1 })}
+            style={{
+              background: !currentFilters.category ? '#eff6ff' : '#ffffff',
+              color: !currentFilters.category ? '#1d4ed8' : '#334155',
+              border: !currentFilters.category ? '1px solid #bfdbfe' : '1px solid #e2e8f0',
+              borderRadius: '999px',
+              padding: '6px 14px',
+              fontSize: '0.8rem',
+              fontWeight: !currentFilters.category ? 700 : 500,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              flexShrink: 0,
             }}
-            title={isSidebarOpen ? 'Hide filter sidebar' : 'Show filter sidebar'}
           >
-            <span>⚙️</span>
-            <span>{isSidebarOpen ? 'Hide Filters' : 'Show Filters'}</span>
-            {activeFilterCount > 0 && (
-              <span className="filter-badge">{activeFilterCount}</span>
-            )}
+            <LayoutGrid size={14} />
+            <span>All Categories</span>
           </button>
-          <span className="results-count">
-            Showing <strong>{meta.total ?? listings.length}</strong> items
+
+          {/* Preset Categories mapped to real backend or names */}
+          {PRESET_CATEGORIES.map((preset) => {
+            const CatIcon = preset.icon;
+            // Match with backend category ID if available
+            const matchingCat = categories.find(
+              (c) =>
+                c.name?.toLowerCase().includes(preset.name.toLowerCase().split(' ')[0]) ||
+                preset.name.toLowerCase().includes(c.name?.toLowerCase().split(' ')[0])
+            );
+            const catId = matchingCat ? matchingCat._id : preset.name;
+            const isSelected = currentFilters.category === catId;
+
+            return (
+              <button
+                key={preset.name}
+                type="button"
+                onClick={() => {
+                  const nextVal = isSelected ? '' : catId;
+                  updateUrlParams({ category: nextVal, page: 1 });
+                }}
+                style={{
+                  background: isSelected ? '#eff6ff' : '#ffffff',
+                  color: isSelected ? '#1d4ed8' : '#334155',
+                  border: isSelected ? '1px solid #bfdbfe' : '1px solid #e2e8f0',
+                  borderRadius: '999px',
+                  padding: '6px 14px',
+                  fontSize: '0.8rem',
+                  fontWeight: isSelected ? 700 : 500,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                }}
+              >
+                <CatIcon size={14} />
+                <span>{preset.name}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Right Arrow scroll button */}
+        <button
+          type="button"
+          onClick={scrollCategoriesRight}
+          style={{
+            width: '28px',
+            height: '28px',
+            borderRadius: '50%',
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            color: '#64748b',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            flexShrink: 0,
+          }}
+          title="Scroll more categories"
+        >
+          <ChevronRight size={16} />
+        </button>
+      </div>
+
+      {/* ── 5. Toolbar Row (Filters toggle, Active Chip, Clear All, Count, Sort) ── */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '1.25rem',
+          flexWrap: 'wrap',
+          gap: '12px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          {/* Filters Toggle Button (Off at start) */}
+          <button
+            type="button"
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            style={{
+              background: isSidebarOpen ? '#eff6ff' : '#ffffff',
+              color: isSidebarOpen ? '#1d4ed8' : '#0f172a',
+              border: isSidebarOpen ? '1px solid #93c5fd' : '1px solid #e2e8f0',
+              borderRadius: '8px',
+              padding: '6px 14px',
+              fontSize: '0.8rem',
+              fontWeight: 600,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+            }}
+          >
+            <SlidersHorizontal size={14} color={isSidebarOpen ? '#1d4ed8' : '#2563eb'} />
+            <span>Filters</span>
+          </button>
+
+          {/* Active Chips (e.g. "Available ✕") */}
+          {appliedChips.map((chip) => (
+            <span
+              key={chip.key}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: '#ecfdf5',
+                border: '1px solid #a7f3d0',
+                color: '#059669',
+                padding: '4px 10px',
+                borderRadius: '999px',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+              }}
+            >
+              <span>{chip.label}</span>
+              <button
+                type="button"
+                onClick={chip.onRemove}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#059669',
+                  cursor: 'pointer',
+                  padding: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                <X size={12} />
+              </button>
+            </span>
+          ))}
+
+          {/* Clear All Link */}
+          <button
+            type="button"
+            onClick={handleClearAll}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#2563eb',
+              fontSize: '0.8rem',
+              fontWeight: 500,
+              cursor: 'pointer',
+              padding: '0 4px',
+            }}
+          >
+            Clear all
+          </button>
+
+          {/* Listing Count */}
+          <span style={{ fontSize: '0.8rem', color: '#0f172a', fontWeight: 700, marginLeft: '6px' }}>
+            {meta.total ?? listings.length} listings
           </span>
         </div>
 
-        <div className="marketplace-toolbar-right">
-          <label htmlFor="toolbar-sort" className="sort-label">Sort:</label>
+        {/* Sort Dropdown */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Sort by:</span>
           <select
-            id="toolbar-sort"
-            className="sort-select"
             value={currentFilters.sort || 'newest'}
             onChange={(e) => updateUrlParams({ sort: e.target.value, page: 1 })}
+            style={{
+              padding: '6px 12px',
+              borderRadius: '8px',
+              border: '1px solid #e2e8f0',
+              fontSize: '0.8rem',
+              color: '#0f172a',
+              background: '#ffffff',
+              cursor: 'pointer',
+              outline: 'none',
+            }}
           >
-            <option value="newest">Newest First</option>
-            <option value="oldest">Oldest First</option>
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
             <option value="price_asc">Price: Low to High</option>
             <option value="price_desc">Price: High to Low</option>
           </select>
         </div>
       </div>
 
-      {/* ── Problem 2: Applied Filter Chips Row with Clear All ─────────────────── */}
-      {appliedChips.length > 0 && (
-        <div className="applied-filters-bar">
-          <span className="applied-filters-label">Active filters:</span>
-          {appliedChips.map((chip) => (
-            <button
-              key={chip.key}
-              type="button"
-              className="applied-chip"
-              onClick={chip.onRemove}
-              title={`Remove ${chip.label}`}
-            >
-              <span>{chip.label}</span>
-              <span className="chip-remove-x">✕</span>
-            </button>
-          ))}
-          <button
-            type="button"
-            className="btn-clear-all"
-            onClick={handleClearAll}
-          >
-            Clear all
-          </button>
-        </div>
-      )}
-
-      {/* ── Main Browse Layout: Collapsible Sidebar & Grid ───────────────────── */}
-      <div className="browse-layout">
-        {/* Desktop Sidebar (Collapsible) */}
+      {/* ── 6. Main Browse Layout: Collapsible Sidebar & 4-Column Grid ───────── */}
+      <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start' }}>
+        {/* Optional Collapsible Filter Sidebar (starts OFF) */}
         {isSidebarOpen && (
-          <ListingFilters
-            className="sidebar desktop-sidebar"
-            filters={currentFilters}
-            onChange={(newFilters) => updateUrlParams({ ...newFilters, page: 1 })}
-            categories={categories}
-            onReset={handleClearAll}
-            onClose={() => setIsSidebarOpen(false)}
-          />
+          <div style={{ width: '260px', flexShrink: 0 }}>
+            <ListingFilters
+              className="sidebar"
+              filters={currentFilters}
+              onChange={(newFilters) => updateUrlParams({ ...newFilters, page: 1 })}
+              categories={categories}
+              onReset={handleClearAll}
+              onClose={() => setIsSidebarOpen(false)}
+            />
+          </div>
         )}
 
-        {/* Listings Grid (expands to grid4 when sidebar is hidden) */}
+        {/* Listings Grid (4-column grid4 when sidebar is off) */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <ListingGrid
             listings={listings}
@@ -378,25 +686,35 @@ export const BrowseListingsPage = () => {
             gridClass={isSidebarOpen ? 'grid3' : 'grid4'}
           />
 
-          {/* Pagination Controls */}
+          {/* Pagination */}
           {meta.totalPages > 1 && (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 16, marginTop: 28 }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: 16,
+                marginTop: 28,
+              }}
+            >
               <button
                 type="button"
                 className="btn btn-secondary"
                 disabled={meta.page <= 1}
                 onClick={() => updateUrlParams({ page: meta.page - 1 })}
+                style={{ fontSize: '0.8rem', padding: '6px 14px' }}
               >
                 ← Previous
               </button>
-              <span className="muted">
-                Page <b>{meta.page}</b> of <b>{meta.totalPages}</b> ({meta.total} items)
+              <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                Page <b>{meta.page}</b> of <b>{meta.totalPages}</b>
               </span>
               <button
                 type="button"
                 className="btn btn-secondary"
                 disabled={meta.page >= meta.totalPages}
                 onClick={() => updateUrlParams({ page: meta.page + 1 })}
+                style={{ fontSize: '0.8rem', padding: '6px 14px' }}
               >
                 Next →
               </button>
@@ -405,12 +723,12 @@ export const BrowseListingsPage = () => {
         </div>
       </div>
 
-      {/* ── Mobile Filter Drawer / Modal ─────────────────────────────────────── */}
+      {/* Mobile Filter Drawer */}
       {isMobileDrawerOpen && (
         <div className="mobile-drawer-backdrop" onClick={() => setIsMobileDrawerOpen(false)}>
           <div className="mobile-drawer-content" onClick={(e) => e.stopPropagation()}>
             <div className="mobile-drawer-header">
-              <h3>Filters {activeFilterCount > 0 ? `(${activeFilterCount})` : ''}</h3>
+              <h3>Filters</h3>
               <button
                 type="button"
                 className="mobile-drawer-close"
@@ -426,22 +744,6 @@ export const BrowseListingsPage = () => {
                 categories={categories}
                 onReset={handleClearAll}
               />
-            </div>
-            <div className="mobile-drawer-footer">
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={handleClearAll}
-              >
-                Clear All
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => setIsMobileDrawerOpen(false)}
-              >
-                Show Results ({meta.total ?? listings.length})
-              </button>
             </div>
           </div>
         </div>
