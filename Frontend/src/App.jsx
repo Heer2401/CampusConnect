@@ -23,10 +23,12 @@ import { MyListingsPage } from './features/marketplace/pages/MyListingsPage';
 import './features/marketplace/marketplace.css';
 import { ChatPage } from './features/search_communication/pages/ChatPage';
 import { WishlistPage } from './features/search_communication/pages/WishlistPage';
+import RequestsPage from './features/search_communication/pages/RequestsPage';
 import AdminDashboard from './components/admin/AdminDashboard';
 
 // Charmi Bhayani — Rental & Transaction Management
-import RentalDashboardPage from './features/rental/pages/RentalDashboardPage';
+import RentalsPage from './features/rental/pages/RentalsPage';
+import TransactionsPage from './features/rental/pages/TransactionsPage';
 
 function RootRedirect() {
   const { user } = useAuth();
@@ -109,10 +111,7 @@ export default function App() {
                         </ProtectedRoute>
                       }
                     />
-                    <Route
-                      path="/browse"
-                      element={<Navigate to="/marketplace" replace />}
-                    />
+                    <Route path="/browse" element={<Navigate to="/marketplace" replace />} />
                     <Route
                       path="/marketplace/edit/:id"
                       element={
@@ -173,30 +172,40 @@ export default function App() {
                       }
                     />
 
-                    {/* Rental, Requesting & Transaction Dashboard (Student Only) */}
+                    {/* ── Requests Board (Student Only) */}
+                    <Route
+                      path="/requests"
+                      element={
+                        <ProtectedRoute roleRequired="student">
+                          <RequestsPage />
+                        </ProtectedRoute>
+                      }
+                    />
+
+                    {/* ── Rentals Tracker (Student Only) */}
                     <Route
                       path="/rentals"
                       element={
                         <ProtectedRoute roleRequired="student">
-                          <RentalDashboardPage />
+                          <RentalsPage />
                         </ProtectedRoute>
                       }
                     />
+
+                    {/* ── Transactions Page (Student Only) */}
                     <Route
-                      path="/requests"
+                      path="/transactions"
                       element={
-                        <ProtectedRoute>
-                          <Navigate to="/rentals?view=requesting" replace />
+                        <ProtectedRoute roleRequired="student">
+                          <TransactionsPage />
                         </ProtectedRoute>
                       }
                     />
+
+                    {/* Legacy redirects */}
                     <Route
                       path="/dashboard"
-                      element={
-                        <ProtectedRoute>
-                          <Navigate to="/rentals?view=dashboard" replace />
-                        </ProtectedRoute>
-                      }
+                      element={<Navigate to="/transactions" replace />}
                     />
 
                     {/* Admin Dashboard (Administrator Only) */}

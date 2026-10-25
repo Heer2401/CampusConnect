@@ -1,112 +1,228 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { User, CreditCard, Leaf, LogOut, ShoppingBag, Heart, MessageSquare, ShieldCheck, Package } from 'lucide-react';
+import {
+  ShoppingBag,
+  ClipboardList,
+  Package,
+  CreditCard,
+  MessageSquare,
+  Heart,
+  Bell,
+  ShieldCheck,
+  User,
+  Leaf,
+  LogOut,
+  BadgeCheck,
+  Plus,
+  ChevronDown,
+} from 'lucide-react';
 import { NotificationBell } from '../features/search_communication/components/NotificationBell';
+
+function getInitials(user) {
+  const name = user?.profile?.name || user?.name;
+  if (name) {
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return parts[0][0].toUpperCase();
+  }
+  if (user?.email) return user.email[0].toUpperCase();
+  return 'U';
+}
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [profileOpen, setProfileOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  const isAdmin = user && (user.role === 'Admin' || user.role === 'Administrator');
+  const initials = user ? getInitials(user) : '';
+  const displayName = user?.profile?.name || user?.name || user?.email?.split('@')[0] || 'Student';
+  const email = user?.email || '';
+  const isVerified = user?.isVerified || user?.verified || false;
 
   const handleLogout = () => {
+    setProfileOpen(false);
     logout();
     navigate('/login');
   };
 
-  const isAdmin = user && (user.role === 'Admin' || user.role === 'Administrator');
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setProfileOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   return (
     <header className="navbar">
       <div className="nav-inner">
-        <NavLink to={isAdmin ? "/admin" : "/marketplace"} className="brand-wrapper">
+        {/* ── Brand Logo (Left) ──────────────────────────────────────── */}
+        <NavLink to={isAdmin ? '/admin' : '/marketplace'} className="brand-wrapper">
           <div className="brand-logo-icon">CC</div>
-          <div>
-            <div className="brand-name">CampusConnect</div>
-            <span className="brand-subtitle">{isAdmin ? "Admin Console" : "Smart Campus Exchange"}</span>
-          </div>
+          <div className="brand-name">CampusConnect</div>
         </NavLink>
 
+        {/* ── Nav Links (Center) ────────────────────────────────────── */}
         {user && (
           <nav className="nav-links">
             {isAdmin ? (
-              /* Dedicated Admin Navigation: No student marketplace/chats/wishlist */
-              <>
-                <NavLink
-                  to="/admin"
-                  className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                >
-                  <ShieldCheck size={16} />
-                  Admin Console
-                </NavLink>
-              </>
+              <NavLink
+                to="/admin"
+                className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+              >
+                <ShieldCheck size={15} />
+                Admin Console
+              </NavLink>
             ) : (
-              /* Dedicated Student Navigation */
               <>
                 <NavLink
                   to="/marketplace"
                   className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
                 >
-                  <ShoppingBag size={16} />
+                  <ShoppingBag size={15} />
                   Marketplace
                 </NavLink>
 
                 <NavLink
-                  to="/wishlist"
+                  to="/requests"
                   className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
                 >
-                  <Heart size={16} />
-                  Wishlist
-                </NavLink>
-
-                <NavLink
-                  to="/chat"
-                  className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                >
-                  <MessageSquare size={16} />
-                  Chat
+                  <ClipboardList size={15} />
+                  Requests
                 </NavLink>
 
                 <NavLink
                   to="/rentals"
                   className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
                 >
-                  <Package size={16} />
-                  Rentals & Requests
+                  <Package size={15} />
+                  Rentals
                 </NavLink>
 
                 <NavLink
-                  to="/sustainability"
+                  to="/transactions"
                   className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
                 >
-                  <Leaf size={16} />
-                  Sustainability
+                  <CreditCard size={15} />
+                  Transactions
                 </NavLink>
 
                 <NavLink
-                  to="/profile"
+                  to="/chat"
                   className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
                 >
-                  <User size={16} />
-                  Profile
+                  <MessageSquare size={15} />
+                  Chat
+                </NavLink>
+              </>
+            )}
+          </nav>
+        )}
+
+        {/* ── Right Actions ─────────────────────────────────────────── */}
+        {user && (
+          <div className="nav-actions">
+            {!isAdmin && (
+              <>
+                {/* Sell Button */}
+                <button
+                  className="nav-sell-btn"
+                  onClick={() => navigate('/marketplace/create')}
+                >
+                  <Plus size={15} />
+                  Sell
+                </button>
+
+                {/* Wishlist Heart Icon */}
+                <NavLink
+                  to="/wishlist"
+                  className={({ isActive }) =>
+                    `nav-icon-btn ${isActive ? 'nav-icon-btn--active' : ''}`
+                  }
+                  title="Wishlist"
+                >
+                  <Heart size={18} />
                 </NavLink>
 
+                {/* Notification Bell */}
                 <NotificationBell />
               </>
             )}
 
-            <div className="nav-user-badge">
-              <span className={`role-pill ${isAdmin ? 'role-pill-admin' : ''}`}>
-                {isAdmin ? 'Administrator' : (user.role || 'Student')}
-              </span>
-              <span style={{ fontSize: '0.85rem', color: '#E2E8F0', fontWeight: 500 }}>
-                {user.profile?.name || user.name || user.email?.split('@')[0]}
-              </span>
-              <button onClick={handleLogout} className="btn-logout" title="Sign Out">
-                <LogOut size={14} />
-                Logout
+            {/* Profile Avatar + Dropdown */}
+            <div className="nav-profile-wrapper" ref={dropdownRef}>
+              <button
+                className="nav-avatar-btn"
+                onClick={() => setProfileOpen((o) => !o)}
+                aria-haspopup="true"
+                aria-expanded={profileOpen}
+                title="Account"
+              >
+                <span className="nav-avatar">{initials}</span>
               </button>
+
+              {profileOpen && (
+                <div className="nav-dropdown">
+                  {/* User Info Header */}
+                  <div className="nav-dropdown-header">
+                    <div className="nav-dropdown-avatar">{initials}</div>
+                    <div className="nav-dropdown-info">
+                      <div className="nav-dropdown-name">{displayName}</div>
+                      <div className="nav-dropdown-email">{email}</div>
+                      <div className="nav-dropdown-badges">
+                        <span className="nav-badge nav-badge-role">
+                          {isAdmin ? 'Admin' : 'Student'}
+                        </span>
+                        {isVerified && (
+                          <span className="nav-badge nav-badge-verified">
+                            <BadgeCheck size={11} />
+                            Verified student
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="nav-dropdown-divider" />
+
+                  {/* Menu Items */}
+                  {!isAdmin && (
+                    <>
+                      <NavLink
+                        to="/profile"
+                        className="nav-dropdown-item"
+                        onClick={() => setProfileOpen(false)}
+                      >
+                        <User size={15} />
+                        Profile
+                      </NavLink>
+                      <NavLink
+                        to="/sustainability"
+                        className="nav-dropdown-item"
+                        onClick={() => setProfileOpen(false)}
+                      >
+                        <Leaf size={15} />
+                        Sustainability
+                      </NavLink>
+                    </>
+                  )}
+
+                  <div className="nav-dropdown-divider" />
+
+                  <button className="nav-dropdown-item nav-dropdown-logout" onClick={handleLogout}>
+                    <LogOut size={15} />
+                    Log out
+                  </button>
+                </div>
+              )}
             </div>
-          </nav>
+          </div>
         )}
       </div>
     </header>
