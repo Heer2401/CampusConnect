@@ -10,15 +10,20 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   CreditCard,
+  ReceiptText,
   Clock,
   CheckCircle2,
   XCircle,
-  AlignLeft,
   KeyRound,
   MessageSquare,
   ShieldCheck,
   X,
   Check,
+  Info,
+  Search,
+  SlidersHorizontal,
+  ChevronDown,
+  Package,
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import {
@@ -30,20 +35,40 @@ import {
 } from '../../rental/api/rentalApi';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-const STATUS_STYLES = {
-  pending: { label: 'Awaiting PIN', color: '#b45309', bg: '#fef3c7' },
-  payment_held: { label: 'Awaiting PIN', color: '#b45309', bg: '#fef3c7' },
-  buyer_confirmed: { label: 'Awaiting PIN', color: '#b45309', bg: '#fef3c7' },
-  seller_confirmed: { label: 'Awaiting PIN', color: '#b45309', bg: '#fef3c7' },
-  completed: { label: 'Completed', color: '#065f46', bg: '#d1fae5' },
-  cancelled: { label: 'Cancelled', color: '#6b7280', bg: '#f3f4f6' },
-};
+function getParticipantAvatar(name) {
+  const colors = [
+    { bg: '#e0f2fe', text: '#0369a1' },
+    { bg: '#f3e8ff', text: '#7e22ce' },
+    { bg: '#dcfce7', text: '#15803d' },
+    { bg: '#fef3c7', text: '#b45309' },
+    { bg: '#fee2e2', text: '#b91c1c' },
+  ];
+  let hash = 0;
+  for (let i = 0; i < (name || '').length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const idx = Math.abs(hash) % colors.length;
+  return colors[idx];
+}
 
 function StatusPill({ status }) {
-  const s = STATUS_STYLES[status] || { label: status, color: '#6b7280', bg: '#f3f4f6' };
+  if (status === 'completed') {
+    return (
+      <span className="txn-status-pill txn-status-completed">
+        <CheckCircle2 size={13} strokeWidth={2.2} /> Completed
+      </span>
+    );
+  }
+  if (status === 'cancelled') {
+    return (
+      <span className="txn-status-pill txn-status-cancelled">
+        <XCircle size={13} strokeWidth={2.2} /> Cancelled
+      </span>
+    );
+  }
   return (
-    <span style={{ background: s.bg, color: s.color, fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, whiteSpace: 'nowrap' }}>
-      {s.label}
+    <span className="txn-status-pill txn-status-awaiting">
+      <Clock size={13} strokeWidth={2.2} /> Awaiting PIN
     </span>
   );
 }
@@ -193,6 +218,9 @@ export default function TransactionsPage() {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // 'all' | 'pending' | 'completed' | 'cancelled'
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('newest'); // 'newest' | 'oldest' | 'highest' | 'lowest'
+  const [showHowItWorksModal, setShowHowItWorksModal] = useState(false);
   const [toast, setToast] = useState({ message: '', type: 'success' });
   const [showPinFor, setShowPinFor] = useState(null);
   const [verifyPinFor, setVerifyPinFor] = useState(null);
@@ -220,12 +248,36 @@ export default function TransactionsPage() {
   const completedCount = useMemo(() => transactions.filter((t) => t.status === 'completed').length, [transactions]);
   const cancelledCount = useMemo(() => transactions.filter((t) => t.status === 'cancelled').length, [transactions]);
 
-  const filteredTxns = useMemo(() => {
-    if (filter === 'pending') return transactions.filter(isOngoing);
-    if (filter === 'completed') return transactions.filter((t) => t.status === 'completed');
-    if (filter === 'cancelled') return transactions.filter((t) => t.status === 'cancelled');
-    return transactions;
-  }, [transactions, filter]);
+  const processedTxns = useMemo(() => {
+    let list = [...transactions];
+    if (filter === 'pending') list = list.filter(isOngoing);
+    else if (filter === 'completed') list = list.filter((t) => t.status === 'completed');
+    else if (filter === 'cancelled') list = list.filter((t) => t.status === 'cancelled');
+
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      list = list.filter((t) => {
+        const title = (t.listingId?.title || '').toLowerCase();
+        const isBuyer = t.buyerId?._id === userId || t.buyerId?.toString?.() === userId;
+        const counterpartName = (isBuyer
+          ? t.sellerId?.profile?.name || t.sellerId?.name || t.sellerId?.email
+          : t.buyerId?.profile?.name || t.buyerId?.name || t.buyerId?.email || '').toLowerCase();
+        return title.includes(term) || counterpartName.includes(term);
+      });
+    }
+
+    if (sortBy === 'newest') {
+      list.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    } else if (sortBy === 'oldest') {
+      list.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+    } else if (sortBy === 'highest') {
+      list.sort((a, b) => (b.amount || 0) - (a.amount || 0));
+    } else if (sortBy === 'lowest') {
+      list.sort((a, b) => (a.amount || 0) - (b.amount || 0));
+    }
+
+    return list;
+  }, [transactions, filter, searchTerm, sortBy, userId]);
 
   // Find a pending PIN transaction to highlight
   const pinReadyTxn = transactions.find((t) => isOngoing(t) && t.handoverPin);
@@ -247,48 +299,72 @@ export default function TransactionsPage() {
       )}
 
       {/* ── Page Header ──────────────────────────────────────────── */}
-      <div style={{ marginBottom: 24 }}>
-        <h1 className="rd-title">Transactions</h1>
-        <p className="rd-subtitle">Everything you have bought, sold or swapped, with meetup PINs.</p>
+      <div className="txn-page-header">
+        <div>
+          <h1 className="rentals-page-title">Transactions</h1>
+          <p className="rentals-page-subtitle">Track everything you've bought, sold, or swapped.</p>
+        </div>
+        <div className="txn-escrow-pill">
+          <Info size={15} style={{ color: '#2563eb' }} />
+          <span>In-person escrow: share the PIN only after you inspect the item.</span>
+          <button
+            type="button"
+            className="txn-escrow-link"
+            onClick={() => setShowHowItWorksModal(true)}
+          >
+            How meetup PINs work →
+          </button>
+        </div>
       </div>
 
       {/* ── Stat Cards ────────────────────────────────────────────── */}
-      <div className="rentals-stat-row" style={{ marginBottom: 24 }}>
+      <div className="rentals-stat-row">
         <div
-          className={`rentals-stat-card ${filter === 'all' ? 'rentals-stat-active' : ''}`}
+          className={`rentals-stat-card ${filter === 'all' ? 'txn-stat-card-active-all' : ''}`}
           onClick={() => setFilter('all')}
         >
-          <AlignLeft size={18} style={{ marginBottom: 4 }} />
+          <div className="rentals-stat-icon-box box-borrowing">
+            <ReceiptText size={18} strokeWidth={2.2} />
+          </div>
           <div className="rentals-stat-num">{transactions.length}</div>
           <div className="rentals-stat-label">All transactions</div>
         </div>
+
         <div
-          className={`rentals-stat-card ${filter === 'pending' ? 'rentals-stat-due' : ''}`}
+          className={`rentals-stat-card ${filter === 'pending' ? 'txn-stat-card-active-pending' : ''}`}
           onClick={() => setFilter('pending')}
         >
-          <Clock size={18} style={{ marginBottom: 4 }} />
+          <div className="rentals-stat-icon-box box-lending">
+            <Clock size={18} strokeWidth={2.2} />
+          </div>
           <div className="rentals-stat-num">{pendingCount}</div>
           <div className="rentals-stat-label">Awaiting PIN</div>
         </div>
+
         <div
-          className={`rentals-stat-card ${filter === 'completed' ? 'rentals-stat-active' : ''}`}
+          className={`rentals-stat-card ${filter === 'completed' ? 'txn-stat-card-active-completed' : ''}`}
           onClick={() => setFilter('completed')}
         >
-          <CheckCircle2 size={18} style={{ marginBottom: 4 }} />
+          <div className="rentals-stat-icon-box" style={{ background: '#dcfce7', color: '#16a34a' }}>
+            <Check size={18} strokeWidth={2.5} />
+          </div>
           <div className="rentals-stat-num">{completedCount}</div>
           <div className="rentals-stat-label">Completed</div>
         </div>
+
         <div
-          className={`rentals-stat-card ${filter === 'cancelled' ? '' : ''}`}
+          className={`rentals-stat-card ${filter === 'cancelled' ? 'txn-stat-card-active-cancelled' : ''}`}
           onClick={() => setFilter('cancelled')}
         >
-          <XCircle size={18} style={{ marginBottom: 4 }} />
+          <div className="rentals-stat-icon-box" style={{ background: '#fee2e2', color: '#dc2626' }}>
+            <X size={18} strokeWidth={2.5} />
+          </div>
           <div className="rentals-stat-num">{cancelledCount}</div>
           <div className="rentals-stat-label">Cancelled</div>
         </div>
       </div>
 
-      {/* ── PIN Ready Banner ─────────────────────────────────────── */}
+      {/* ── PIN Ready Banner (If any transaction needs PIN) ───────── */}
       {pinReadyTxn && (
         <div className="txn-pin-banner">
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -298,7 +374,7 @@ export default function TransactionsPage() {
                 Meetup PIN ready: {pinReadyTxn.listingId?.title || 'Listing'}
               </div>
               <div style={{ fontSize: 12, color: '#b45309' }}>
-                Share it only after you have inspected the item.
+                Share it only after you have inspected the item in person.
               </div>
             </div>
           </div>
@@ -313,9 +389,13 @@ export default function TransactionsPage() {
               </div>
             ))}
             <button
+              type="button"
               className="rd-btn rd-btn-sm"
               style={{ background: '#0f172a', color: 'white' }}
-              onClick={() => navigator.clipboard?.writeText(pinReadyTxn.handoverPin.toString())}
+              onClick={() => {
+                navigator.clipboard?.writeText(pinReadyTxn.handoverPin.toString());
+                showToast('PIN copied to clipboard!');
+              }}
             >
               Copy PIN
             </button>
@@ -323,132 +403,288 @@ export default function TransactionsPage() {
         </div>
       )}
 
-      {/* ── Escrow Info ───────────────────────────────────────────── */}
-      <p style={{ fontSize: 12, color: '#94a3b8', marginBottom: 16 }}>
-        <ShieldCheck size={12} style={{ verticalAlign: 'middle', marginRight: 4 }} />
-        In-person escrow: share the PIN only after you inspect the item.{' '}
-        <span style={{ color: '#3b82f6', cursor: 'pointer' }}>How it works</span>
-      </p>
+      {/* ── Filter & Search Toolbar ───────────────────────────────── */}
+      <div className="txn-filter-bar">
+        <div className="txn-filter-pills">
+          <button
+            type="button"
+            className={`txn-pill-btn ${filter === 'all' ? 'active' : ''}`}
+            onClick={() => setFilter('all')}
+          >
+            All ({transactions.length})
+          </button>
+          <button
+            type="button"
+            className={`txn-pill-btn ${filter === 'pending' ? 'active' : ''}`}
+            onClick={() => setFilter('pending')}
+          >
+            Awaiting PIN ({pendingCount})
+          </button>
+          <button
+            type="button"
+            className={`txn-pill-btn ${filter === 'completed' ? 'active' : ''}`}
+            onClick={() => setFilter('completed')}
+          >
+            Completed ({completedCount})
+          </button>
+          <button
+            type="button"
+            className={`txn-pill-btn ${filter === 'cancelled' ? 'active' : ''}`}
+            onClick={() => setFilter('cancelled')}
+          >
+            Cancelled ({cancelledCount})
+          </button>
+        </div>
 
-      {/* ── Transaction List ─────────────────────────────────────── */}
-      <div className="rd-content">
+        <div className="txn-search-box">
+          <Search size={15} color="#94a3b8" />
+          <input
+            type="text"
+            placeholder="Search by item name or participant..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          {searchTerm && (
+            <button
+              type="button"
+              onClick={() => setSearchTerm('')}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#94a3b8' }}
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+
+        <div className="txn-actions-right">
+          <div className="txn-sort-wrap">
+            <span>Sort by:</span>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="txn-sort-select"
+            >
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+              <option value="highest">Highest amount</option>
+              <option value="lowest">Lowest amount</option>
+            </select>
+          </div>
+          <button
+            type="button"
+            className="txn-filter-btn"
+            onClick={() => {
+              // Toggle simple reset or focus search
+              if (filter !== 'all' || searchTerm) {
+                setFilter('all');
+                setSearchTerm('');
+              }
+            }}
+          >
+            <SlidersHorizontal size={14} /> Filter
+          </button>
+        </div>
+      </div>
+
+      {/* ── Transactions Table Container ──────────────────────────── */}
+      <div className="txn-table-container">
         {loading ? (
           <div className="rd-loading">
             <div className="rd-spinner" />
             <span>Loading transactions…</span>
           </div>
-        ) : filteredTxns.length === 0 ? (
-          <div className="rd-empty" style={{ padding: '48px 24px', textAlign: 'center' }}>
-            <CreditCard size={40} style={{ color: '#cbd5e1', marginBottom: 12 }} />
-            <h4 style={{ color: 'var(--text-primary)', margin: '0 0 8px' }}>No transactions in this filter</h4>
-            <p style={{ color: 'var(--text-muted)', fontSize: 14, maxWidth: 380, margin: '0 auto' }}>
+        ) : processedTxns.length === 0 ? (
+          <div className="rentals-empty-container" style={{ padding: '64px 20px', margin: '0 auto' }}>
+            <div className="rentals-icon-wrapper">
+              <div className="rentals-circle-icon">
+                <ReceiptText size={34} strokeWidth={1.8} />
+              </div>
+            </div>
+            <h3 className="rentals-empty-title">No transactions found</h3>
+            <p className="rentals-empty-desc">
               Transactions are created when you buy, sell, swap, or rent items on CampusConnect.
             </p>
+            <button
+              type="button"
+              className="rentals-primary-btn"
+              onClick={() => navigate('/marketplace')}
+            >
+              <Package size={16} /> Browse Marketplace
+            </button>
           </div>
         ) : (
-          <div className="txn-list">
-            {filteredTxns.map((t) => {
-              const isBuyer = t.buyerId?._id === userId || t.buyerId?.toString?.() === userId;
-              const counterpart = isBuyer
-                ? t.sellerId?.profile?.name || t.sellerId?.email?.split('@')[0] || 'Student'
-                : t.buyerId?.profile?.name || t.buyerId?.email?.split('@')[0] || 'Student';
-              const counterInitials = counterpart.split(' ').map((p) => p[0]).join('').toUpperCase().slice(0, 2);
-              const myRole = isBuyer ? 'Bought' : 'Sold';
-              const ongoing = isOngoing(t);
-              const alreadyConfirmed = (isBuyer && t.buyerConfirmedAt) || (!isBuyer && t.sellerConfirmedAt);
+          <div>
+            <div className="txn-table-head">
+              <div>Item</div>
+              <div>Participant</div>
+              <div>Amount</div>
+              <div>Status</div>
+              <div style={{ textAlign: 'right' }}>Actions</div>
+            </div>
 
-              return (
-                <div key={t._id} className="txn-row">
-                  {/* Item icon */}
-                  <div className="txn-row-icon">
-                    <CreditCard size={16} style={{ color: '#64748b' }} />
-                  </div>
+            <div>
+              {processedTxns.map((t) => {
+                const isBuyer = t.buyerId?._id === userId || t.buyerId?.toString?.() === userId;
+                const counterpart = isBuyer
+                  ? t.sellerId?.profile?.name || t.sellerId?.name || t.sellerId?.email?.split('@')[0] || 'Student'
+                  : t.buyerId?.profile?.name || t.buyerId?.name || t.buyerId?.email?.split('@')[0] || 'Student';
+                const counterInitials = counterpart
+                  .split(' ')
+                  .map((p) => p[0])
+                  .join('')
+                  .toUpperCase()
+                  .slice(0, 2);
+                const avatarStyle = getParticipantAvatar(counterpart);
+                const myRole = isBuyer ? 'Bought' : 'Sold';
+                const typeLabel = t.type === 'rent' ? 'Rent' : t.type === 'exchange' ? 'Exchange' : 'Sale';
+                const itemTitle = t.listingId?.title || 'Campus Item';
+                const itemImage =
+                  t.listingId?.images?.[0]?.thumbnailUrl ||
+                  t.listingId?.images?.[0]?.url ||
+                  null;
+                const ongoing = isOngoing(t);
 
-                  {/* Item Info */}
-                  <div className="txn-row-info">
-                    <div className="txn-row-title">{t.listingId?.title || 'Listing'}</div>
-                    <div className="txn-row-sub">{myRole} · Sale</div>
-                  </div>
-
-                  {/* Counterpart */}
-                  <div className="rental-row-peer">
-                    <div className="req-avatar" style={{ width: 28, height: 28, fontSize: 11, background: '#e0f2fe', color: '#0369a1' }}>
-                      {counterInitials}
+                return (
+                  <div key={t._id} className="txn-table-row">
+                    {/* Item */}
+                    <div className="txn-item-cell">
+                      {itemImage ? (
+                        <img src={itemImage} alt={itemTitle} className="txn-thumb" />
+                      ) : (
+                        <div className="txn-thumb-placeholder">
+                          <Package size={20} />
+                        </div>
+                      )}
+                      <div className="txn-item-info">
+                        <div className="txn-item-name" title={itemTitle}>{itemTitle}</div>
+                        <div className="txn-item-type">{myRole} · {typeLabel}</div>
+                      </div>
                     </div>
-                    <span>{counterpart}</span>
+
+                    {/* Participant */}
+                    <div className="txn-participant-cell">
+                      <div
+                        className="txn-participant-avatar"
+                        style={{ background: avatarStyle.bg, color: avatarStyle.text }}
+                      >
+                        {counterInitials}
+                      </div>
+                      <span className="txn-participant-name">{counterpart}</span>
+                    </div>
+
+                    {/* Amount */}
+                    <div className="txn-amount-cell">
+                      ₹{Number(t.amount || 0).toLocaleString('en-IN')}
+                    </div>
+
+                    {/* Status */}
+                    <div>
+                      <StatusPill status={t.status} />
+                    </div>
+
+                    {/* Actions */}
+                    <div className="txn-actions-cell">
+                      {ongoing && !isBuyer && (
+                        <button
+                          type="button"
+                          className="txn-btn-pin-action"
+                          onClick={() => setShowPinFor(t)}
+                        >
+                          <KeyRound size={12} /> Show PIN
+                        </button>
+                      )}
+                      {ongoing && isBuyer && (
+                        <button
+                          type="button"
+                          className="txn-btn-pin-action"
+                          onClick={() => setVerifyPinFor(t)}
+                        >
+                          <KeyRound size={12} /> Enter PIN
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="txn-btn-chat"
+                        onClick={() => navigate('/chat')}
+                        title="Chat with participant"
+                      >
+                        <MessageSquare size={13} /> Chat
+                      </button>
+                      <button
+                        type="button"
+                        className="txn-btn-details"
+                        onClick={() => {
+                          if (t.listingId?._id) {
+                            navigate(`/marketplace/${t.listingId._id}`);
+                          } else {
+                            showToast('Listing details not found.');
+                          }
+                        }}
+                      >
+                        View details →
+                      </button>
+                    </div>
                   </div>
-
-                  {/* Amount */}
-                  <div style={{ fontWeight: 700, fontSize: 15, color: '#0f172a' }}>
-                    ₹{t.amount ?? 0}
-                  </div>
-
-                  {/* Status */}
-                  <StatusPill status={t.status} />
-
-                  {/* Actions */}
-                  <div className="rental-row-actions">
-                    {/* Seller: Show PIN */}
-                    {ongoing && !isBuyer && (
-                      <button
-                        className="rd-btn rd-btn-sm rd-btn-pin"
-                        onClick={() => setShowPinFor(t)}
-                      >
-                        <KeyRound size={12} />
-                        {t.handoverPin ? `Show PIN` : 'Show PIN'}
-                      </button>
-                    )}
-                    {/* Buyer: Enter PIN */}
-                    {ongoing && isBuyer && (
-                      <button
-                        className="rd-btn rd-btn-sm rd-btn-verify"
-                        onClick={() => setVerifyPinFor(t)}
-                      >
-                        <KeyRound size={12} />
-                        Enter PIN
-                      </button>
-                    )}
-
-                    {/* Chat */}
-                    <button
-                      className="rd-btn rd-btn-secondary rd-btn-sm"
-                      onClick={() => navigate('/chat')}
-                      title="Chat"
-                    >
-                      <MessageSquare size={12} />
-                      Chat
-                    </button>
-
-                    {!alreadyConfirmed && ongoing && (
-                      <button
-                        className="rd-btn rd-btn-success rd-btn-sm"
-                        onClick={() => handleConfirmTxn(t._id)}
-                      >
-                        Confirm
-                      </button>
-                    )}
-                    {['pending', 'payment_held'].includes(t.status) && (
-                      <button
-                        className="rd-btn rd-btn-danger rd-btn-sm"
-                        onClick={() => handleCancelTxn(t._id)}
-                      >
-                        Cancel
-                      </button>
-                    )}
-
-                    {t.status === 'completed' && (
-                      <span style={{ fontSize: 12, color: '#10b981' }}>Done</span>
-                    )}
-                    {t.status === 'cancelled' && (
-                      <span style={{ fontSize: 12, color: '#94a3b8' }}>Cancelled</span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
+
+      {/* ── How Meetup PINs Work Modal ────────────────────────────── */}
+      {showHowItWorksModal && (
+        <div className="rd-modal-backdrop" onClick={() => setShowHowItWorksModal(false)}>
+          <div className="rd-modal" style={{ maxWidth: 480 }} onClick={(e) => e.stopPropagation()}>
+            <button className="rd-modal-close" onClick={() => setShowHowItWorksModal(false)}>
+              <X size={16} />
+            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+              <div style={{ width: 42, height: 42, borderRadius: 10, background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <ShieldCheck size={24} />
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#0f172a' }}>
+                  How Meetup PINs Work
+                </h3>
+                <p style={{ margin: '2px 0 0 0', fontSize: 13, color: '#64748b' }}>
+                  Safe campus exchange escrow
+                </p>
+              </div>
+            </div>
+            <p style={{ color: '#64748b', fontSize: 14, lineHeight: 1.5, marginBottom: 18 }}>
+              CampusConnect uses an in-person exchange verification protocol to keep transactions safe on campus:
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 24 }}>
+              <div style={{ display: 'flex', gap: 12 }}>
+                <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#dbeafe', color: '#1e40af', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>1</div>
+                <div style={{ fontSize: 13, color: '#334155', lineHeight: 1.4 }}>
+                  <strong>Meet on campus:</strong> Arrange to meet in public campus spots like the Central Library foyer or Main Cafeteria.
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 12 }}>
+                <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#dbeafe', color: '#1e40af', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>2</div>
+                <div style={{ fontSize: 13, color: '#334155', lineHeight: 1.4 }}>
+                  <strong>Inspect the item:</strong> Check the item condition thoroughly before completing the handover.
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 12 }}>
+                <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#dbeafe', color: '#1e40af', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>3</div>
+                <div style={{ fontSize: 13, color: '#334155', lineHeight: 1.4 }}>
+                  <strong>Exchange PIN:</strong> The seller shows their 6-digit PIN screen, and the buyer enters it to confirm receipt and finalize the transaction.
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="rentals-primary-btn"
+              style={{ width: '100%', justifyContent: 'center' }}
+              onClick={() => setShowHowItWorksModal(false)}
+            >
+              Got it, thanks!
+            </button>
+          </div>
+        </div>
+      )}
 
       {showPinFor && (
         <ShowPinModal

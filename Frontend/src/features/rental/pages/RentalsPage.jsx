@@ -12,8 +12,11 @@ import {
   Package,
   ArrowDownLeft,
   ArrowUpRight,
+  ArrowLeft,
   Clock,
   History,
+  Euro,
+  FileClock,
   QrCode,
   AlertCircle,
   MessageSquare,
@@ -254,16 +257,17 @@ export default function RentalsPage() {
       )}
 
       {/* ── Page Header ──────────────────────────────────────────── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+      <div className="rentals-page-header">
         <div>
-          <h1 className="rd-title">Rentals</h1>
-          <p className="rd-subtitle">Track what you have borrowed and what you have lent.</p>
+          <h1 className="rentals-page-title">Rentals</h1>
+          <p className="rentals-page-subtitle">Track what you have borrowed and what you have lent.</p>
         </div>
         <button
-          className="rd-btn rd-btn-secondary"
+          type="button"
+          className="rentals-primary-btn"
           onClick={() => navigate('/marketplace?type=rent')}
         >
-          Browse rentals
+          <Package size={16} /> Browse rentals
         </button>
       </div>
 
@@ -273,48 +277,61 @@ export default function RentalsPage() {
           className={`rentals-stat-card ${view === 'borrowing' && statusFilter === 'active' ? 'rentals-stat-active' : ''}`}
           onClick={() => { setView('borrowing'); setStatusFilter('active'); }}
         >
-          <ArrowDownLeft size={18} style={{ marginBottom: 4 }} />
+          <div className="rentals-stat-icon-box box-borrowing">
+            <Euro size={18} strokeWidth={2.2} />
+          </div>
           <div className="rentals-stat-num">{activeBorrowCount}</div>
           <div className="rentals-stat-label">Borrowing</div>
         </div>
+
         <div
           className={`rentals-stat-card ${view === 'lending' && statusFilter === 'active' ? 'rentals-stat-active' : ''}`}
           onClick={() => { setView('lending'); setStatusFilter('active'); }}
         >
-          <ArrowUpRight size={18} style={{ marginBottom: 4 }} />
+          <div className="rentals-stat-icon-box box-lending">
+            <ArrowUpRight size={18} strokeWidth={2.2} />
+          </div>
           <div className="rentals-stat-num">{activeLendCount}</div>
           <div className="rentals-stat-label">Lending</div>
         </div>
+
         <div
           className={`rentals-stat-card ${dueSoonCount > 0 ? 'rentals-stat-due' : ''}`}
           style={{ cursor: 'default' }}
         >
-          <Clock size={18} style={{ marginBottom: 4 }} />
+          <div className="rentals-stat-icon-box box-duesoon">
+            <Clock size={18} strokeWidth={2.2} />
+          </div>
           <div className="rentals-stat-num">{dueSoonCount}</div>
           <div className="rentals-stat-label">Due soon</div>
         </div>
+
         <div
-          className="rentals-stat-card"
+          className={`rentals-stat-card ${statusFilter === 'history' ? 'rentals-stat-active-history' : ''}`}
           onClick={() => setStatusFilter('history')}
         >
-          <History size={18} style={{ marginBottom: 4 }} />
+          <div className="rentals-stat-icon-box box-history">
+            <FileClock size={18} strokeWidth={2.2} />
+          </div>
           <div className="rentals-stat-num">{historyCount}</div>
           <div className="rentals-stat-label">History</div>
         </div>
       </div>
 
-      {/* ── View Toggle ───────────────────────────────────────────── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <div className="hub-subview-toggle">
+      {/* ── View Toggle & Filter Tabs ─────────────────────────────── */}
+      <div className="rentals-controls-row">
+        <div className="rentals-toggle-group">
           <button
-            className={`hub-subview-btn ${view === 'borrowing' ? 'active' : ''}`}
+            type="button"
+            className={`rentals-toggle-btn ${view === 'borrowing' ? 'active' : ''}`}
             onClick={() => setView('borrowing')}
           >
-            <ArrowDownLeft size={14} />
+            <ArrowLeft size={14} />
             Borrowing ({borrowingRentals.length})
           </button>
           <button
-            className={`hub-subview-btn ${view === 'lending' ? 'active' : ''}`}
+            type="button"
+            className={`rentals-toggle-btn ${view === 'lending' ? 'active' : ''}`}
             onClick={() => setView('lending')}
           >
             <ArrowUpRight size={14} />
@@ -322,15 +339,17 @@ export default function RentalsPage() {
           </button>
         </div>
 
-        <div className="rd-tabs" style={{ margin: 0, borderBottom: 'none' }}>
+        <div className="rentals-filter-tabs">
           <button
-            className={`rd-tab ${statusFilter === 'active' ? 'rd-tab-active' : ''}`}
+            type="button"
+            className={`rentals-filter-tab ${statusFilter === 'active' ? 'active' : ''}`}
             onClick={() => setStatusFilter('active')}
           >
             Active
           </button>
           <button
-            className={`rd-tab ${statusFilter === 'history' ? 'rd-tab-active' : ''}`}
+            type="button"
+            className={`rentals-filter-tab ${statusFilter === 'history' ? 'active' : ''}`}
             onClick={() => setStatusFilter('history')}
           >
             History
@@ -338,33 +357,40 @@ export default function RentalsPage() {
         </div>
       </div>
 
-      {/* ── Rental List ───────────────────────────────────────────── */}
-      <div className="rd-content">
+      {/* ── Rental List / Empty State ─────────────────────────────── */}
+      <div className={`rentals-main-card ${currentList.length > 0 ? 'has-items' : ''}`}>
         {loading ? (
           <div className="rd-loading">
             <div className="rd-spinner" />
             <span>Loading rentals…</span>
           </div>
         ) : currentList.length === 0 ? (
-          <div className="rd-empty" style={{ padding: '48px 24px', textAlign: 'center' }}>
-            <Package size={40} style={{ color: '#cbd5e1', marginBottom: 12 }} />
-            <h4 style={{ color: 'var(--text-primary)', margin: '0 0 8px' }}>
+          <div className="rentals-empty-container">
+            <div className="rentals-icon-wrapper">
+              <div className="rentals-circle-icon">
+                <Package size={34} strokeWidth={1.8} />
+              </div>
+              <svg className="rentals-sparkle-svg" width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <path d="M4 10L1 12M12 2L14 0M8 6L5 4" stroke="#3b82f6" strokeWidth="2.2" strokeLinecap="round" />
+              </svg>
+            </div>
+            <h3 className="rentals-empty-title">
               {view === 'borrowing'
                 ? statusFilter === 'active' ? 'No active borrowings' : 'No borrowing history'
-                : statusFilter === 'active' ? 'No items currently lent out' : 'No lending history'}
-            </h4>
-            {view === 'borrowing' ? (
-              <button className="rd-btn rd-btn-primary" onClick={() => navigate('/marketplace?type=rent')}>
-                Browse rentals
-              </button>
-            ) : (
-              <button
-                className="rd-btn rd-btn-primary"
-                onClick={() => navigate('/marketplace/create', { state: { initialValues: { listingType: 'rent' } } })}
-              >
-                List an item for rent
-              </button>
-            )}
+                : statusFilter === 'active' ? 'No active lendings' : 'No lending history'}
+            </h3>
+            <p className="rentals-empty-desc">
+              {view === 'borrowing'
+                ? 'Items you rent will appear here once a request is approved.'
+                : 'Items you lend to other students will appear here once requested.'}
+            </p>
+            <button
+              type="button"
+              className="rentals-primary-btn"
+              onClick={() => navigate('/marketplace?type=rent')}
+            >
+              <Package size={16} /> Browse rentals
+            </button>
           </div>
         ) : (
           <div className="rentals-list">

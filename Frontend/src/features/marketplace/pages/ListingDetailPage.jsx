@@ -26,7 +26,6 @@ import {
   Layers,
   Calendar,
   Tag,
-  Phone,
 } from 'lucide-react';
 import { listingsApi } from '../api/listingsApi';
 import { useAuth } from '../hooks/useAuth';
@@ -802,14 +801,6 @@ export const ListingDetailPage = () => {
                 onClick={handleContactSeller}
               >
                 <MessageSquare size={16} /> Chat with Seller
-              </button>
-
-              <button
-                type="button"
-                className="btn-contact-seller-solid"
-                onClick={primaryAction.onClick}
-              >
-                <Phone size={16} /> Contact Seller
               </button>
             </div>
           )}
