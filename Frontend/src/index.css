@@ -4506,4 +4506,380 @@ body {
   }
 }
 
+/* ==========================================================================
+   Sustainability Page Styles
+   ========================================================================== */
+.sustainability-page {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 32px 24px 48px;
+  box-sizing: border-box;
+}
+
+.sustainability-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.sustainability-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.02em;
+}
+
+.sustainability-subtitle {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
+}
+
+.sustainability-level-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #dcfce7;
+  color: #15803d;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+/* 3 Metrics Cards Grid */
+.sustainability-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.sustainability-metric-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 22px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sustainability-metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+}
+
+.sustainability-metric-icon-box {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sustainability-icon-green {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.sustainability-icon-blue {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.sustainability-metric-val {
+  font-size: 26px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.1;
+}
+
+.sustainability-metric-lbl {
+  font-size: 13.5px;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+/* Eco Badge Progress Card */
+.sustainability-badge-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 24px 28px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.sustainability-badge-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 28px;
+}
+
+.sustainability-badge-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 4px 0;
+}
+
+.sustainability-badge-desc {
+  font-size: 13.5px;
+  color: #64748b;
+  margin: 0;
+}
+
+.sustainability-badge-target {
+  font-size: 13px;
+  color: #2563eb;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Milestones Stepper */
+.sustainability-stepper {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.sustainability-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.sustainability-step-circle {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+  transition: all 0.2s ease;
+}
+
+.sustainability-step-completed {
+  background: #10b981;
+  color: #ffffff;
+}
+
+.sustainability-step-active {
+  background: #ffffff;
+  border: 2px solid #2563eb;
+  color: #2563eb;
+}
+
+.sustainability-step-upcoming {
+  background: #ffffff;
+  border: 2px solid #cbd5e1;
+  color: #94a3b8;
+}
+
+.sustainability-step-name {
+  font-weight: 700;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.sustainability-step-range {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.sustainability-progress-track {
+  width: 100%;
+  height: 8px;
+  border-radius: 9999px;
+  background: #f1f5f9;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.sustainability-progress-fill {
+  height: 100%;
+  background: #10b981;
+  border-radius: 9999px;
+  transition: width 0.4s ease;
+}
+
+.sustainability-progress-label {
+  font-size: 12.5px;
+  color: #64748b;
+}
+
+.sustainability-trust-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #f8fafc;
+  font-size: 13px;
+  color: #475569;
+}
+
+/* Calculation breakdown card */
+.sustainability-calc-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 18px 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.sustainability-calc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sustainability-calc-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.sustainability-calc-toggle {
+  background: transparent;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sustainability-calc-rows {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sustainability-calc-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.sustainability-calc-icon-box {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #dcfce7;
+  color: #16a34a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.sustainability-calc-row-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.sustainability-calc-row-desc {
+  font-size: 12.5px;
+  color: #64748b;
+  line-height: 1.5;
+  margin-top: 2px;
+}
+
+/* Exams Callout Banner */
+.sustainability-callout-card {
+  background: #fffbeb;
+  border: 1px solid #fef08a;
+  border-radius: 16px;
+  padding: 18px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.sustainability-callout-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.sustainability-callout-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: #fef3c7;
+  color: #d97706;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sustainability-callout-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 2px;
+}
+
+.sustainability-callout-desc {
+  font-size: 13.5px;
+  color: #64748b;
+}
+
+.sustainability-callout-btn {
+  background: #2563eb;
+  color: #ffffff;
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+  flex-shrink: 0;
+}
+
+.sustainability-callout-btn:hover {
+  background: #1d4ed8;
+}
+
+@media (max-width: 860px) {
+  .sustainability-metrics-grid {
+    grid-template-columns: 1fr;
+  }
+  .sustainability-callout-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+
 
