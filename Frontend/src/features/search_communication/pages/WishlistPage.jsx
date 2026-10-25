@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { wishlistApi } from '../api/wishlistApi';
 import { useWishlist } from '../context/WishlistContext';
-import { Heart, X, Image as ImageIcon } from 'lucide-react';
+import { Heart, X, Image as ImageIcon, ArrowLeft } from 'lucide-react';
 
 export const WishlistPage = () => {
   const [items, setItems] = useState([]);
@@ -27,7 +27,11 @@ export const WishlistPage = () => {
     fetchWishlist();
   }, []);
 
-  const handleRemove = async (listingId) => {
+  const handleRemove = async (e, listingId) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     try {
       await toggleWishlist(listingId);
       setItems(prev => prev.filter(i => (i.listing?._id || i._id) !== listingId));
@@ -37,19 +41,66 @@ export const WishlistPage = () => {
     }
   };
 
+  const formatCondition = (condition) => {
+    if (!condition) return 'Good';
+    const c = condition.toLowerCase().trim();
+    if (c === 'new') return 'New';
+    if (c === 'like_new' || c === 'like new') return 'Like new';
+    if (c === 'good') return 'Good';
+    if (c === 'fair') return 'Fair condition';
+    if (c === 'poor') return 'Poor condition';
+    return condition.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  };
+
+  const renderPrice = (listing) => {
+    if (listing.listingType === 'rent') {
+      const rate = listing.rentalRate || listing.price || 0;
+      return `₹${Number(rate).toLocaleString('en-IN')}/${listing.rentalPeriod || 'day'}`;
+    }
+    if (listing.listingType === 'giveaway') {
+      return 'Free';
+    }
+    if (listing.listingType === 'exchange') {
+      return 'Swap';
+    }
+    return `₹${Number(listing.price || 0).toLocaleString('en-IN')}`;
+  };
+
+  const renderTypeBadge = (listing) => {
+    const type = listing.listingType || 'sell';
+    if (type === 'rent') {
+      return <span className="wishlist-pill wishlist-pill-rent">Rent</span>;
+    }
+    if (type === 'giveaway') {
+      return <span className="wishlist-pill wishlist-pill-free">Free</span>;
+    }
+    if (type === 'exchange') {
+      return <span className="wishlist-pill wishlist-pill-swap">Swap</span>;
+    }
+    return <span className="wishlist-pill wishlist-pill-sell">Sell</span>;
+  };
+
   if (loading) {
     return (
-      <div className="page">
-        <div style={{ marginBottom: 20 }}>
-          <h1 style={{ fontSize: 24 }}>My Wishlist</h1>
-          <p className="muted">Saved listings you're interested in</p>
+      <div className="wishlist-page">
+        <div className="wishlist-header">
+          <div>
+            <h1 className="wishlist-title">My Wishlist</h1>
+            <p className="wishlist-subtitle">Saved items across campus</p>
+          </div>
         </div>
-        <div className="grid3">
+        <div className="wishlist-grid">
           {[1, 2, 3].map(n => (
-            <div key={n} className="card" style={{ height: 260, opacity: 0.6 }}>
-              <div className="listing-img" style={{ animation: 'pulse 1.5s infinite' }}>Loading...</div>
-              <div style={{ height: 16, background: '#e2e8f0', marginTop: 12, borderRadius: 4 }} />
-              <div style={{ height: 12, background: '#e2e8f0', marginTop: 8, width: '50%', borderRadius: 4 }} />
+            <div key={n} className="wishlist-card" style={{ height: 320 }}>
+              <div className="wishlist-skeleton-img" />
+              <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div className="wishlist-skeleton-line" style={{ width: '70%', height: 16 }} />
+                <div className="wishlist-skeleton-line" style={{ width: '45%', height: 12 }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 14 }}>
+                  <div className="wishlist-skeleton-line" style={{ width: '30%', height: 18 }} />
+                  <div className="wishlist-skeleton-line" style={{ width: '20%', height: 18, borderRadius: 12 }} />
+                </div>
+              </div>
             </div>
           ))}
         </div>
@@ -59,8 +110,8 @@ export const WishlistPage = () => {
 
   if (error) {
     return (
-      <div className="page">
-        <div className="card" style={{ textAlign: 'center', padding: '40px 20px' }}>
+      <div className="wishlist-page">
+        <div className="wishlist-empty-state">
           <p style={{ color: '#dc2626', marginBottom: 16 }}>{error}</p>
           <button type="button" className="btn btn-secondary" onClick={fetchWishlist}>
             Try Again
@@ -71,43 +122,45 @@ export const WishlistPage = () => {
   }
 
   return (
-    <div className="page">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+    <div className="wishlist-page">
+      <div className="wishlist-header">
         <div>
-          <h1 style={{ fontSize: 24, margin: 0 }}>My Wishlist ({items.length})</h1>
-          <p className="muted" style={{ marginTop: 4 }}>Saved items across campus</p>
+          <h1 className="wishlist-title">My Wishlist ({items.length})</h1>
+          <p className="wishlist-subtitle">Saved items across campus</p>
         </div>
-        <Link to="/browse" className="btn btn-secondary">
-          ← Browse More Listings
+        <Link to="/marketplace" className="wishlist-browse-btn">
+          <ArrowLeft size={15} /> Browse more listings
         </Link>
       </div>
 
       {items.length === 0 ? (
-        <div className="card" style={{ textAlign: 'center', padding: '60px 20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
+        <div className="wishlist-empty-state">
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
             <Heart size={44} color="#ef4444" fill="#fee2e2" />
           </div>
-          <h2>Your Wishlist is Empty</h2>
-          <p className="muted" style={{ maxWidth: 440, margin: '8px auto 20px' }}>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: '#0f172a', margin: '0 0 8px 0' }}>
+            Your Wishlist is Empty
+          </h2>
+          <p style={{ maxWidth: 440, margin: '0 auto 20px', color: '#64748b', fontSize: 14 }}>
             Find textbooks, lab gear, calculators or furniture in the campus marketplace and click the heart icon to save them here!
           </p>
-          <Link to="/browse" className="btn btn-primary">
-            Explore Campus Listings
+          <Link to="/marketplace" className="wishlist-browse-btn" style={{ padding: '10px 20px', fontSize: 14 }}>
+            Browse Marketplace
           </Link>
         </div>
       ) : (
-        <div className="grid3">
+        <div className="wishlist-grid">
           {items.map(entry => {
             const listing = entry.listing;
             if (!listing) {
               return (
-                <div key={entry._id} className="card" style={{ padding: 18, background: '#f8fafc' }}>
-                  <p className="muted">This listing is no longer available.</p>
+                <div key={entry._id} className="wishlist-card" style={{ padding: 20, background: '#f8fafc', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
+                  <p style={{ color: '#64748b', fontSize: 14, margin: '0 0 12px 0' }}>This listing is no longer available.</p>
                   <button
                     type="button"
                     className="btn btn-secondary"
-                    style={{ marginTop: 10, fontSize: 12 }}
-                    onClick={() => handleRemove(entry.wishlistId)}
+                    style={{ fontSize: 12, padding: '6px 12px' }}
+                    onClick={(e) => handleRemove(e, entry.wishlistId)}
                   >
                     Remove from Wishlist
                   </button>
@@ -118,82 +171,73 @@ export const WishlistPage = () => {
             const primaryImg = listing.images?.find(i => i.isPrimary) || listing.images?.[0];
             const imgUrl = primaryImg?.thumbnailUrl || primaryImg?.url;
             const isUnavailable = entry.isUnavailable;
+            const categoryName = listing.category?.name || (typeof listing.category === 'string' ? listing.category : 'General');
 
             return (
               <div
                 key={entry._id}
-                className="card"
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  position: 'relative',
-                  opacity: isUnavailable ? 0.65 : 1
-                }}
+                className="wishlist-card"
+                style={{ opacity: isUnavailable ? 0.65 : 1 }}
               >
-                {/* Remove button */}
+                {/* Floating remove button */}
                 <button
                   type="button"
-                  onClick={() => handleRemove(listing._id)}
+                  className="wishlist-remove-btn"
+                  onClick={(e) => handleRemove(e, listing._id)}
                   title="Remove from wishlist"
-                  style={{
-                    position: 'absolute',
-                    top: 10,
-                    right: 10,
-                    background: 'rgba(255, 255, 255, 0.95)',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '50%',
-                    width: 30,
-                    height: 30,
-                    cursor: 'pointer',
-                    zIndex: 2,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#ef4444'
-                  }}
+                  aria-label="Remove item from wishlist"
                 >
-                  <X size={14} />
+                  <X size={15} color="#ef4444" strokeWidth={2.5} />
                 </button>
 
                 <Link
-                  to={`/listings/${listing._id}`}
-                  style={{ textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', height: '100%' }}
+                  to={`/marketplace/${listing._id}`}
+                  className="wishlist-card-link"
                 >
-                  <div className="listing-img" style={{ position: 'relative' }}>
+                  <div className="wishlist-img-wrapper">
                     {imgUrl ? (
-                      <img src={imgUrl} alt={listing.title} loading="lazy" />
+                      <img src={imgUrl} alt={listing.title} className="wishlist-img" loading="lazy" />
                     ) : (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                        <ImageIcon size={16} /> Photo
-                      </span>
+                      <div className="wishlist-img-placeholder">
+                        <ImageIcon size={28} />
+                        <span>No Photo</span>
+                      </div>
                     )}
                     {isUnavailable && (
                       <span
-                        className="pill pill-gray"
-                        style={{ position: 'absolute', bottom: 8, left: 8, background: 'rgba(0,0,0,0.7)', color: '#fff' }}
+                        style={{
+                          position: 'absolute',
+                          bottom: 10,
+                          left: 10,
+                          background: 'rgba(15, 23, 42, 0.75)',
+                          color: '#ffffff',
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          padding: '3px 8px',
+                          borderRadius: '4px',
+                          backdropFilter: 'blur(4px)'
+                        }}
                       >
                         Unavailable
                       </span>
                     )}
                   </div>
 
-                  <h2 style={{ marginTop: 12, fontSize: 15, lineHeight: 1.3, flex: 1 }}>
-                    {listing.title}
-                  </h2>
+                  <div className="wishlist-card-body">
+                    <h2 className="wishlist-item-title" title={listing.title}>
+                      {listing.title}
+                    </h2>
 
-                  <p className="muted" style={{ marginTop: 4, fontSize: 13 }}>
-                    {listing.category?.name || 'General'} · Condition: {listing.condition || 'Good'}
-                  </p>
+                    <div className="wishlist-item-meta" title={`${categoryName} · ${formatCondition(listing.condition)}`}>
+                      {categoryName} · {formatCondition(listing.condition)}
+                    </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 }}>
-                    {listing.listingType === 'sell' && <b>₹{listing.price}</b>}
-                    {listing.listingType === 'rent' && <b>₹{listing.rentalRate}/{listing.rentalPeriod}</b>}
-                    {listing.listingType === 'giveaway' && <b style={{ color: '#166534' }}>Free</b>}
-                    {listing.listingType === 'exchange' && <b>Trade</b>}
-
-                    <span className={`pill pill-${listing.listingType === 'rent' ? 'green' : listing.listingType === 'giveaway' ? 'yellow' : 'blue'}`}>
-                      {listing.listingType}
-                    </span>
+                    <div className="wishlist-card-footer">
+                      <div className="wishlist-price">
+                        {renderPrice(listing)}
+                      </div>
+                      {renderTypeBadge(listing)}
+                    </div>
                   </div>
                 </Link>
               </div>
@@ -204,3 +248,4 @@ export const WishlistPage = () => {
     </div>
   );
 };
+export default WishlistPage;
