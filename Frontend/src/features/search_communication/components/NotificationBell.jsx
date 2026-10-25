@@ -2,29 +2,20 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../context/NotificationContext';
 
-const getNotificationIcon = (type) => {
-  switch (type) {
-    case 'chat_message':
-      return '💬';
-    case 'order':
-      return '🛍️';
-    case 'rental':
-    case 'rental_reminder':
-      return '📦';
-    case 'listing_approved':
-      return '✅';
-    case 'listing_rejected':
-      return '❌';
-    case 'match_found':
-      return '✨';
-    case 'price_alert':
-      return '🏷️';
-    case 'transaction_update':
-      return '💳';
-    default:
-      return '📢';
-  }
+const NOTIF_ICONS = {
+  chat_message: '💬',
+  order: '🛒',
+  rental: '📦',
+  rental_reminder: '📦',
+  listing_approved: '✅',
+  listing_rejected: '✗',
+  match_found: '✨',
+  price_alert: '🏷',
+  transaction_update: '💳',
 };
+
+const getNotificationIcon = (type) => NOTIF_ICONS[type] || '🔔';
+
 
 const formatTimeAgo = (dateStr) => {
   if (!dateStr) return '';
@@ -70,13 +61,13 @@ export const NotificationBell = () => {
     if (notif.type === 'chat_message' && notif.relatedId) {
       navigate(`/chat?thread=${notif.relatedId}`);
     } else if (['order', 'transaction_update'].includes(notif.type)) {
-      navigate('/rentals?view=dashboard');
+      navigate('/transactions');
     } else if (notif.type === 'rental') {
-      navigate('/rentals?view=renting');
+      navigate('/rentals');
     } else if (['listing_approved', 'listing_rejected', 'price_alert'].includes(notif.type) && notif.relatedId) {
       navigate(`/listings/${notif.relatedId}`);
     } else if (notif.type === 'rental_reminder') {
-      navigate('/rentals?view=renting');
+      navigate('/rentals');
     }
   };
 
@@ -85,23 +76,11 @@ export const NotificationBell = () => {
       {/* Bell Button */}
       <button
         type="button"
+        className="nav-icon-btn"
         onClick={() => setIsOpen(!isOpen)}
         aria-label="Notifications"
-        style={{
-          background: 'transparent',
-          border: 'none',
-          color: '#cbd5e1',
-          cursor: 'pointer',
-          padding: '6px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          position: 'relative',
-          borderRadius: '50%',
-          transition: 'color 0.15s ease'
-        }}
       >
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
           <path d="M13.73 21a2 2 0 0 1-3.46 0" />
         </svg>
@@ -115,15 +94,15 @@ export const NotificationBell = () => {
               background: '#ef4444',
               color: '#ffffff',
               borderRadius: '999px',
-              fontSize: 10,
+              fontSize: 9,
               fontWeight: 700,
-              minWidth: 16,
-              height: 16,
-              padding: '0 4px',
+              minWidth: 15,
+              height: 15,
+              padding: '0 3px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              border: '2px solid #12294d'
+              border: '1.5px solid #0d1b2a'
             }}
           >
             {unreadCount > 9 ? '9+' : unreadCount}
