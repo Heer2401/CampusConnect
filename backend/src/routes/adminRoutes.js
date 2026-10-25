@@ -22,7 +22,9 @@ const {
   getDisputeById,
   resolveDispute,
   // Analytics
-  getDashboardAnalytics
+  getDashboardAnalytics,
+  // Audit Logs
+  getAuditLogs
 } = require('../controllers/adminController');
 
 // ----------------------------------------
@@ -48,9 +50,9 @@ router.put('/categories/:id', protect, adminOnly, updateCategory);
 router.delete('/categories/:id', protect, adminOnly, deleteCategory);
 
 // ----------------------------------------
-// Dispute & Report Routes (FR-6.4)
+// Dispute & Report Routes (FR-6.4, US-14)
 // ----------------------------------------
-router.post('/disputes', protect, adminOnly, createDispute);
+router.post('/disputes', protect, createDispute);
 router.get('/disputes', protect, adminOnly, getDisputes);
 router.get('/disputes/:id', protect, adminOnly, getDisputeById);
 router.patch('/disputes/:id/resolve', protect, adminOnly, resolveDispute);
@@ -59,5 +61,10 @@ router.patch('/disputes/:id/resolve', protect, adminOnly, resolveDispute);
 // Platform Analytics & Trends (FR-6.5)
 // ----------------------------------------
 router.get('/analytics/overview', protect, adminOnly, getDashboardAnalytics);
+
+// ----------------------------------------
+// System Audit Log (FR-7.1, NFR-9.1)
+// ----------------------------------------
+router.get('/audit-logs', protect, adminOnly, getAuditLogs);
 
 module.exports = router;

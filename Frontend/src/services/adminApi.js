@@ -168,12 +168,28 @@ export const adminApi = {
     return res.data || [];
   },
 
-  async updateUserStatus(userId, status, suspensionReason = '') {
+  async updateUserStatus(userId, status, suspensionReason = '', isVerified = undefined) {
+    const body = {};
+    if (status) body.status = status;
+    if (suspensionReason) body.suspensionReason = suspensionReason;
+    if (isVerified !== undefined) body.isVerified = isVerified;
     const res = await this.request(`/admin/users/${userId}/status`, {
       method: 'PATCH',
-      body: JSON.stringify({ status, suspensionReason })
+      body: JSON.stringify(body)
     });
     return res.data || res;
+  },
+
+  async getAuditLogs(params = {}) {
+    const query = new URLSearchParams();
+    if (params.action) query.append('action', params.action);
+    if (params.targetModel) query.append('targetModel', params.targetModel);
+    if (params.page) query.append('page', params.page);
+    if (params.limit) query.append('limit', params.limit);
+
+    const queryString = query.toString() ? `?${query.toString()}` : '';
+    const res = await this.request(`/admin/audit-logs${queryString}`);
+    return res.data || [];
   },
 
   // 6. Dispute Resolution (FR-6.4)

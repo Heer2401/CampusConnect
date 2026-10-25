@@ -19,7 +19,7 @@ const searchListings = async (req, res, next) => {
     if (req.query.status) {
       filter.status = req.query.status;
     } else {
-      filter.status = 'active';
+      filter.status = { $in: ['active', 'approved'] };
     }
 
     // Category filter (by ObjectId or slug)

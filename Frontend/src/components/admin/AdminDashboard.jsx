@@ -166,7 +166,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // 3. Live User Moderation (Status toggle)
+  // 3. Live User Moderation (Status & Verification toggle)
   const handleToggleUserStatus = async (userId, newStatus, suspensionReason) => {
     try {
       await adminApi.updateUserStatus(userId, newStatus, suspensionReason);
@@ -179,6 +179,18 @@ export default function AdminDashboard() {
       if (analyticsData?.metrics) setMetrics(analyticsData.metrics);
     } catch (err) {
       showToast(`Status update failed: ${err.message}`, 'danger');
+    }
+  };
+
+  const handleToggleVerification = async (userId, currentVerified) => {
+    try {
+      const newVerified = !currentVerified;
+      await adminApi.updateUserStatus(userId, null, '', newVerified);
+      showToast(`User ${newVerified ? 'marked as verified' : 'unverified'}`, 'success');
+      const updatedUsers = await adminApi.getUsers();
+      setUsers(updatedUsers);
+    } catch (err) {
+      showToast(`Verification update failed: ${err.message}`, 'danger');
     }
   };
 
@@ -303,6 +315,7 @@ export default function AdminDashboard() {
             <UserManagementView
               users={users}
               onToggleStatus={handleToggleUserStatus}
+              onToggleVerification={handleToggleVerification}
               onRefresh={() => fetchAllLiveData(true)}
               loading={isSyncing}
             />

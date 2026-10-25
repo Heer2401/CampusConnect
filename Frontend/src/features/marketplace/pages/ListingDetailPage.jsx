@@ -26,6 +26,8 @@ import {
   Layers,
   Calendar,
   Tag,
+  Flag,
+  X,
 } from 'lucide-react';
 import { listingsApi } from '../api/listingsApi';
 import { useAuth } from '../hooks/useAuth';
@@ -69,6 +71,10 @@ export const ListingDetailPage = () => {
   const [showRentModal, setShowRentModal] = useState(false);
   const [showExchangeModal, setShowExchangeModal] = useState(false);
   const [showGiveawayModal, setShowGiveawayModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportReason, setReportReason] = useState('Inappropriate Content');
+  const [reportDetails, setReportDetails] = useState('');
+  const [submittingReport, setSubmittingReport] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [myListings, setMyListings] = useState([]);
   const [myListingsLoading, setMyListingsLoading] = useState(false);
@@ -297,6 +303,38 @@ export const ListingDetailPage = () => {
     } finally {
       setActionLoading(false);
       setShowGiveawayModal(false);
+    }
+  };
+
+  const handleReportListing = async (e) => {
+    e?.preventDefault();
+    if (!reportDetails.trim()) return;
+    setSubmittingReport(true);
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('cc_token');
+      const res = await fetch('/api/admin/disputes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          title: `Report: ${listing.title} (${reportReason})`,
+          disputeType: reportReason === 'Damaged / Counterfeit' ? 'ItemNotAsDescribed' : 'Other',
+          relatedListing: listing._id,
+          reportedUser: listing.owner?._id || listing.seller?._id,
+          description: reportDetails.trim(),
+          priority: 'Medium'
+        })
+      });
+      if (!res.ok) throw new Error('Failed to submit report');
+      setShowReportModal(false);
+      setReportDetails('');
+      showNotice('Listing reported to campus moderation. Thank you for keeping CampusConnect safe.', 'info');
+    } catch (err) {
+      showNotice(err.message || 'Failed to submit report', 'error');
+    } finally {
+      setSubmittingReport(false);
     }
   };
 
@@ -727,6 +765,29 @@ export const ListingDetailPage = () => {
                 ))}
               </div>
             )}
+
+            {!isOwner && (
+              <div style={{ marginTop: 10, textAlign: 'center' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowReportModal(true)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#94a3b8',
+                    fontSize: 12,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    padding: '4px 8px'
+                  }}
+                  title="Report inappropriate content, counterfeit item, or policy violation"
+                >
+                  <Flag size={12} /> Report this listing to campus moderation
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Views & Listed Date Row */}
@@ -1099,6 +1160,83 @@ export const ListingDetailPage = () => {
                 {actionLoading ? 'Requesting...' : 'Request Item'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Report Modal (US-14, FR-6.4) ────────────────────────────────────── */}
+      {showReportModal && (
+        <div style={backdropStyle} onClick={() => setShowReportModal(false)}>
+          <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 18, fontWeight: 700, color: '#b91c1c' }}>
+                <Flag size={20} /> Report Listing to Campus Moderation
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowReportModal(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <p className="muted" style={{ marginBottom: 16, fontSize: 13, lineHeight: 1.45 }}>
+              CampusConnect is a trusted student marketplace. Report listings that violate university rules, contain misleading pricing, or represent prohibited items.
+            </p>
+            <form onSubmit={handleReportListing}>
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6, color: '#334155' }}>
+                  Reason for Report
+                </label>
+                <select
+                  className="input"
+                  value={reportReason}
+                  onChange={(e) => setReportReason(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }}
+                >
+                  <option value="Inappropriate Content">Inappropriate Content / Offensive Material</option>
+                  <option value="Damaged / Counterfeit">Damaged / Counterfeit / Misrepresented Condition</option>
+                  <option value="Prohibited Item">Prohibited Item on Campus</option>
+                  <option value="Scam / Suspicious Behavior">Scam / Unrealistic Price / Suspicious Activity</option>
+                  <option value="Other">Other Policy Violation</option>
+                </select>
+              </div>
+
+              <div style={{ marginBottom: 18 }}>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6, color: '#334155' }}>
+                  Details &amp; Evidence *
+                </label>
+                <textarea
+                  className="input"
+                  rows={4}
+                  placeholder="Explain why this listing should be reviewed by administrators…"
+                  value={reportDetails}
+                  onChange={(e) => setReportDetails(e.target.value)}
+                  required
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13 }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ flex: 1 }}
+                  onClick={() => setShowReportModal(false)}
+                  disabled={submittingReport}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{ flex: 1.2, background: '#b91c1c' }}
+                  disabled={submittingReport || !reportDetails.trim()}
+                >
+                  {submittingReport ? 'Submitting…' : 'Submit Report'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

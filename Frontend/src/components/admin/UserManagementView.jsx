@@ -3,7 +3,7 @@ import { Search, Ban, Check, Users, ShieldCheck } from 'lucide-react';
 import AdminModal from './AdminModal';
 import { isAdminRole, initials } from './adminUtils';
 
-export default function UserManagementView({ users = [], onToggleStatus }) {
+export default function UserManagementView({ users = [], onToggleStatus, onToggleVerification }) {
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -133,13 +133,23 @@ export default function UserManagementView({ users = [], onToggleStatus }) {
                       </td>
                       <td className="right">
                         {!admin ? (
-                          <button
-                            type="button"
-                            className={`adm-btn sm ${u.status === 'Active' ? 'danger' : 'success'}`}
-                            onClick={() => handleStatusClick(u)}
-                          >
-                            {u.status === 'Active' ? <><Ban size={14} /> Suspend</> : <><Check size={14} /> Reactivate</>}
-                          </button>
+                          <div style={{ display: 'inline-flex', gap: '0.4rem', justifyContent: 'flex-end' }}>
+                            <button
+                              type="button"
+                              className={`adm-btn sm ${u.status === 'Active' ? 'danger' : 'success'}`}
+                              onClick={() => handleStatusClick(u)}
+                            >
+                              {u.status === 'Active' ? <><Ban size={14} /> Suspend</> : <><Check size={14} /> Reactivate</>}
+                            </button>
+                            <button
+                              type="button"
+                              className="adm-btn sm secondary"
+                              title={u.isVerified ? 'Revoke verification' : 'Grant verification'}
+                              onClick={() => onToggleVerification && onToggleVerification(u._id, u.isVerified)}
+                            >
+                              <ShieldCheck size={14} /> {u.isVerified ? 'Unverify' : 'Verify'}
+                            </button>
+                          </div>
                         ) : (
                           <span className="adm-cell-sub">Protected</span>
                         )}

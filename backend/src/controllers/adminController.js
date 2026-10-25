@@ -2,6 +2,23 @@ const Listing = require('../models/Listing');
 const User = require('../models/User');
 const Category = require('../models/Category');
 const Dispute = require('../models/Dispute');
+const AuditLog = require('../models/AuditLog');
+
+const logAdminAction = async (req, action, targetModel, targetId, changes = null) => {
+  try {
+    if (!req.user?._id) return;
+    await AuditLog.create({
+      actorId: req.user._id,
+      action,
+      targetModel,
+      targetId,
+      changes,
+      ipAddress: req.ip || req.connection?.remoteAddress || null
+    });
+  } catch (err) {
+    console.error('AuditLog error:', err.message);
+  }
+};
 
 // ==========================================
 // 1. LISTING MODERATION & APPROVAL (FR-6.1)
@@ -190,6 +207,8 @@ const approveListing = async (req, res, next) => {
       }
     } catch (e) {}
 
+    await logAdminAction(req, 'listing.approve', 'Listing', listing._id, { title: listing.title });
+
     res.json({
       success: true,
       message: 'Listing approved and reports dismissed',
@@ -252,6 +271,8 @@ const rejectListing = async (req, res, next) => {
         });
       }
     } catch (e) {}
+
+    await logAdminAction(req, 'listing.reject', 'Listing', listing._id, { title: listing.title, reason });
 
     res.json({
       success: true,
@@ -363,6 +384,44 @@ const updateUserStatus = async (req, res, next) => {
 
     await user.save();
 
+    try {
+      const { sendNotification } = require('../services/notificationService');
+      if (status === 'Suspended') {
+        sendNotification(req.app, {
+          userId: user._id,
+          type: 'account_suspended',
+          title: 'Account Status Update',
+          message: `Your account has been suspended: ${user.suspensionReason}`,
+          relatedId: user._id,
+          relatedModel: 'User'
+        });
+      } else if (status === 'Active') {
+        sendNotification(req.app, {
+          userId: user._id,
+          type: 'account_activated',
+          title: 'Account Status Update',
+          message: 'Your account has been reactivated. You may now participate in the campus marketplace.',
+          relatedId: user._id,
+          relatedModel: 'User'
+        });
+      } else if (isVerified !== undefined) {
+        sendNotification(req.app, {
+          userId: user._id,
+          type: 'account_verified',
+          title: 'Verification Status Update',
+          message: isVerified ? 'Your university identity has been verified!' : 'Your verification status has been updated.',
+          relatedId: user._id,
+          relatedModel: 'User'
+        });
+      }
+    } catch (e) {}
+
+    await logAdminAction(req, status === 'Suspended' ? 'user.suspend' : 'user.status_update', 'User', user._id, {
+      status: user.status,
+      isVerified: user.isVerified,
+      suspensionReason: user.suspensionReason
+    });
+
     res.json({
       success: true,
       message: 'User status updated successfully',
@@ -429,6 +488,8 @@ const createCategory = async (req, res, next) => {
       isActive: true
     });
 
+    await logAdminAction(req, 'category.create', 'Category', category._id, { name: category.name, slug: category.slug });
+
     res.status(201).json({
       success: true,
       data: category
@@ -460,6 +521,8 @@ const updateCategory = async (req, res, next) => {
 
     await category.save();
 
+    await logAdminAction(req, 'category.update', 'Category', category._id, { name: category.name, requiresModeration, isActive });
+
     res.json({
       success: true,
       message: 'Category updated successfully',
@@ -479,6 +542,8 @@ const deleteCategory = async (req, res, next) => {
     if (!category) {
       return res.status(404).json({ message: 'Category not found' });
     }
+
+    await logAdminAction(req, 'category.delete', 'Category', category._id, { name: category.name });
 
     await category.deleteOne();
 
@@ -630,6 +695,32 @@ const resolveDispute = async (req, res, next) => {
 
     await dispute.save();
 
+    try {
+      const { sendNotification } = require('../services/notificationService');
+      if (dispute.reporter) {
+        sendNotification(req.app, {
+          userId: dispute.reporter,
+          type: 'dispute_resolved',
+          title: 'Report Resolution Update',
+          message: `Your report regarding "${dispute.title}" has been updated to "${status}": ${notes || actionTaken}`,
+          relatedId: dispute._id,
+          relatedModel: 'Dispute'
+        });
+      }
+      if (dispute.reportedUser && actionTaken === 'WarningIssued') {
+        sendNotification(req.app, {
+          userId: dispute.reportedUser,
+          type: 'moderation_warning',
+          title: 'Official Moderation Notice',
+          message: `A dispute regarding your activity was reviewed. Notice: ${notes || 'Please adhere to campus marketplace guidelines.'}`,
+          relatedId: dispute._id,
+          relatedModel: 'Dispute'
+        });
+      }
+    } catch (e) {}
+
+    await logAdminAction(req, 'dispute.resolve', 'Dispute', dispute._id, { status, actionTaken, notes });
+
     res.json({
       success: true,
       message: `Dispute marked as ${status}`,
@@ -739,6 +830,39 @@ const getDashboardAnalytics = async (req, res, next) => {
   }
 };
 
+// ==========================================
+// 6. SYSTEM AUDIT LOG (FR-7.1, NFR-9.1)
+// ==========================================
+
+// @desc    Get system audit log entries
+// @route   GET /api/admin/audit-logs
+// @access  Private/Admin
+const getAuditLogs = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 50, action, targetModel } = req.query;
+    const query = {};
+    if (action) query.action = action;
+    if (targetModel) query.targetModel = targetModel;
+
+    const logs = await AuditLog.find(query)
+      .populate('actorId', 'email profile role')
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(Number(limit));
+
+    const total = await AuditLog.countDocuments(query);
+
+    res.json({
+      success: true,
+      count: logs.length,
+      total,
+      data: logs
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   // Listings
   getPendingListings,
@@ -759,5 +883,7 @@ module.exports = {
   getDisputeById,
   resolveDispute,
   // Analytics
-  getDashboardAnalytics
+  getDashboardAnalytics,
+  // Audit Logs
+  getAuditLogs
 };
