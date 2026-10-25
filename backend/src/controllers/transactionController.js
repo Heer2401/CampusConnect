@@ -195,8 +195,20 @@ const getMyTransactions = async (req, res, next) => {
       Transaction.countDocuments(query),
     ]);
 
+    const sanitized = transactions.map((t) => {
+      const doc = t.toObject();
+      const isSeller =
+        doc.sellerId?._id?.toString() === userId.toString() ||
+        doc.sellerId?.toString() === userId.toString();
+      if (!isSeller) {
+        delete doc.handoverPin;
+        delete doc.handoverPinGeneratedAt;
+      }
+      return doc;
+    });
+
     res.json({
-      transactions,
+      transactions: sanitized,
       total,
       page: Number(page),
       pages: Math.ceil(total / Number(limit)),
@@ -230,7 +242,16 @@ const getTransactionById = async (req, res, next) => {
       return res.status(403).json({ message: 'Access denied.' });
     }
 
-    res.json(txn);
+    const doc = txn.toObject();
+    const isSeller =
+      doc.sellerId?._id?.toString() === userId ||
+      doc.sellerId?.toString() === userId;
+    if (!isSeller) {
+      delete doc.handoverPin;
+      delete doc.handoverPinGeneratedAt;
+    }
+
+    res.json(doc);
   } catch (error) {
     next(error);
   }
@@ -400,11 +421,23 @@ const verifyHandoverPin = async (req, res, next) => {
     txn.completedAt = now;
     await txn.save();
 
-    // Update listing status
-    const finalStatus = txn.type === 'sale' ? 'sold' : txn.type === 'exchange' ? 'exchanged' : 'given_away';
-    await Listing.findByIdAndUpdate(txn.listingId, { status: finalStatus });
-    if (txn.exchangeListingId) {
-      await Listing.findByIdAndUpdate(txn.exchangeListingId, { status: 'exchanged' });
+    // Update listing status and linked rental if applicable
+    if (txn.type === 'rent') {
+      await Listing.findByIdAndUpdate(txn.listingId, { status: 'rented' });
+      if (txn.rentalId) {
+        const Rental = require('../models/Rental');
+        await Rental.findByIdAndUpdate(txn.rentalId, {
+          status: 'active',
+          pickupAt: now,
+          qrUsed: true,
+        });
+      }
+    } else {
+      const finalStatus = txn.type === 'sale' ? 'sold' : txn.type === 'exchange' ? 'exchanged' : 'given_away';
+      await Listing.findByIdAndUpdate(txn.listingId, { status: finalStatus });
+      if (txn.exchangeListingId) {
+        await Listing.findByIdAndUpdate(txn.exchangeListingId, { status: 'exchanged' });
+      }
     }
 
     // Send notification to seller

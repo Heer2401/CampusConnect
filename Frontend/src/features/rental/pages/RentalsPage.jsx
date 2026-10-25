@@ -23,6 +23,7 @@ import {
   CheckCircle2,
   X,
   Check,
+  KeyRound,
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import {
@@ -236,9 +237,18 @@ export default function RentalsPage() {
 
   const handleStatusUpdate = async (id, status, msg) => {
     try {
-      await updateRentalStatus(id, status);
+      const res = await updateRentalStatus(id, status);
       showToast(msg);
-      loadData();
+      if (status === 'approved') {
+        navigate('/transactions', {
+          state: {
+            transactionId: res?.transactionId,
+            message: 'Rental approved! Use the 6-digit Meetup PIN for item handover.',
+          },
+        });
+      } else {
+        loadData();
+      }
     } catch (e) { showToast(e.message, 'error'); }
   };
 
@@ -400,7 +410,9 @@ export default function RentalsPage() {
                 view === 'borrowing'
                   ? r.ownerId?.profile?.name || r.ownerId?.email?.split('@')[0] || 'Student'
                   : r.renterId?.profile?.name || r.renterId?.email?.split('@')[0] || 'Student';
-              const counterInitials = counterpart.split(' ').map((p) => p[0]).join('').toUpperCase().slice(0, 2);
+              const counterInitials = counterpart
+                ? counterpart.trim().split(/\s+/).filter(Boolean).map((p) => p[0]).join('').toUpperCase().slice(0, 2) || 'ST'
+                : 'ST';
               const daysLeft = getDaysLeft(r.dueDate);
               const isDueSoon = daysLeft !== null && daysLeft <= 3 && daysLeft >= 0 && r.status === 'active';
 
@@ -468,9 +480,9 @@ export default function RentalsPage() {
                     {view === 'lending' && r.status === 'approved' && (
                       <button
                         className="rd-btn rd-btn-primary rd-btn-sm"
-                        onClick={() => setShowQRFor(r._id)}
+                        onClick={() => navigate('/transactions')}
                       >
-                        <QrCode size={13} /> Handover QR
+                        <KeyRound size={13} /> Meetup PIN
                       </button>
                     )}
                     {view === 'lending' && (r.status === 'active' || r.status === 'overdue') && (
@@ -494,9 +506,9 @@ export default function RentalsPage() {
                     {view === 'borrowing' && r.status === 'approved' && (
                       <button
                         className="rd-btn rd-btn-primary rd-btn-sm"
-                        onClick={() => setScanQRFor(r._id)}
+                        onClick={() => navigate('/transactions')}
                       >
-                        <QrCode size={13} /> Verify QR
+                        <KeyRound size={13} /> Enter PIN
                       </button>
                     )}
                     {view === 'borrowing' && r.status === 'active' && (

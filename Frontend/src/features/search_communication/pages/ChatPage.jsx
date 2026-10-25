@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { chatApi } from '../api/chatApi';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../../../context/AuthContext';
+import { updateRentalStatus } from '../../rental/api/rentalApi';
 import {
   Send,
   Check,
@@ -15,9 +16,17 @@ import {
 } from 'lucide-react';
 
 // Helper to parse automated order and meetup system messages into clean structured data
-function parseOrderMessage(content) {
+function parseOrderMessage(content, metadata) {
   if (!content || typeof content !== 'string') return null;
+  const isRental =
+    content.includes('RENTAL REQUEST PLACED') ||
+    content.includes('Rental Request Placed') ||
+    content.includes('RENTAL APPROVED') ||
+    metadata?.type === 'rental_request' ||
+    metadata?.type === 'rental_approved';
+
   const isOrder =
+    isRental ||
     content.includes('ORDER REQUEST PLACED') ||
     content.includes('Order Request Placed') ||
     content.includes('Order request placed') ||
@@ -27,16 +36,29 @@ function parseOrderMessage(content) {
 
   const itemMatch = content.match(/(?:Item:|Listing:)\s*([^\n•]+)/i);
   const typeMatch = content.match(/Type:\s*([^\n•]+)/i);
-  const amountMatch = content.match(/Amount:\s*([^\n•]+)/i);
-  const buyerMatch = content.match(/Buyer:\s*([^\n•]+)/i);
-  const orderIdMatch = content.match(/(?:Order ID:|Transaction ID:|Order Ref:)\s*([^\n•\s]+)/i);
+  const amountMatch = content.match(/(?:Amount:|Rate:)\s*([^\n•]+)/i);
+  const durationMatch = content.match(/Duration:\s*([^\n•]+)/i);
+  const buyerMatch = content.match(/(?:Buyer:|Renter:)\s*([^\n•]+)/i);
+  const orderIdMatch = content.match(/(?:Order ID:|Transaction ID:|Order Ref:|Rental Ref:|Rental ID:)\s*([^\n•\s]+)/i);
+
+  let rentalId = metadata?.rentalId || null;
+  if (!rentalId && orderIdMatch) {
+    // If orderIdMatch has mongo id or partial
+    const rawRef = orderIdMatch[1].replace('#', '').trim();
+    if (rawRef.length === 24) rentalId = rawRef;
+  }
+  const status = metadata?.status || (content.includes('RENTAL APPROVED') ? 'approved' : 'requested');
 
   return {
-    item: itemMatch ? itemMatch[1].trim() : null,
-    type: typeMatch ? typeMatch[1].trim() : 'SALE',
-    amount: amountMatch ? amountMatch[1].trim() : null,
-    buyer: buyerMatch ? buyerMatch[1].trim() : null,
+    isRental,
+    item: metadata?.item || (itemMatch ? itemMatch[1].trim() : null),
+    type: isRental ? 'RENT' : (typeMatch ? typeMatch[1].trim() : 'SALE'),
+    amount: metadata?.amount || (amountMatch ? amountMatch[1].trim() : null),
+    duration: metadata?.duration || (durationMatch ? durationMatch[1].trim() : null),
+    buyer: metadata?.renterName || (buyerMatch ? buyerMatch[1].trim() : null),
     orderId: orderIdMatch ? orderIdMatch[1].trim() : null,
+    rentalId,
+    status,
   };
 }
 
@@ -109,6 +131,8 @@ export const ChatPage = () => {
   const activeThreadIdFromUrl = searchParams.get('thread');
 
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const currentUserId = user?._id || user?.id;
   const { socket, isConnected } = useSocket();
 
   const [threads, setThreads] = useState([]);
@@ -121,6 +145,42 @@ export const ChatPage = () => {
   const [sendingMessage, setSendingMessage] = useState(false);
   const [messageInput, setMessageInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [approvingRentalId, setApprovingRentalId] = useState(null);
+  const [rejectingRentalId, setRejectingRentalId] = useState(null);
+
+  const handleApproveRental = async (rentalId) => {
+    if (!rentalId) return;
+    try {
+      setApprovingRentalId(rentalId);
+      const res = await updateRentalStatus(rentalId, 'approved');
+      navigate('/transactions', {
+        state: {
+          transactionId: res?.transactionId,
+          message: 'Rental approved! Use the 6-digit Meetup PIN for item handover.',
+        },
+      });
+    } catch (err) {
+      alert(err.message || 'Failed to approve rental request.');
+    } finally {
+      setApprovingRentalId(null);
+    }
+  };
+
+  const handleRejectRental = async (rentalId) => {
+    if (!rentalId) return;
+    if (!window.confirm('Are you sure you want to decline this rental request?')) return;
+    try {
+      setRejectingRentalId(rentalId);
+      await updateRentalStatus(rentalId, 'cancelled');
+      if (activeThread?._id) {
+        chatApi.getMessages(activeThread._id).then(setMessages).catch(() => {});
+      }
+    } catch (err) {
+      alert(err.message || 'Failed to decline rental request.');
+    } finally {
+      setRejectingRentalId(null);
+    }
+  };
   const [error, setError] = useState(null);
 
   const messagesContainerRef = useRef(null);
@@ -324,8 +384,6 @@ export const ChatPage = () => {
       setSendingMessage(false);
     }
   };
-
-  const currentUserId = user?._id || user?.id;
 
   const filteredThreads = threads.filter((t) => {
     if (!searchQuery.trim()) return true;
@@ -579,25 +637,42 @@ export const ChatPage = () => {
                     const isMe =
                       (msg.senderId?._id || msg.senderId)?.toString() === currentUserId?.toString();
                     const timeStr = formatThreadTime(msg.createdAt);
-                    const orderInfo = parseOrderMessage(msg.content);
+                    const orderInfo = parseOrderMessage(msg.content, msg.metadata);
 
                     // Structured Order / Meetup Card
                     if (orderInfo && (orderInfo.item || orderInfo.orderId)) {
+                      const isBuyer = (msg.senderId?._id || msg.senderId)?.toString() === currentUserId?.toString();
+                      const isSeller = !isBuyer;
+                      const isPendingRequest = orderInfo.isRental && orderInfo.status === 'requested';
+
                       return (
                         <div key={msg._id} className="chat-order-card-wrapper">
                           <div className="chat-order-card">
                             {/* Card Header */}
                             <div className="chat-order-header">
                               <div className="chat-order-header-left">
-                                <CheckCircle2 size={24} color="#10b981" />
+                                <CheckCircle2 size={24} color={orderInfo.status === 'approved' ? '#10b981' : '#16a34a'} />
                                 <div>
-                                  <div className="chat-order-title">Order request placed</div>
+                                  <div className="chat-order-title">
+                                    {orderInfo.isRental
+                                      ? (orderInfo.status === 'approved' ? 'Rental Approved' : 'Rental request placed')
+                                      : 'Order request placed'}
+                                  </div>
                                   <div className="chat-order-subtitle">
-                                    Meetup and escrow steps for this order.
+                                    {orderInfo.isRental
+                                      ? 'Campus rental meetup and 6-digit PIN verification.'
+                                      : 'Meetup and escrow steps for this order.'}
                                   </div>
                                 </div>
                               </div>
-                              <span className="chat-order-badge">
+                              <span
+                                className="chat-order-badge"
+                                style={{
+                                  background: orderInfo.isRental ? '#ecfdf5' : undefined,
+                                  color: orderInfo.isRental ? '#166534' : undefined,
+                                  borderColor: orderInfo.isRental ? '#bbf7d0' : undefined,
+                                }}
+                              >
                                 {orderInfo.type || 'SALE'}
                               </span>
                             </div>
@@ -611,21 +686,21 @@ export const ChatPage = () => {
                                 </div>
                               </div>
                               <div>
-                                <div className="chat-order-col-label">Amount</div>
+                                <div className="chat-order-col-label">{orderInfo.isRental ? 'Rate' : 'Amount'}</div>
                                 <div className="chat-order-col-val">
                                   {orderInfo.amount || '-'}
                                 </div>
                               </div>
                               <div>
-                                <div className="chat-order-col-label">Buyer</div>
+                                <div className="chat-order-col-label">{orderInfo.isRental ? 'Renter' : 'Buyer'}</div>
                                 <div className="chat-order-col-val">
                                   {orderInfo.buyer || 'Student'}
                                 </div>
                               </div>
                               <div>
-                                <div className="chat-order-col-label">Order ref</div>
-                                <div className="chat-order-col-val" style={{ fontFamily: 'monospace' }}>
-                                  {orderInfo.orderId ? `#${orderInfo.orderId.slice(-6)}` : '#order'}
+                                <div className="chat-order-col-label">{orderInfo.isRental ? 'Duration' : 'Order ref'}</div>
+                                <div className="chat-order-col-val" style={{ fontFamily: orderInfo.duration ? 'inherit' : 'monospace' }}>
+                                  {orderInfo.duration || (orderInfo.orderId ? `#${orderInfo.orderId.slice(-6)}` : '#order')}
                                 </div>
                               </div>
                             </div>
@@ -635,17 +710,64 @@ export const ChatPage = () => {
                               <div className="chat-order-handover-title">Meetup and handover</div>
                               <div style={{ paddingLeft: 4 }}>
                                 <div>1. Chat here to agree on a campus meetup spot and time.</div>
-                                <div>2. At the meetup, the seller opens Transactions and tags Show PIN.</div>
-                                <div>3. The buyer enters the 6-digit PIN to confirm receipt and release the payment.</div>
+                                <div>2. During meetup, seller displays the 6-digit PIN in Transactions.</div>
+                                <div>3. Renter/buyer enters the PIN to confirm receipt and verify item handover!</div>
                               </div>
                             </div>
 
                             {/* Action Footer */}
-                            <div className="chat-order-footer">
+                            <div className="chat-order-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                               <span className="chat-order-time">{timeStr}</span>
-                              <Link to="/transactions" className="chat-order-btn">
-                                Open transaction
-                              </Link>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                {orderInfo.isRental ? (
+                                  orderInfo.status === 'requested' ? (
+                                    isSeller ? (
+                                      <>
+                                        <button
+                                          type="button"
+                                          className="btn btn-secondary"
+                                          style={{ padding: '6px 12px', fontSize: 12, borderColor: '#fca5a5', color: '#b91c1c' }}
+                                          disabled={rejectingRentalId === orderInfo.rentalId || approvingRentalId === orderInfo.rentalId}
+                                          onClick={() => handleRejectRental(orderInfo.rentalId)}
+                                        >
+                                          {rejectingRentalId === orderInfo.rentalId ? 'Declining...' : 'Decline'}
+                                        </button>
+                                        <button
+                                          type="button"
+                                          className="btn btn-primary"
+                                          style={{ padding: '6px 14px', fontSize: 12, background: '#166534' }}
+                                          disabled={approvingRentalId === orderInfo.rentalId || rejectingRentalId === orderInfo.rentalId}
+                                          onClick={() => handleApproveRental(orderInfo.rentalId)}
+                                        >
+                                          {approvingRentalId === orderInfo.rentalId ? 'Approving...' : 'Approve Rental'}
+                                        </button>
+                                      </>
+                                    ) : (
+                                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 12px', background: '#fef3c7', borderRadius: 6, fontSize: 12, fontWeight: 600, color: '#92400e' }}>
+                                        <Clock size={13} /> Awaiting Owner Approval
+                                      </div>
+                                    )
+                                  ) : orderInfo.status === 'approved' ? (
+                                    isSeller ? (
+                                      <Link to="/transactions" className="chat-order-btn" style={{ background: '#0f172a', color: 'white' }}>
+                                        Show Meetup PIN
+                                      </Link>
+                                    ) : (
+                                      <Link to="/transactions" className="chat-order-btn" style={{ background: '#166534', color: 'white' }}>
+                                        Enter PIN in Transactions
+                                      </Link>
+                                    )
+                                  ) : (
+                                    <span style={{ fontSize: 12, fontWeight: 600, color: '#64748b' }}>
+                                      {orderInfo.status === 'cancelled' ? 'Request Cancelled' : 'Completed'}
+                                    </span>
+                                  )
+                                ) : (
+                                  <Link to="/transactions" className="chat-order-btn">
+                                    Open transaction
+                                  </Link>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>

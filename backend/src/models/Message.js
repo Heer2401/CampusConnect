@@ -23,6 +23,10 @@ const messageSchema = new mongoose.Schema({
     enum: ['text', 'image', 'system'],
     default: 'text',
   },
+  metadata: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null,
+  },
   readAt: {
     type: Date,
     default: null,

@@ -48,6 +48,10 @@ export const getMyRentals = (params = {}) =>
 /** GET /api/rentals/:id */
 export const getRentalById = (id) => request(`/api/rentals/${id}`);
 
+/** GET /api/rentals/listing/:listingId/reserved-dates */
+export const getListingReservedDates = (listingId) =>
+  request(`/api/rentals/listing/${listingId}/reserved-dates`).catch(() => ({ data: [] }));
+
 /** POST /api/rentals  — { listingId, startDate, dueDate, message? } */
 export const createRental = (body) =>
   request('/api/rentals', { method: 'POST', body: JSON.stringify(body) });

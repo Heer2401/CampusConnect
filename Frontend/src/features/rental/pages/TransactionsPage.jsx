@@ -279,8 +279,11 @@ export default function TransactionsPage() {
     return list;
   }, [transactions, filter, searchTerm, sortBy, userId]);
 
-  // Find a pending PIN transaction to highlight
-  const pinReadyTxn = transactions.find((t) => isOngoing(t) && t.handoverPin);
+  // Find a pending PIN transaction to highlight — strictly for the SELLER
+  const pinReadyTxn = transactions.find((t) => {
+    const isSeller = (t.sellerId?._id || t.sellerId)?.toString() === userId?.toString();
+    return isOngoing(t) && t.handoverPin && isSeller;
+  });
 
   const handleConfirmTxn = async (id) => {
     try { await confirmTransaction(id); showToast('Receipt confirmed!'); loadData(); }
@@ -528,11 +531,8 @@ export default function TransactionsPage() {
                   ? t.sellerId?.profile?.name || t.sellerId?.name || t.sellerId?.email?.split('@')[0] || 'Student'
                   : t.buyerId?.profile?.name || t.buyerId?.name || t.buyerId?.email?.split('@')[0] || 'Student';
                 const counterInitials = counterpart
-                  .split(' ')
-                  .map((p) => p[0])
-                  .join('')
-                  .toUpperCase()
-                  .slice(0, 2);
+                  ? counterpart.trim().split(/\s+/).filter(Boolean).map((p) => p[0]).join('').toUpperCase().slice(0, 2) || 'ST'
+                  : 'ST';
                 const avatarStyle = getParticipantAvatar(counterpart);
                 const myRole = isBuyer ? 'Bought' : 'Sold';
                 const typeLabel = t.type === 'rent' ? 'Rent' : t.type === 'exchange' ? 'Exchange' : 'Sale';

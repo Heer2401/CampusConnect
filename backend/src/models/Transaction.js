@@ -20,7 +20,7 @@ const transactionSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['sale', 'exchange', 'giveaway'],
+    enum: ['sale', 'exchange', 'giveaway', 'rent'],
     default: 'sale',
   },
   status: {
@@ -53,6 +53,11 @@ const transactionSchema = new mongoose.Schema({
   exchangeListingId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Listing',
+    default: null,
+  },
+  rentalId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Rental',
     default: null,
   },
   buyerConfirmedAt: {

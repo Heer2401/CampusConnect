@@ -12,6 +12,7 @@ const {
   verifyHandover,
   completeRental,
   getRentalQR,
+  getListingReservedDates,
 } = require('../controllers/rentalController');
 const { protect } = require('../middlewares/authMiddleware');
 
@@ -19,6 +20,9 @@ const router = express.Router();
 
 // All rental routes require authentication
 router.use(protect);
+
+// GET    /api/rentals/listing/:listingId/reserved-dates — Fetch booked/reserved dates for calendar
+router.get('/listing/:listingId/reserved-dates', getListingReservedDates);
 
 // POST   /api/rentals              — Create rental request
 router.post('/', createRental);

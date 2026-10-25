@@ -581,9 +581,18 @@ export default function RentalDashboardPage() {
   // ── Action Handlers
   const handleStatusUpdate = async (id, status, successMsg) => {
     try {
-      await updateRentalStatus(id, status);
+      const res = await updateRentalStatus(id, status);
       showToast(successMsg);
-      loadData();
+      if (status === 'approved') {
+        navigate('/transactions', {
+          state: {
+            transactionId: res?.transactionId,
+            message: 'Rental approved! Use the 6-digit Meetup PIN for item handover.',
+          },
+        });
+      } else {
+        loadData();
+      }
     } catch (e) { showToast(e.message, 'error'); }
   };
 
@@ -864,10 +873,18 @@ export default function RentalDashboardPage() {
                             {rentalSubView === 'lending' && r.status === 'approved' && (
                               <button
                                 className="rd-btn rd-btn-primary rd-btn-sm"
-                                onClick={() => setShowQRFor(r._id)}
-                                title="Show QR code for renter to scan upon handover"
+                                onClick={() => {
+                                  const txn = transactions.find((t) => t.rentalId === r._id || t.rentalId?._id === r._id);
+                                  if (txn) {
+                                    setShowPinFor(txn);
+                                  } else {
+                                    navigate('/transactions');
+                                  }
+                                }}
+                                title="Show 6-digit Meetup PIN for handover verification"
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
                               >
-                                <QrCode size={13} /> Show Handover QR
+                                <KeyRound size={13} /> Show Meetup PIN
                               </button>
                             )}
                             {rentalSubView === 'lending' && (r.status === 'active' || r.status === 'overdue') && (
@@ -892,10 +909,18 @@ export default function RentalDashboardPage() {
                             {rentalSubView === 'borrowing' && r.status === 'approved' && (
                               <button
                                 className="rd-btn rd-btn-primary rd-btn-sm"
-                                onClick={() => setScanQRFor(r._id)}
-                                title="Enter token from owner QR code"
+                                onClick={() => {
+                                  const txn = transactions.find((t) => t.rentalId === r._id || t.rentalId?._id === r._id);
+                                  if (txn) {
+                                    setVerifyPinFor(txn);
+                                  } else {
+                                    navigate('/transactions');
+                                  }
+                                }}
+                                title="Enter 6-digit Meetup PIN from owner"
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
                               >
-                                <QrCode size={13} /> Scan / Verify QR
+                                <KeyRound size={13} /> Enter Meetup PIN
                               </button>
                             )}
 

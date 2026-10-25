@@ -42,11 +42,24 @@ const rentalSchema = new mongoose.Schema({
   },
   qrCode: {
     type: String,
-    default: null, // Generated when owner approves request (FR-5.2)
+    default: null, // Legacy / fallback
   },
   qrUsed: {
     type: Boolean,
-    default: false, // Prevents reuse (AC-5)
+    default: false,
+  },
+  handoverPin: {
+    type: String,
+    default: null, // 6-digit Meetup PIN for handover verification (like sell)
+  },
+  handoverPinGeneratedAt: {
+    type: Date,
+    default: null,
+  },
+  transactionId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Transaction',
+    default: null,
   },
   pickupAt: {
     type: Date,

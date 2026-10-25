@@ -35,8 +35,7 @@ import { StatusBadge } from '../components/StatusBadge';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import '../marketplace.css';
 import { WishlistButton } from '../../search_communication/components/WishlistButton';
-import { chatApi } from '../../search_communication/api/chatApi';
-import { createTransaction, createRental } from '../../rental/api/rentalApi';
+import { createTransaction, createRental, getListingReservedDates } from '../../rental/api/rentalApi';
 
 function formatTimeAgo(date) {
   if (!date) return 'Recently';
@@ -80,6 +79,9 @@ export const ListingDetailPage = () => {
   const [myListingsLoading, setMyListingsLoading] = useState(false);
   const [selectedExchangeListingId, setSelectedExchangeListingId] = useState('');
   const [rentalForm, setRentalForm] = useState({ startDate: '', dueDate: '', message: '' });
+  const [reservedRanges, setReservedRanges] = useState([]);
+  const [reservedDatesLoading, setReservedDatesLoading] = useState(false);
+  const [calendarMonth, setCalendarMonth] = useState(() => new Date());
 
   // ── Notice helper ───────────────────────────────────────────────────────────
   const showNotice = (msg, type = 'info') => {
@@ -190,20 +192,108 @@ export const ListingDetailPage = () => {
     }
   };
 
-  // ── Rent flow ───────────────────────────────────────────────────────────────
+  // ── Rent flow & Calendar helper functions ──────────────────────────────────
+  const toYMD = (d) => {
+    if (!d) return '';
+    const date = typeof d === 'string' ? new Date(d) : d;
+    if (isNaN(date.getTime())) return '';
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  const isDateReserved = (ymdStr) => {
+    if (!reservedRanges || reservedRanges.length === 0) return false;
+    return reservedRanges.some((range) => {
+      const s = toYMD(range.startDate);
+      const e = toYMD(range.dueDate);
+      return ymdStr >= s && ymdStr <= e;
+    });
+  };
+
+  const isRangeBlocked = (startYMD, dueYMD) => {
+    if (!startYMD || !dueYMD) return false;
+    const cur = new Date(startYMD + 'T00:00:00');
+    const end = new Date(dueYMD + 'T00:00:00');
+    while (cur <= end) {
+      const ymd = toYMD(cur);
+      if (isDateReserved(ymd)) return true;
+      cur.setDate(cur.getDate() + 1);
+    }
+    return false;
+  };
+
+  const handleCalendarDateSelect = (ymdStr) => {
+    const todayYMD = toYMD(new Date());
+    if (ymdStr < todayYMD) return; // past date
+    if (isDateReserved(ymdStr)) return; // reserved date
+
+    if (!rentalForm.startDate || (rentalForm.startDate && rentalForm.dueDate)) {
+      setRentalForm((f) => ({ ...f, startDate: ymdStr, dueDate: '' }));
+    } else if (rentalForm.startDate && !rentalForm.dueDate) {
+      if (ymdStr <= rentalForm.startDate) {
+        setRentalForm((f) => ({ ...f, startDate: ymdStr, dueDate: '' }));
+      } else {
+        if (isRangeBlocked(rentalForm.startDate, ymdStr)) {
+          showNotice('Selected range overlaps with reserved dates. Please choose an available window.', 'error');
+          setRentalForm((f) => ({ ...f, startDate: ymdStr, dueDate: '' }));
+        } else {
+          setRentalForm((f) => ({ ...f, dueDate: ymdStr }));
+        }
+      }
+    }
+  };
+
+  const formatDisplayDate = (ymdStr) => {
+    if (!ymdStr) return null;
+    const d = new Date(ymdStr + 'T00:00:00');
+    return d.toLocaleDateString('en-IN', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  };
+
+  const handlePrevMonth = () => {
+    setCalendarMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+  };
+
+  const handleNextMonth = () => {
+    setCalendarMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+  };
+
+  const canGoPrevMonth = () => {
+    const now = new Date();
+    return (
+      calendarMonth.getFullYear() > now.getFullYear() ||
+      (calendarMonth.getFullYear() === now.getFullYear() && calendarMonth.getMonth() > now.getMonth())
+    );
+  };
+
   const handleRentClick = () => {
     if (!user) {
       showNotice('Please log in to request rentals');
       return;
     }
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
     setRentalForm({
-      startDate: today.toISOString().slice(0, 10),
-      dueDate: tomorrow.toISOString().slice(0, 10),
+      startDate: '',
+      dueDate: '',
       message: '',
     });
+    setCalendarMonth(new Date());
+    setReservedDatesLoading(true);
+    getListingReservedDates(listing._id)
+      .then((res) => {
+        setReservedRanges(res?.data || []);
+      })
+      .catch(() => {
+        setReservedRanges([]);
+      })
+      .finally(() => {
+        setReservedDatesLoading(false);
+      });
     setShowRentModal(true);
   };
 
@@ -211,13 +301,21 @@ export const ListingDetailPage = () => {
     e.preventDefault();
     try {
       setActionLoading(true);
-      await createRental({ listingId: listing._id, ...rentalForm });
-      navigate('/rentals', {
-        state: {
-          tab: 'Active Rentals',
-          message: 'Rental requested! The owner has been notified.',
-        },
-      });
+      const res = await createRental({ listingId: listing._id, ...rentalForm });
+      const threadId = res?.threadId || res?.rental?.threadId;
+      if (threadId) {
+        navigate(`/chat?thread=${threadId}`, {
+          state: {
+            message: 'Rental requested! Discuss meetup details with the owner in chat.',
+          },
+        });
+      } else {
+        navigate('/chat', {
+          state: {
+            message: 'Rental requested! Discuss meetup details with the owner in chat.',
+          },
+        });
+      }
     } catch (err) {
       showNotice(err.message || 'Failed to request rental', 'error');
     } finally {
@@ -976,66 +1074,378 @@ export const ListingDetailPage = () => {
         </div>
       )}
 
-      {/* ── Rent Modal ────────────────────────────────────────────────────────── */}
-      {showRentModal && (
-        <div style={backdropStyle} onClick={() => setShowRentModal(false)}>
-          <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ margin: '0 0 6px 0', fontSize: 20 }}>Request Rental</h3>
-            <p className="muted" style={{ marginBottom: 20, fontSize: 14 }}>
-              {listing.title} · ₹{listing.rentalRate}/{listing.rentalPeriod}
-              {listing.deposit ? ` · Deposit: ₹${listing.deposit}` : ''}
-            </p>
-            <form onSubmit={handleRentSubmit}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
+      {/* ── Rent Modal with Interactive Reserved/Available Calendar ─────────── */}
+      {showRentModal && (() => {
+        const calYear = calendarMonth.getFullYear();
+        const calMonth = calendarMonth.getMonth();
+        const monthName = calendarMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        const firstDayOfWeek = new Date(calYear, calMonth, 1).getDay();
+        const daysInCurMonth = new Date(calYear, calMonth + 1, 0).getDate();
+        const todayYMD = toYMD(new Date());
+
+        let rentalDays = 0;
+        let estimatedRent = 0;
+        if (rentalForm.startDate && rentalForm.dueDate) {
+          const s = new Date(rentalForm.startDate + 'T00:00:00');
+          const d = new Date(rentalForm.dueDate + 'T00:00:00');
+          rentalDays = Math.max(1, Math.round((d - s) / (1000 * 60 * 60 * 24)));
+          const rate = listing?.rentalRate || listing?.price || 0;
+          if (listing?.rentalPeriod === 'week') {
+            estimatedRent = Math.ceil(rentalDays / 7) * rate;
+          } else if (listing?.rentalPeriod === 'month') {
+            estimatedRent = Math.ceil(rentalDays / 30) * rate;
+          } else if (listing?.rentalPeriod === 'semester') {
+            estimatedRent = rate;
+          } else {
+            estimatedRent = rentalDays * rate;
+          }
+        }
+        const depositAmount = listing?.deposit || 0;
+        const totalRentalAmount = estimatedRent + depositAmount;
+
+        return (
+          <div style={backdropStyle} onClick={() => setShowRentModal(false)}>
+            <div style={{ ...modalStyle, maxWidth: 510, maxHeight: '92vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6 }}>
-                    Rental Start Date *
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    min={new Date().toISOString().slice(0, 10)}
-                    value={rentalForm.startDate}
-                    onChange={(e) => setRentalForm((f) => ({ ...f, startDate: e.target.value }))}
-                  />
+                  <h3 style={{ margin: '0 0 4px 0', fontSize: 20, fontWeight: 700, color: '#0f172a' }}>Request Rental</h3>
+                  <p className="muted" style={{ margin: 0, fontSize: 13 }}>
+                    {listing.title} · <b style={{ color: '#166534' }}>₹{listing.rentalRate}/{listing.rentalPeriod}</b>
+                    {listing.deposit ? ` · Deposit: ₹${listing.deposit}` : ''}
+                  </p>
                 </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6 }}>
-                    Return Due Date *
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    min={rentalForm.startDate || new Date().toISOString().slice(0, 10)}
-                    value={rentalForm.dueDate}
-                    onChange={(e) => setRentalForm((f) => ({ ...f, dueDate: e.target.value }))}
-                  />
-                </div>
-              </div>
-              <div style={{ marginBottom: 20 }}>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6 }}>
-                  Message to Owner (optional)
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder="E.g. I need this lab equipment for my lab test this Thursday..."
-                  value={rentalForm.message}
-                  onChange={(e) => setRentalForm((f) => ({ ...f, message: e.target.value }))}
-                  style={{ resize: 'vertical' }}
-                />
-              </div>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowRentModal(false)} disabled={actionLoading}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary" style={{ flex: 1.2, background: '#166534' }} disabled={actionLoading}>
-                  {actionLoading ? 'Submitting...' : 'Send Rental Request'}
+                <button
+                  type="button"
+                  onClick={() => setShowRentModal(false)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: 4 }}
+                >
+                  <X size={20} />
                 </button>
               </div>
-            </form>
+
+              <form onSubmit={handleRentSubmit}>
+                {/* Selected Dates Display */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+                  <div
+                    style={{
+                      padding: '10px 12px',
+                      borderRadius: 10,
+                      border: rentalForm.startDate ? '1.5px solid #16a34a' : '1px dashed #cbd5e1',
+                      background: rentalForm.startDate ? '#f0fdf4' : '#f8fafc',
+                    }}
+                  >
+                    <div style={{ fontSize: 11, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Rental Start Date *
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: rentalForm.startDate ? '#166534' : '#94a3b8', marginTop: 2 }}>
+                      {rentalForm.startDate ? formatDisplayDate(rentalForm.startDate) : 'Select on calendar'}
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      padding: '10px 12px',
+                      borderRadius: 10,
+                      border: rentalForm.dueDate ? '1.5px solid #16a34a' : '1px dashed #cbd5e1',
+                      background: rentalForm.dueDate ? '#f0fdf4' : '#f8fafc',
+                    }}
+                  >
+                    <div style={{ fontSize: 11, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Return Due Date *
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: rentalForm.dueDate ? '#166534' : '#94a3b8', marginTop: 2 }}>
+                      {rentalForm.dueDate ? formatDisplayDate(rentalForm.dueDate) : 'Select on calendar'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Calendar Container */}
+                <div
+                  style={{
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 12,
+                    padding: 14,
+                    background: '#ffffff',
+                    marginBottom: 14,
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                  }}
+                >
+                  {/* Calendar Navigation Header */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                    <button
+                      type="button"
+                      onClick={handlePrevMonth}
+                      disabled={!canGoPrevMonth()}
+                      style={{
+                        background: 'none',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: 8,
+                        width: 32,
+                        height: 32,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: canGoPrevMonth() ? 'pointer' : 'not-allowed',
+                        opacity: canGoPrevMonth() ? 1 : 0.35,
+                        color: '#334155',
+                      }}
+                    >
+                      <ChevronLeft size={16} />
+                    </button>
+
+                    <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>
+                      {monthName}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleNextMonth}
+                      style={{
+                        background: 'none',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: 8,
+                        width: 32,
+                        height: 32,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        color: '#334155',
+                      }}
+                    >
+                      <ChevronRight size={16} />
+                    </button>
+                  </div>
+
+                  {/* Day-of-week header */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', textAlign: 'center', marginBottom: 6 }}>
+                    {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((d) => (
+                      <div key={d} style={{ fontSize: 11, fontWeight: 700, color: '#64748b', padding: '4px 0' }}>
+                        {d}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Days Grid */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3 }}>
+                    {Array.from({ length: firstDayOfWeek }).map((_, i) => (
+                      <div key={`empty-${i}`} style={{ height: 36 }} />
+                    ))}
+
+                    {Array.from({ length: daysInCurMonth }).map((_, i) => {
+                      const dayNum = i + 1;
+                      const dayYMD = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+                      const isPast = dayYMD < todayYMD;
+                      const isReserved = isDateReserved(dayYMD);
+                      const isStart = dayYMD === rentalForm.startDate;
+                      const isDue = dayYMD === rentalForm.dueDate;
+                      const isInRange =
+                        rentalForm.startDate &&
+                        rentalForm.dueDate &&
+                        dayYMD > rentalForm.startDate &&
+                        dayYMD < rentalForm.dueDate;
+                      const isToday = dayYMD === todayYMD;
+
+                      const isDisabled = isPast || isReserved;
+
+                      let bg = 'transparent';
+                      let color = '#1e293b';
+                      let fontWeight = 500;
+                      let cursor = 'pointer';
+                      let borderRadius = 6;
+                      let border = '1px solid transparent';
+                      let textDecoration = 'none';
+
+                      if (isStart || isDue) {
+                        bg = '#166534';
+                        color = '#ffffff';
+                        fontWeight = 700;
+                        borderRadius = isStart && rentalForm.dueDate ? '6px 0 0 6px' : isDue && rentalForm.startDate ? '0 6px 6px 0' : 6;
+                      } else if (isInRange) {
+                        bg = '#dcfce7';
+                        color = '#14532d';
+                        fontWeight = 600;
+                        borderRadius = 0;
+                      } else if (isReserved) {
+                        bg = '#f1f5f9';
+                        color = '#94a3b8';
+                        textDecoration = 'line-through';
+                        cursor = 'not-allowed';
+                        border = '1px dashed #cbd5e1';
+                      } else if (isPast) {
+                        color = '#cbd5e1';
+                        cursor = 'not-allowed';
+                      } else if (isToday) {
+                        border = '1.5px solid #16a34a';
+                        fontWeight = 700;
+                      }
+
+                      return (
+                        <button
+                          key={dayYMD}
+                          type="button"
+                          disabled={isDisabled}
+                          onClick={() => handleCalendarDateSelect(dayYMD)}
+                          title={
+                            isReserved
+                              ? 'Reserved / Already booked'
+                              : isPast
+                              ? 'Past date'
+                              : `Select ${dayYMD}`
+                          }
+                          style={{
+                            height: 36,
+                            width: '100%',
+                            background: bg,
+                            color,
+                            fontWeight,
+                            cursor,
+                            border,
+                            borderRadius,
+                            textDecoration,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: 13,
+                            transition: 'all 0.15s ease',
+                            padding: 0,
+                            position: 'relative',
+                          }}
+                        >
+                          {dayNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Calendar Legend */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 16,
+                      marginTop: 12,
+                      paddingTop: 10,
+                      borderTop: '1px solid #f1f5f9',
+                      fontSize: 11,
+                      color: '#64748b',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <span style={{ width: 10, height: 10, borderRadius: 2, background: '#166534', display: 'inline-block' }} />
+                      <span>Selected</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <span style={{ width: 10, height: 10, borderRadius: 2, border: '1px solid #cbd5e1', background: '#ffffff', display: 'inline-block' }} />
+                      <span>Available</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <span
+                        style={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: 2,
+                          background: '#f1f5f9',
+                          border: '1px dashed #cbd5e1',
+                          display: 'inline-block',
+                          position: 'relative',
+                        }}
+                      >
+                        <span style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: 1, background: '#94a3b8' }} />
+                      </span>
+                      <span>Reserved</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Price & Summary Breakdown when dates are chosen */}
+                {rentalForm.startDate && rentalForm.dueDate && (
+                  <div
+                    style={{
+                      background: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: 10,
+                      padding: '12px 14px',
+                      marginBottom: 14,
+                      fontSize: 13,
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span className="muted">Rental Duration:</span>
+                      <span style={{ fontWeight: 600 }}>{rentalDays} {rentalDays === 1 ? 'day' : 'days'}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span className="muted">Rent (₹{listing.rentalRate}/{listing.rentalPeriod}):</span>
+                      <span style={{ fontWeight: 600 }}>₹{estimatedRent}</span>
+                    </div>
+                    {depositAmount > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <span className="muted">Security Deposit (Refundable):</span>
+                        <span style={{ fontWeight: 600 }}>₹{depositAmount}</span>
+                      </div>
+                    )}
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        borderTop: '1px solid #cbd5e1',
+                        paddingTop: 6,
+                        marginTop: 6,
+                        fontWeight: 700,
+                        color: '#0f172a',
+                      }}
+                    >
+                      <span>Estimated Total:</span>
+                      <span style={{ color: '#166534', fontSize: 15 }}>₹{totalRentalAmount}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Message to Owner */}
+                <div style={{ marginBottom: 18 }}>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 6, color: '#334155' }}>
+                    Message to Owner (optional)
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="E.g. I need this lab equipment for my lab test this Thursday..."
+                    value={rentalForm.message}
+                    onChange={(e) => setRentalForm((f) => ({ ...f, message: e.target.value }))}
+                    style={{ width: '100%', resize: 'vertical', borderRadius: 8, border: '1px solid #cbd5e1', padding: '8px 10px', fontSize: 13 }}
+                  />
+                </div>
+
+                {/* Action Buttons */}
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    style={{ flex: 1 }}
+                    onClick={() => setShowRentModal(false)}
+                    disabled={actionLoading}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    style={{
+                      flex: 1.3,
+                      background: '#166534',
+                      opacity: !rentalForm.startDate || !rentalForm.dueDate ? 0.6 : 1,
+                      cursor: !rentalForm.startDate || !rentalForm.dueDate ? 'not-allowed' : 'pointer',
+                    }}
+                    disabled={actionLoading || !rentalForm.startDate || !rentalForm.dueDate}
+                  >
+                    {actionLoading ? 'Submitting...' : 'Send Rental Request'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ── Exchange Modal ────────────────────────────────────────────────────── */}
       {showExchangeModal && (
