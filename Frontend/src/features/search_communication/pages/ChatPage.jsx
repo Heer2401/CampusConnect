@@ -3,26 +3,41 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { chatApi } from '../api/chatApi';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../../../context/AuthContext';
+import {
+  Send,
+  Check,
+  CheckCheck,
+  CheckCircle2,
+  Image as ImageIcon,
+  MessageSquare,
+  Package,
+  IndianRupee,
+  User,
+  MapPin,
+  ShieldCheck,
+  ArrowRight,
+} from 'lucide-react';
 
 // Helper to parse automated order and meetup system messages into clean structured data
 function parseOrderMessage(content) {
   if (!content || typeof content !== 'string') return null;
-  const isOrder = content.includes('ORDER REQUEST PLACED') || 
-                  content.includes('Order Request Placed') ||
-                  content.includes('Meetup Coordination') ||
-                  content.includes('Handover PIN');
+  const isOrder =
+    content.includes('ORDER REQUEST PLACED') ||
+    content.includes('Order Request Placed') ||
+    content.includes('Order request placed') ||
+    content.includes('Meetup Coordination') ||
+    content.includes('Handover PIN');
   if (!isOrder) return null;
 
-  // Extract key fields whether formatted with newlines or bullets
   const itemMatch = content.match(/(?:Item:|Listing:)\s*([^\n•]+)/i);
   const typeMatch = content.match(/Type:\s*([^\n•]+)/i);
   const amountMatch = content.match(/Amount:\s*([^\n•]+)/i);
   const buyerMatch = content.match(/Buyer:\s*([^\n•]+)/i);
-  const orderIdMatch = content.match(/(?:Order ID:|Transaction ID:)\s*([^\n•\s]+)/i);
+  const orderIdMatch = content.match(/(?:Order ID:|Transaction ID:|Order Ref:)\s*([^\n•\s]+)/i);
 
   return {
     item: itemMatch ? itemMatch[1].trim() : null,
-    type: typeMatch ? typeMatch[1].trim() : 'ORDER',
+    type: typeMatch ? typeMatch[1].trim() : 'Sale',
     amount: amountMatch ? amountMatch[1].trim() : null,
     buyer: buyerMatch ? buyerMatch[1].trim() : null,
     orderId: orderIdMatch ? orderIdMatch[1].trim() : null,
@@ -45,7 +60,7 @@ function getUserDisplayName(u) {
 // Generates 1-2 letter avatar initials from name
 function getUserInitials(u) {
   const name = getUserDisplayName(u);
-  if (!name || name === 'Campus Student') return 'U';
+  if (!name || name === 'Campus Student') return 'CS';
   const parts = name.trim().split(/\s+/);
   if (parts.length >= 2) {
     return (parts[0][0] + parts[1][0]).toUpperCase();
@@ -59,7 +74,7 @@ function getOtherParticipant(thread, currentUserId) {
   const myId = (currentUserId?._id || currentUserId?.id || currentUserId)?.toString();
 
   if (Array.isArray(thread.participants) && thread.participants.length > 0) {
-    const found = thread.participants.find(p => {
+    const found = thread.participants.find((p) => {
       const pid = (p?._id || p?.id || p)?.toString();
       return pid && pid !== myId;
     });
@@ -79,6 +94,12 @@ function getOtherParticipant(thread, currentUserId) {
 
   return null;
 }
+
+const QUICK_REPLIES = [
+  'Where should we meet?',
+  'Is it still available?',
+  'Library at 5 pm?',
+];
 
 export const ChatPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -100,12 +121,12 @@ export const ChatPage = () => {
 
   const messagesContainerRef = useRef(null);
 
-  // Directly scroll the messages container without scrolling the browser window
+  // Directly scroll the messages container without scrolling window
   const scrollToBottom = (behavior = 'smooth') => {
     if (messagesContainerRef.current) {
       messagesContainerRef.current.scrollTo({
         top: messagesContainerRef.current.scrollHeight,
-        behavior
+        behavior,
       });
     }
   };
@@ -161,16 +182,16 @@ export const ChatPage = () => {
 
         const [threadRes, messagesRes] = await Promise.all([
           chatApi.getThreadById(activeThreadId),
-          chatApi.getMessages(activeThreadId)
+          chatApi.getMessages(activeThreadId),
         ]);
 
         setActiveThread(threadRes.data);
         setMessages(messagesRes.data || []);
         setTimeout(() => scrollToBottom('auto'), 40);
 
-        // Decrement or clear local unread count for this thread
-        setThreads(prev =>
-          prev.map(t => (t._id === activeThreadId ? { ...t, unreadCount: 0 } : t))
+        // Clear local unread count for this thread
+        setThreads((prev) =>
+          prev.map((t) => (t._id === activeThreadId ? { ...t, unreadCount: 0 } : t))
         );
       } catch (err) {
         setError(err.message || 'Failed to load message history');
@@ -205,21 +226,17 @@ export const ChatPage = () => {
       const incomingThreadId = (newMessage.threadId?._id || newMessage.threadId)?.toString();
       const currentActiveId = activeThreadId?.toString();
 
-      // If message is for the currently open conversation, append it
       if (incomingThreadId && currentActiveId && incomingThreadId === currentActiveId) {
-        setMessages(prev => {
-          if (prev.some(m => m._id === newMessage._id)) return prev;
+        setMessages((prev) => {
+          if (prev.some((m) => m._id === newMessage._id)) return prev;
           return [...prev, newMessage];
         });
-        // Automatically mark as read
         chatApi.markThreadRead(activeThreadId).catch(() => {});
       }
 
-      // Update thread preview and lastMessageAt in thread list
-      setThreads(prev => {
-        const index = prev.findIndex(t => t._id?.toString() === incomingThreadId);
+      setThreads((prev) => {
+        const index = prev.findIndex((t) => t._id?.toString() === incomingThreadId);
         if (index === -1) {
-          // New thread received, refetch thread list
           fetchThreads();
           return prev;
         }
@@ -239,7 +256,6 @@ export const ChatPage = () => {
 
     socket.on('chat_message', handleIncomingMessage);
 
-    // Rejoin thread room on socket reconnect
     const handleReconnect = () => {
       if (activeThreadId) {
         socket.emit('join_thread', { threadId: activeThreadId });
@@ -260,7 +276,7 @@ export const ChatPage = () => {
   };
 
   const handleSendMessage = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     const content = messageInput.trim();
     if (!content || !activeThreadId || sendingMessage) return;
 
@@ -268,17 +284,15 @@ export const ChatPage = () => {
       setSendingMessage(true);
       const res = await chatApi.sendMessage(activeThreadId, content);
 
-      // Optimistic append if socket didn't already append it
-      setMessages(prev => {
-        if (prev.some(m => m._id === res.data._id)) return prev;
+      setMessages((prev) => {
+        if (prev.some((m) => m._id === res.data._id)) return prev;
         return [...prev, res.data];
       });
 
       setMessageInput('');
 
-      // Update thread list preview
-      setThreads(prev => {
-        const index = prev.findIndex(t => t._id === activeThreadId);
+      setThreads((prev) => {
+        const index = prev.findIndex((t) => t._id === activeThreadId);
         if (index === -1) return prev;
         const updated = [...prev];
         const target = { ...updated[index] };
@@ -299,60 +313,82 @@ export const ChatPage = () => {
 
   return (
     <div
-      className="page chat-page-wrapper"
       style={{
-        height: 'calc(100vh - 120px)',
-        maxHeight: 'calc(100vh - 120px)',
+        maxWidth: '1120px',
+        margin: '0 auto',
+        padding: '1.25rem 1rem 0.5rem',
+        height: 'calc(100vh - 84px)',
         display: 'flex',
         flexDirection: 'column',
-        overflow: 'hidden'
+        boxSizing: 'border-box',
       }}
     >
-      <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+      {/* ── Top Header ──────────────────────────────────────────────────────── */}
+      <div
+        style={{
+          flexShrink: 0,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '1rem',
+        }}
+      >
         <div>
-          <h1 style={{ fontSize: 20, margin: 0, fontWeight: 700, color: '#0f172a' }}>Marketplace Messages</h1>
-          <p className="muted" style={{ fontSize: 13, marginTop: 2 }}>
-            Real-time chat with campus listing owners and buyers
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+            Messages
+          </h1>
+          <p style={{ color: '#64748b', fontSize: '0.85rem', margin: '2px 0 0 0' }}>
+            Chat with buyers and sellers about campus listings.
           </p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.825rem' }}>
           <span
             style={{
               width: 8,
               height: 8,
               borderRadius: '50%',
-              background: isConnected ? '#22c55e' : '#eab308',
-              display: 'inline-block'
+              background: isConnected ? '#10b981' : '#f59e0b',
+              display: 'inline-block',
             }}
           />
-          <span className="muted" style={{ fontSize: 12 }}>
-            {isConnected ? 'Connected' : 'Reconnecting...'}
+          <span style={{ color: isConnected ? '#059669' : '#d97706', fontWeight: 500 }}>
+            {isConnected ? 'Connected' : 'Connecting...'}
           </span>
         </div>
       </div>
 
       {error && (
-        <div style={{ flexShrink: 0, background: '#fee2e2', color: '#991b1b', padding: '8px 14px', borderRadius: 6, marginBottom: 10, fontSize: 13 }}>
+        <div
+          style={{
+            flexShrink: 0,
+            background: '#fee2e2',
+            color: '#991b1b',
+            padding: '8px 14px',
+            borderRadius: 6,
+            marginBottom: 10,
+            fontSize: 13,
+          }}
+        >
           {error}
         </div>
       )}
 
-      {/* Main Chat Layout: 2 Columns */}
+      {/* ── Main Chat Card (2 Columns) ───────────────────────────────────────── */}
       <div
-        className="card"
         style={{
           flex: 1,
           minHeight: 0,
-          height: '100%',
-          padding: 0,
           display: 'grid',
-          gridTemplateColumns: '320px 1fr',
+          gridTemplateColumns: '290px 1fr',
+          background: '#ffffff',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0',
           overflow: 'hidden',
-          borderRadius: 12,
-          boxShadow: '0 2px 10px rgba(0,0,0,0.06)'
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
         }}
       >
-        {/* Left: Conversations List with independent scroll */}
+        {/* ── Left Column: Conversations with independent scroll ────────────── */}
         <div
           style={{
             borderRight: '1px solid #e2e8f0',
@@ -360,18 +396,18 @@ export const ChatPage = () => {
             flexDirection: 'column',
             height: '100%',
             minHeight: 0,
-            background: '#fafbfc',
-            overflow: 'hidden'
+            background: '#ffffff',
+            overflow: 'hidden',
           }}
         >
           <div
             style={{
               flexShrink: 0,
-              padding: '14px 16px',
+              padding: '12px 16px',
               borderBottom: '1px solid #e2e8f0',
-              fontWeight: 600,
-              fontSize: 14,
-              background: '#fff'
+              fontWeight: 700,
+              fontSize: '0.875rem',
+              color: '#0f172a',
             }}
           >
             Conversations ({threads.length})
@@ -381,7 +417,7 @@ export const ChatPage = () => {
             style={{
               flex: 1,
               minHeight: 0,
-              overflowY: 'auto'
+              overflowY: 'auto',
             }}
           >
             {loadingThreads ? (
@@ -390,17 +426,41 @@ export const ChatPage = () => {
               </div>
             ) : threads.length === 0 ? (
               <div style={{ padding: '40px 16px', textAlign: 'center' }}>
-                <div style={{ fontSize: 32, marginBottom: 8 }}>💬</div>
-                <div style={{ fontWeight: 600, fontSize: 14 }}>No Messages Yet</div>
-                <p className="muted" style={{ fontSize: 12, marginTop: 4 }}>
-                  Browse items in the marketplace and click "Contact Seller" to start a chat!
+                <div
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: '50%',
+                    background: '#f1f5f9',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 10px',
+                    color: '#64748b',
+                  }}
+                >
+                  <MessageSquare size={20} />
+                </div>
+                <div style={{ fontWeight: 600, fontSize: 14, color: '#0f172a' }}>No Messages Yet</div>
+                <p style={{ color: '#64748b', fontSize: 12, marginTop: 4, lineHeight: 1.4 }}>
+                  Browse items and message sellers to start a chat!
                 </p>
-                <Link to="/browse" className="btn btn-secondary" style={{ marginTop: 12, fontSize: 12 }}>
-                  Browse Items
+                <Link
+                  to="/browse"
+                  style={{
+                    display: 'inline-block',
+                    marginTop: 12,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: '#059669',
+                    textDecoration: 'none',
+                  }}
+                >
+                  Browse Marketplace →
                 </Link>
               </div>
             ) : (
-              threads.map(thread => {
+              threads.map((thread) => {
                 const isSelected = thread._id === activeThreadId;
                 const otherUser = getOtherParticipant(thread, currentUserId);
                 const otherUserName = getUserDisplayName(otherUser);
@@ -417,30 +477,47 @@ export const ChatPage = () => {
                       gap: 12,
                       alignItems: 'center',
                       cursor: 'pointer',
-                      borderBottom: '1px solid #f1f5f9',
-                      background: isSelected ? '#eef2ff' : 'transparent',
-                      transition: 'background 0.1s ease'
+                      borderBottom: '1px solid #f8fafc',
+                      background: isSelected ? '#ecfdf5' : '#ffffff',
+                      borderLeft: isSelected ? '3px solid #10b981' : '3px solid transparent',
+                      transition: 'background 0.15s ease',
                     }}
                   >
-                    {/* User Avatar */}
-                    <div className="avatar" style={{ flexShrink: 0, width: 38, height: 38, fontSize: 14 }}>
-                      {otherUser?.avatar ? (
-                        <img src={otherUser.avatar} alt="" style={{ width: '100%', borderRadius: '50%' }} />
-                      ) : (
-                        otherUserInitials
-                      )}
+                    {/* Initials Avatar */}
+                    <div
+                      style={{
+                        flexShrink: 0,
+                        width: 38,
+                        height: 38,
+                        borderRadius: '50%',
+                        background: '#dbeafe',
+                        color: '#1d4ed8',
+                        fontWeight: 700,
+                        fontSize: '0.825rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      {otherUserInitials}
                     </div>
 
-                    {/* Thread Details */}
+                    {/* Details */}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                        <span style={{ fontWeight: 600, fontSize: 14, color: '#1e293b' }}>
+                        <span style={{ fontWeight: 700, fontSize: '0.875rem', color: '#0f172a' }}>
                           {otherUserName}
                         </span>
                         {thread.unreadCount > 0 && (
                           <span
-                            className="pill pill-blue"
-                            style={{ padding: '2px 6px', fontSize: 11, fontWeight: 700 }}
+                            style={{
+                              background: '#10b981',
+                              color: '#fff',
+                              borderRadius: '999px',
+                              padding: '1px 6px',
+                              fontSize: '0.7rem',
+                              fontWeight: 700,
+                            }}
                           >
                             {thread.unreadCount}
                           </span>
@@ -448,20 +525,28 @@ export const ChatPage = () => {
                       </div>
 
                       {listing && (
-                        <div className="muted" style={{ fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          Item: <b>{listing.title}</b>
+                        <div
+                          style={{
+                            fontSize: '0.775rem',
+                            color: '#64748b',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            marginTop: '1px',
+                          }}
+                        >
+                          {listing.title}
                         </div>
                       )}
 
                       <div
                         style={{
-                          fontSize: 12,
-                          color: thread.unreadCount > 0 ? '#1e293b' : '#64748b',
-                          fontWeight: thread.unreadCount > 0 ? 600 : 400,
+                          fontSize: '0.75rem',
+                          color: '#94a3b8',
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
-                          marginTop: 2
+                          marginTop: '2px',
                         }}
                       >
                         {thread.lastMessagePreview || 'Conversation started'}
@@ -474,132 +559,185 @@ export const ChatPage = () => {
           </div>
         </div>
 
-        {/* Right: Active Chat Thread */}
+        {/* ── Right Column: Active Thread ─────────────────────────────────────── */}
         <div
           style={{
             display: 'flex',
             flexDirection: 'column',
             height: '100%',
             minHeight: 0,
-            overflow: 'hidden'
+            overflow: 'hidden',
+            background: '#ffffff',
           }}
         >
           {activeThread ? (
             <>
-              {/* Sticky Thread Header with Listing Context */}
+              {/* Sticky Top Bar: Peer info + Listing widget */}
               <div
                 style={{
                   flexShrink: 0,
-                  padding: '12px 20px',
+                  padding: '12px 18px',
                   borderBottom: '1px solid #e2e8f0',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  background: '#fff',
-                  position: 'sticky',
-                  top: 0,
-                  zIndex: 10
+                  background: '#ffffff',
+                  zIndex: 5,
                 }}
               >
-                {/* Other participant info */}
+                {/* Peer Info */}
                 {(() => {
                   const activeOtherUser = getOtherParticipant(activeThread, currentUserId);
                   const activeName = getUserDisplayName(activeOtherUser);
                   const activeInitials = getUserInitials(activeOtherUser);
-                  const programOrTag = activeOtherUser?.profile?.program || 'Verified Campus Student';
+                  const programOrTag = activeOtherUser?.profile?.program || 'MSc IT';
 
                   return (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div className="avatar" style={{ width: 36, height: 36, fontSize: 14 }}>
-                        {activeOtherUser?.avatar ? (
-                          <img src={activeOtherUser.avatar} alt="" style={{ width: '100%', borderRadius: '50%' }} />
-                        ) : (
-                          activeInitials
-                        )}
+                      <div
+                        style={{
+                          width: 38,
+                          height: 38,
+                          borderRadius: '50%',
+                          background: '#dbeafe',
+                          color: '#1d4ed8',
+                          fontWeight: 700,
+                          fontSize: '0.85rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        {activeInitials}
                       </div>
                       <div>
-                        <div style={{ fontWeight: 600, fontSize: 15, color: '#0f172a' }}>
+                        <div style={{ fontWeight: 700, fontSize: '0.925rem', color: '#0f172a' }}>
                           {activeName}
                         </div>
-                        <div className="muted" style={{ fontSize: 12 }}>{programOrTag}</div>
+                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{programOrTag}</div>
                       </div>
                     </div>
                   );
                 })()}
 
-                {/* Listing Context Widget */}
+                {/* Listing Context Pill */}
                 {activeThread.listingId && (
                   <Link
                     to={`/listings/${activeThread.listingId._id}`}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 10,
-                      padding: '6px 12px',
+                      gap: 8,
+                      padding: '5px 10px',
                       background: '#f8fafc',
                       borderRadius: 8,
                       border: '1px solid #e2e8f0',
                       textDecoration: 'none',
-                      color: 'inherit'
+                      color: 'inherit',
                     }}
                   >
-                    {activeThread.listingId.images?.[0]?.thumbnailUrl && (
-                      <img
-                        src={activeThread.listingId.images[0].thumbnailUrl}
-                        alt=""
-                        style={{ width: 32, height: 32, objectFit: 'cover', borderRadius: 4 }}
-                      />
-                    )}
+                    <div
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: 4,
+                        background: '#e2e8f0',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#64748b',
+                        overflow: 'hidden',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {activeThread.listingId.images?.[0]?.thumbnailUrl ? (
+                        <img
+                          src={activeThread.listingId.images[0].thumbnailUrl}
+                          alt=""
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                      ) : (
+                        <ImageIcon size={14} />
+                      )}
+                    </div>
                     <div>
-                      <div style={{ fontSize: 12, fontWeight: 600, maxWidth: 180, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <div
+                        style={{
+                          fontSize: '0.8rem',
+                          fontWeight: 700,
+                          maxWidth: 160,
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          color: '#0f172a',
+                        }}
+                      >
                         {activeThread.listingId.title}
                       </div>
-                      <div style={{ fontSize: 11, color: '#1d4ed8', fontWeight: 600 }}>
+                      <div style={{ fontSize: '0.725rem', color: '#2563eb', fontWeight: 600 }}>
                         {activeThread.listingId.listingType === 'sell' && `₹${activeThread.listingId.price}`}
-                        {activeThread.listingId.listingType === 'rent' && `₹${activeThread.listingId.rentalRate}/${activeThread.listingId.rentalPeriod}`}
+                        {activeThread.listingId.listingType === 'rent' &&
+                          `₹${activeThread.listingId.rentalRate}/${activeThread.listingId.rentalPeriod}`}
                         {activeThread.listingId.listingType === 'giveaway' && 'Free'}
-                        {activeThread.listingId.listingType === 'exchange' && 'Exchange'}
+                        {activeThread.listingId.listingType === 'exchange' && 'Swap'}
                         {' · '}
-                        <span style={{ textDecoration: 'underline' }}>View Item</span>
+                        <span style={{ textDecoration: 'underline' }}>View item</span>
                       </div>
                     </div>
                   </Link>
                 )}
               </div>
 
-              {/* Independent Scrollable Messages Container */}
+              {/* Messages Container with independent auto-scroll */}
               <div
                 ref={messagesContainerRef}
                 style={{
                   flex: 1,
                   minHeight: 0,
                   overflowY: 'auto',
-                  padding: 20,
+                  padding: '16px 20px',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: 12,
-                  background: '#f8fafc'
+                  background: '#ffffff',
                 }}
               >
                 {loadingMessages ? (
-                  <div style={{ margin: 'auto', color: '#94a3b8', fontSize: 14 }}>
+                  <div style={{ margin: 'auto', color: '#94a3b8', fontSize: 13 }}>
                     Loading message history...
                   </div>
                 ) : messages.length === 0 ? (
                   <div style={{ margin: 'auto', textAlign: 'center', color: '#64748b' }}>
-                    <div style={{ fontSize: 32, marginBottom: 6 }}>👋</div>
-                    <div style={{ fontWeight: 600 }}>Start the conversation!</div>
-                    <p style={{ fontSize: 13, marginTop: 4 }}>
-                      Ask questions about the listing condition, pickup timings, or coordinate meetups on campus.
+                    <div
+                      style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: '50%',
+                        background: '#ecfdf5',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        margin: '0 auto 8px',
+                        color: '#10b981',
+                      }}
+                    >
+                      <MessageSquare size={22} />
+                    </div>
+                    <div style={{ fontWeight: 700, color: '#0f172a' }}>Start the conversation!</div>
+                    <p style={{ fontSize: 12, marginTop: 4, color: '#64748b' }}>
+                      Coordinate campus meetup spots, ask about condition, or confirm timing.
                     </p>
                   </div>
                 ) : (
-                  messages.map(msg => {
+                  messages.map((msg) => {
                     const isMe = (msg.senderId?._id || msg.senderId)?.toString() === currentUserId?.toString();
-                    const timeStr = new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    const timeStr = new Date(msg.createdAt).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    });
                     const orderInfo = parseOrderMessage(msg.content);
 
-                    // Render structured Order Card if it's an automated order / escrow message
+                    // Structured Order / Meetup Card
                     if (orderInfo && (orderInfo.item || orderInfo.orderId)) {
                       return (
                         <div
@@ -608,16 +746,16 @@ export const ChatPage = () => {
                             alignSelf: 'center',
                             width: '100%',
                             maxWidth: 520,
-                            margin: '10px 0'
+                            margin: '8px 0',
                           }}
                         >
                           <div
                             style={{
                               background: '#ffffff',
-                              border: '1px solid #bfdbfe',
+                              border: '1px solid #e2e8f0',
                               borderRadius: 14,
                               padding: '16px 18px',
-                              boxShadow: '0 4px 14px rgba(37, 99, 235, 0.08)'
+                              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
                             }}
                           >
                             {/* Card Header */}
@@ -628,97 +766,93 @@ export const ChatPage = () => {
                                 justifyContent: 'space-between',
                                 borderBottom: '1px solid #f1f5f9',
                                 paddingBottom: 10,
-                                marginBottom: 12
+                                marginBottom: 12,
                               }}
                             >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <span style={{ fontSize: 22 }}>🤝</span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                <CheckCircle2 size={22} color="#10b981" />
                                 <div>
-                                  <div style={{ fontWeight: 700, fontSize: 14, color: '#1e293b' }}>
-                                    Campus Order Request Placed!
+                                  <div style={{ fontWeight: 700, fontSize: '0.925rem', color: '#0f172a' }}>
+                                    Order request placed
                                   </div>
-                                  <div style={{ fontSize: 11, color: '#64748b' }}>
-                                    Automated campus meetup & escrow coordination
+                                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                                    Meetup and escrow steps for this order
                                   </div>
                                 </div>
                               </div>
-                              {orderInfo.type && (
-                                <span
-                                  style={{
-                                    fontSize: 11,
-                                    fontWeight: 700,
-                                    padding: '3px 8px',
-                                    borderRadius: 999,
-                                    background: '#e0e7ff',
-                                    color: '#3730a3',
-                                    textTransform: 'uppercase'
-                                  }}
-                                >
-                                  {orderInfo.type}
-                                </span>
-                              )}
+                              <span
+                                style={{
+                                  fontSize: '0.7rem',
+                                  fontWeight: 700,
+                                  padding: '2px 8px',
+                                  borderRadius: 999,
+                                  background: '#eff6ff',
+                                  color: '#2563eb',
+                                  textTransform: 'uppercase',
+                                }}
+                              >
+                                {orderInfo.type || 'Sale'}
+                              </span>
                             </div>
 
-                            {/* Summary Grid */}
+                            {/* 4-Column Summary Box */}
                             <div
                               style={{
                                 display: 'grid',
-                                gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-                                gap: 10,
+                                gridTemplateColumns: 'repeat(4, 1fr)',
+                                gap: 8,
                                 background: '#f8fafc',
                                 borderRadius: 8,
                                 padding: '10px 14px',
                                 marginBottom: 12,
-                                fontSize: 13
+                                fontSize: '0.775rem',
                               }}
                             >
-                              {orderInfo.item && (
-                                <div>
-                                  <div style={{ fontSize: 11, color: '#64748b' }}>📦 Listing</div>
-                                  <div style={{ fontWeight: 600, color: '#0f172a' }}>{orderInfo.item}</div>
+                              <div>
+                                <div style={{ color: '#64748b', fontSize: '0.7rem' }}>Listing</div>
+                                <div style={{ fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  {orderInfo.item || 'Item'}
                                 </div>
-                              )}
-                              {orderInfo.amount && (
-                                <div>
-                                  <div style={{ fontSize: 11, color: '#64748b' }}>💰 Amount</div>
-                                  <div style={{ fontWeight: 700, color: '#16a34a' }}>{orderInfo.amount}</div>
+                              </div>
+                              <div>
+                                <div style={{ color: '#64748b', fontSize: '0.7rem' }}>Amount</div>
+                                <div style={{ fontWeight: 700, color: '#0f172a' }}>
+                                  {orderInfo.amount || '-'}
                                 </div>
-                              )}
-                              {orderInfo.buyer && (
-                                <div>
-                                  <div style={{ fontSize: 11, color: '#64748b' }}>👤 Buyer</div>
-                                  <div style={{ fontWeight: 600, color: '#0f172a' }}>{orderInfo.buyer}</div>
+                              </div>
+                              <div>
+                                <div style={{ color: '#64748b', fontSize: '0.7rem' }}>Buyer</div>
+                                <div style={{ fontWeight: 700, color: '#0f172a' }}>
+                                  {orderInfo.buyer || 'Student'}
                                 </div>
-                              )}
-                              {orderInfo.orderId && (
-                                <div>
-                                  <div style={{ fontSize: 11, color: '#64748b' }}>🆔 Order Ref</div>
-                                  <div style={{ fontWeight: 600, color: '#6366f1', fontFamily: 'monospace' }}>
-                                    {orderInfo.orderId}
-                                  </div>
+                              </div>
+                              <div>
+                                <div style={{ color: '#64748b', fontSize: '0.7rem' }}>Order ref</div>
+                                <div style={{ fontWeight: 700, color: '#0f172a', fontFamily: 'monospace' }}>
+                                  {orderInfo.orderId ? `#${orderInfo.orderId.slice(-6)}` : '#order'}
                                 </div>
-                              )}
+                              </div>
                             </div>
 
-                            {/* Meetup Coordination Instructions */}
+                            {/* Meetup and Handover Blue Box */}
                             <div
                               style={{
                                 background: '#eff6ff',
                                 border: '1px solid #dbeafe',
                                 borderRadius: 8,
                                 padding: '10px 14px',
-                                fontSize: 12,
-                                color: '#1e40af',
-                                lineHeight: 1.5
+                                fontSize: '0.75rem',
+                                color: '#1e3a8a',
+                                lineHeight: 1.5,
                               }}
                             >
-                              <div style={{ fontWeight: 700, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <span>📍</span> Campus Meetup & Handover Instructions:
+                              <div style={{ fontWeight: 700, marginBottom: 4, color: '#1e3a8a' }}>
+                                Meetup and handover
                               </div>
-                              <ol style={{ margin: 0, paddingLeft: 18, color: '#1e3a8a' }}>
-                                <li>Chat here to agree on a convenient campus meetup location and time.</li>
-                                <li>When meeting in person, seller clicks <b>"Show PIN"</b> on their Escrow Dashboard.</li>
-                                <li>Buyer enters the 6-digit PIN to confirm receipt and release funds safely!</li>
+                              <ol style={{ margin: 0, paddingLeft: 16 }}>
+                                <li>Chat here to agree on a campus meetup spot and time.</li>
+                                <li>At the meetup, the seller opens Transactions and taps Show PIN.</li>
+                                <li>The buyer enters the 6-digit PIN to confirm receipt and release the payment.</li>
                               </ol>
                             </div>
 
@@ -728,27 +862,26 @@ export const ChatPage = () => {
                                 marginTop: 12,
                                 display: 'flex',
                                 justifyContent: 'space-between',
-                                alignItems: 'center'
+                                alignItems: 'center',
                               }}
                             >
-                              <span className="muted" style={{ fontSize: 11 }}>{timeStr}</span>
+                              <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{timeStr}</span>
                               <Link
-                                to="/rentals?view=dashboard"
+                                to="/transactions"
                                 style={{
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   gap: 6,
-                                  background: '#2563eb',
+                                  background: '#10b981',
                                   color: '#ffffff',
                                   padding: '7px 14px',
-                                  borderRadius: 6,
-                                  fontSize: 12,
+                                  borderRadius: 8,
+                                  fontSize: '0.775rem',
                                   fontWeight: 600,
                                   textDecoration: 'none',
-                                  boxShadow: '0 2px 4px rgba(37,99,235,0.2)'
                                 }}
                               >
-                                🛡️ Open Escrow Dashboard →
+                                Open transaction
                               </Link>
                             </div>
                           </div>
@@ -756,7 +889,7 @@ export const ChatPage = () => {
                       );
                     }
 
-                    // Standard User / System Message Bubble
+                    // Standard message bubble
                     return (
                       <div
                         key={msg._id}
@@ -764,29 +897,28 @@ export const ChatPage = () => {
                           display: 'flex',
                           flexDirection: 'column',
                           alignItems: isMe ? 'flex-end' : 'flex-start',
-                          maxWidth: '75%',
-                          alignSelf: isMe ? 'flex-end' : 'flex-start'
+                          maxWidth: '70%',
+                          alignSelf: isMe ? 'flex-end' : 'flex-start',
                         }}
                       >
                         <div
                           style={{
-                            background: isMe ? '#1d4ed8' : '#ffffff',
-                            color: isMe ? '#ffffff' : '#1e293b',
-                            padding: '10px 14px',
-                            borderRadius: isMe ? '14px 14px 2px 14px' : '14px 14px 14px 2px',
-                            boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
-                            fontSize: 14,
-                            lineHeight: 1.5,
+                            background: isMe ? '#0f172a' : '#f1f5f9',
+                            color: isMe ? '#ffffff' : '#0f172a',
+                            padding: '8px 14px',
+                            borderRadius: isMe ? '12px 12px 2px 12px' : '12px 12px 12px 2px',
+                            fontSize: '0.85rem',
+                            lineHeight: 1.45,
                             whiteSpace: 'pre-wrap',
-                            wordBreak: 'break-word'
+                            wordBreak: 'break-word',
                           }}
                         >
                           {msg.content}
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 3 }}>
-                          <span className="muted" style={{ fontSize: 11 }}>{timeStr}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                          <span style={{ fontSize: '0.675rem', color: '#94a3b8' }}>{timeStr}</span>
                           {isMe && (
-                            <span style={{ fontSize: 11, color: msg.readAt ? '#2563eb' : '#94a3b8' }}>
+                            <span style={{ fontSize: '0.675rem', color: msg.readAt ? '#10b981' : '#94a3b8' }}>
                               {msg.readAt ? '✓✓' : '✓'}
                             </span>
                           )}
@@ -797,44 +929,117 @@ export const ChatPage = () => {
                 )}
               </div>
 
-              {/* Sticky Bottom Message Input Bar */}
+              {/* Quick Reply Pills */}
+              <div
+                style={{
+                  flexShrink: 0,
+                  padding: '6px 18px',
+                  display: 'flex',
+                  gap: 8,
+                  background: '#ffffff',
+                  borderTop: '1px solid #f8fafc',
+                  flexWrap: 'wrap',
+                }}
+              >
+                {QUICK_REPLIES.map((reply) => (
+                  <button
+                    key={reply}
+                    type="button"
+                    onClick={() => setMessageInput(reply)}
+                    style={{
+                      background: '#ffffff',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: 999,
+                      padding: '4px 12px',
+                      fontSize: '0.75rem',
+                      color: '#475569',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = '#10b981';
+                      e.currentTarget.style.color = '#059669';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = '#e2e8f0';
+                      e.currentTarget.style.color = '#475569';
+                    }}
+                  >
+                    {reply}
+                  </button>
+                ))}
+              </div>
+
+              {/* Bottom Message Input Bar */}
               <form
                 onSubmit={handleSendMessage}
                 style={{
                   flexShrink: 0,
-                  padding: 14,
-                  borderTop: '1px solid #e2e8f0',
+                  padding: '10px 18px 14px',
                   display: 'flex',
                   gap: 10,
-                  background: '#fff',
-                  position: 'sticky',
-                  bottom: 0,
-                  zIndex: 10
+                  background: '#ffffff',
                 }}
               >
                 <input
                   type="text"
-                  placeholder="Type a message... (Press Enter to send)"
+                  placeholder="Type a message"
                   value={messageInput}
                   onChange={(e) => setMessageInput(e.target.value)}
                   disabled={sendingMessage}
-                  style={{ flex: 1, padding: '10px 14px', fontSize: 14 }}
+                  style={{
+                    flex: 1,
+                    padding: '8px 14px',
+                    fontSize: '0.85rem',
+                    borderRadius: 8,
+                    border: '1px solid #cbd5e1',
+                    outline: 'none',
+                  }}
                 />
                 <button
                   type="submit"
-                  className="btn btn-primary"
                   disabled={!messageInput.trim() || sendingMessage}
-                  style={{ padding: '10px 20px' }}
+                  style={{
+                    padding: '8px 18px',
+                    borderRadius: 8,
+                    border: 'none',
+                    background: '#10b981',
+                    color: '#ffffff',
+                    fontWeight: 600,
+                    fontSize: '0.825rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    cursor: messageInput.trim() && !sendingMessage ? 'pointer' : 'not-allowed',
+                    opacity: messageInput.trim() && !sendingMessage ? 1 : 0.6,
+                  }}
                 >
-                  {sendingMessage ? 'Sending...' : 'Send'}
+                  <Send size={14} />
+                  <span>Send</span>
                 </button>
               </form>
             </>
           ) : (
             <div style={{ margin: 'auto', textAlign: 'center', padding: 40, color: '#64748b' }}>
-              <div style={{ fontSize: 40, marginBottom: 10 }}>💬</div>
-              <h2 style={{ fontSize: 18 }}>Select a Conversation</h2>
-              <p className="muted" style={{ fontSize: 13, marginTop: 4 }}>
+              <div
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '50%',
+                  background: '#f1f5f9',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 12px',
+                  color: '#94a3b8',
+                }}
+              >
+                <MessageSquare size={24} />
+              </div>
+              <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>
+                Select a Conversation
+              </h2>
+              <p style={{ fontSize: '0.825rem', color: '#64748b', marginTop: 4 }}>
                 Choose a conversation from the sidebar to view chat history and negotiate listings.
               </p>
             </div>
