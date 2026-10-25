@@ -10,12 +10,8 @@ import {
   CheckCircle2,
   Image as ImageIcon,
   MessageSquare,
-  Package,
-  IndianRupee,
-  User,
-  MapPin,
-  ShieldCheck,
-  ArrowRight,
+  Search,
+  Smile,
 } from 'lucide-react';
 
 // Helper to parse automated order and meetup system messages into clean structured data
@@ -37,7 +33,7 @@ function parseOrderMessage(content) {
 
   return {
     item: itemMatch ? itemMatch[1].trim() : null,
-    type: typeMatch ? typeMatch[1].trim() : 'Sale',
+    type: typeMatch ? typeMatch[1].trim() : 'SALE',
     amount: amountMatch ? amountMatch[1].trim() : null,
     buyer: buyerMatch ? buyerMatch[1].trim() : null,
     orderId: orderIdMatch ? orderIdMatch[1].trim() : null,
@@ -95,6 +91,13 @@ function getOtherParticipant(thread, currentUserId) {
   return null;
 }
 
+function formatThreadTime(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+
 const QUICK_REPLIES = [
   'Where should we meet?',
   'Is it still available?',
@@ -117,6 +120,7 @@ export const ChatPage = () => {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
   const [messageInput, setMessageInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState(null);
 
   const messagesContainerRef = useRef(null);
@@ -134,6 +138,18 @@ export const ChatPage = () => {
   useEffect(() => {
     scrollToBottom('smooth');
   }, [messages]);
+
+  // Lock document body overflow so whole page never scrolls, keeping scroll local to panels
+  useEffect(() => {
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevBodyOverflow;
+      document.documentElement.style.overflow = prevHtmlOverflow;
+    };
+  }, []);
 
   // Load threads on mount
   const fetchThreads = useCallback(async () => {
@@ -311,48 +327,31 @@ export const ChatPage = () => {
 
   const currentUserId = user?._id || user?.id;
 
+  const filteredThreads = threads.filter((t) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    const other = getOtherParticipant(t, currentUserId);
+    const name = getUserDisplayName(other).toLowerCase();
+    const title = (t.listingId?.title || '').toLowerCase();
+    const lastMsg = (t.lastMessagePreview || '').toLowerCase();
+    return name.includes(q) || title.includes(q) || lastMsg.includes(q);
+  });
+
   return (
-    <div
-      style={{
-        maxWidth: '1120px',
-        margin: '0 auto',
-        padding: '1.25rem 1rem 0.5rem',
-        height: 'calc(100vh - 84px)',
-        display: 'flex',
-        flexDirection: 'column',
-        boxSizing: 'border-box',
-      }}
-    >
+    <div className="chat-page">
       {/* ── Top Header ──────────────────────────────────────────────────────── */}
-      <div
-        style={{
-          flexShrink: 0,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '1rem',
-        }}
-      >
+      <div className="chat-header">
         <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-            Messages
-          </h1>
-          <p style={{ color: '#64748b', fontSize: '0.85rem', margin: '2px 0 0 0' }}>
-            Chat with buyers and sellers about campus listings.
-          </p>
+          <h1 className="chat-title">Messages</h1>
+          <p className="chat-subtitle">Chat with buyers and sellers about campus listings.</p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.825rem' }}>
+        <div className="chat-status-badge">
           <span
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: '50%',
-              background: isConnected ? '#10b981' : '#f59e0b',
-              display: 'inline-block',
-            }}
+            className="chat-status-dot"
+            style={{ background: isConnected ? '#10b981' : '#f59e0b' }}
           />
-          <span style={{ color: isConnected ? '#059669' : '#d97706', fontWeight: 500 }}>
+          <span style={{ color: isConnected ? '#10b981' : '#d97706' }}>
             {isConnected ? 'Connected' : 'Connecting...'}
           </span>
         </div>
@@ -365,8 +364,8 @@ export const ChatPage = () => {
             background: '#fee2e2',
             color: '#991b1b',
             padding: '8px 14px',
-            borderRadius: 6,
-            marginBottom: 10,
+            borderRadius: 8,
+            marginBottom: 12,
             fontSize: 13,
           }}
         >
@@ -374,58 +373,31 @@ export const ChatPage = () => {
         </div>
       )}
 
-      {/* ── Main Chat Card (2 Columns) ───────────────────────────────────────── */}
-      <div
-        style={{
-          flex: 1,
-          minHeight: 0,
-          display: 'grid',
-          gridTemplateColumns: '290px 1fr',
-          background: '#ffffff',
-          borderRadius: '12px',
-          border: '1px solid #e2e8f0',
-          overflow: 'hidden',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-        }}
-      >
-        {/* ── Left Column: Conversations with independent scroll ────────────── */}
-        <div
-          style={{
-            borderRight: '1px solid #e2e8f0',
-            display: 'flex',
-            flexDirection: 'column',
-            height: '100%',
-            minHeight: 0,
-            background: '#ffffff',
-            overflow: 'hidden',
-          }}
-        >
-          <div
-            style={{
-              flexShrink: 0,
-              padding: '12px 16px',
-              borderBottom: '1px solid #e2e8f0',
-              fontWeight: 700,
-              fontSize: '0.875rem',
-              color: '#0f172a',
-            }}
-          >
-            Conversations ({threads.length})
+      {/* ── Main Chat Area (Split Container) ─────────────────────────────────── */}
+      <div className="chat-main-container">
+        {/* ── Left Sidebar: Conversations ─────────────────────────────────────── */}
+        <div className="chat-sidebar-card">
+          <div className="chat-sidebar-header">
+            <div className="chat-sidebar-title">Conversations ({threads.length})</div>
+            <div className="chat-search-box">
+              <Search size={15} color="#94a3b8" />
+              <input
+                type="text"
+                className="chat-search-input"
+                placeholder="Search conversations..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
           </div>
 
-          <div
-            style={{
-              flex: 1,
-              minHeight: 0,
-              overflowY: 'auto',
-            }}
-          >
+          <div className="chat-thread-list">
             {loadingThreads ? (
               <div style={{ padding: 24, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
                 Loading conversations...
               </div>
-            ) : threads.length === 0 ? (
-              <div style={{ padding: '40px 16px', textAlign: 'center' }}>
+            ) : filteredThreads.length === 0 ? (
+              <div style={{ padding: '36px 16px', textAlign: 'center' }}>
                 <div
                   style={{
                     width: 44,
@@ -441,115 +413,66 @@ export const ChatPage = () => {
                 >
                   <MessageSquare size={20} />
                 </div>
-                <div style={{ fontWeight: 600, fontSize: 14, color: '#0f172a' }}>No Messages Yet</div>
+                <div style={{ fontWeight: 600, fontSize: 14, color: '#0f172a' }}>
+                  {searchQuery ? 'No matching conversations' : 'No Messages Yet'}
+                </div>
                 <p style={{ color: '#64748b', fontSize: 12, marginTop: 4, lineHeight: 1.4 }}>
-                  Browse items and message sellers to start a chat!
+                  {searchQuery
+                    ? 'Try searching with another name or title'
+                    : 'Browse items and message sellers to start a chat!'}
                 </p>
-                <Link
-                  to="/browse"
-                  style={{
-                    display: 'inline-block',
-                    marginTop: 12,
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: '#059669',
-                    textDecoration: 'none',
-                  }}
-                >
-                  Browse Marketplace →
-                </Link>
+                {!searchQuery && (
+                  <Link
+                    to="/marketplace"
+                    style={{
+                      display: 'inline-block',
+                      marginTop: 12,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: '#2563eb',
+                      textDecoration: 'none',
+                    }}
+                  >
+                    Browse Marketplace →
+                  </Link>
+                )}
               </div>
             ) : (
-              threads.map((thread) => {
+              filteredThreads.map((thread) => {
                 const isSelected = thread._id === activeThreadId;
                 const otherUser = getOtherParticipant(thread, currentUserId);
                 const otherUserName = getUserDisplayName(otherUser);
                 const otherUserInitials = getUserInitials(otherUser);
                 const listing = thread.listingId;
+                const timeStr = formatThreadTime(thread.lastMessageAt || thread.updatedAt);
 
                 return (
                   <div
                     key={thread._id}
                     onClick={() => handleSelectThread(thread._id)}
-                    style={{
-                      padding: '12px 14px',
-                      display: 'flex',
-                      gap: 12,
-                      alignItems: 'center',
-                      cursor: 'pointer',
-                      borderBottom: '1px solid #f8fafc',
-                      background: isSelected ? '#ecfdf5' : '#ffffff',
-                      borderLeft: isSelected ? '3px solid #10b981' : '3px solid transparent',
-                      transition: 'background 0.15s ease',
-                    }}
+                    className={`chat-thread-item ${isSelected ? 'active' : ''}`}
                   >
                     {/* Initials Avatar */}
-                    <div
-                      style={{
-                        flexShrink: 0,
-                        width: 38,
-                        height: 38,
-                        borderRadius: '50%',
-                        background: '#dbeafe',
-                        color: '#1d4ed8',
-                        fontWeight: 700,
-                        fontSize: '0.825rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      {otherUserInitials}
-                    </div>
+                    <div className="chat-avatar">{otherUserInitials}</div>
 
                     {/* Details */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                        <span style={{ fontWeight: 700, fontSize: '0.875rem', color: '#0f172a' }}>
-                          {otherUserName}
-                        </span>
-                        {thread.unreadCount > 0 && (
-                          <span
-                            style={{
-                              background: '#10b981',
-                              color: '#fff',
-                              borderRadius: '999px',
-                              padding: '1px 6px',
-                              fontSize: '0.7rem',
-                              fontWeight: 700,
-                            }}
-                          >
-                            {thread.unreadCount}
-                          </span>
-                        )}
+                    <div className="chat-thread-info">
+                      <div className="chat-thread-top">
+                        <span className="chat-thread-name">{otherUserName}</span>
+                        {timeStr && <span className="chat-thread-time">{timeStr}</span>}
                       </div>
 
                       {listing && (
-                        <div
-                          style={{
-                            fontSize: '0.775rem',
-                            color: '#64748b',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            marginTop: '1px',
-                          }}
-                        >
-                          {listing.title}
-                        </div>
+                        <div className="chat-thread-item-title">{listing.title}</div>
                       )}
 
-                      <div
-                        style={{
-                          fontSize: '0.75rem',
-                          color: '#94a3b8',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          marginTop: '2px',
-                        }}
-                      >
-                        {thread.lastMessagePreview || 'Conversation started'}
+                      <div className="chat-thread-preview-row">
+                        <div className="chat-thread-preview">
+                          {thread.lastMessagePreview || 'Conversation started'}
+                        </div>
+                        {thread.unreadCount > 0 && (
+                          <span className="chat-unread-badge">{thread.unreadCount}</span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -559,32 +482,12 @@ export const ChatPage = () => {
           </div>
         </div>
 
-        {/* ── Right Column: Active Thread ─────────────────────────────────────── */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            height: '100%',
-            minHeight: 0,
-            overflow: 'hidden',
-            background: '#ffffff',
-          }}
-        >
+        {/* ── Right Panel: Active Chat Window ─────────────────────────────────── */}
+        <div className="chat-window-card">
           {activeThread ? (
             <>
-              {/* Sticky Top Bar: Peer info + Listing widget */}
-              <div
-                style={{
-                  flexShrink: 0,
-                  padding: '12px 18px',
-                  borderBottom: '1px solid #e2e8f0',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  background: '#ffffff',
-                  zIndex: 5,
-                }}
-              >
+              {/* Top Bar: Peer info + Mini Listing Widget */}
+              <div className="chat-window-header">
                 {/* Peer Info */}
                 {(() => {
                   const activeOtherUser = getOtherParticipant(activeThread, currentUserId);
@@ -593,28 +496,11 @@ export const ChatPage = () => {
                   const programOrTag = activeOtherUser?.profile?.program || 'MSc IT';
 
                   return (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div
-                        style={{
-                          width: 38,
-                          height: 38,
-                          borderRadius: '50%',
-                          background: '#dbeafe',
-                          color: '#1d4ed8',
-                          fontWeight: 700,
-                          fontSize: '0.85rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        {activeInitials}
-                      </div>
+                    <div className="chat-header-partner">
+                      <div className="chat-header-avatar">{activeInitials}</div>
                       <div>
-                        <div style={{ fontWeight: 700, fontSize: '0.925rem', color: '#0f172a' }}>
-                          {activeName}
-                        </div>
-                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{programOrTag}</div>
+                        <div className="chat-header-name">{activeName}</div>
+                        <div className="chat-header-sub">{programOrTag}</div>
                       </div>
                     </div>
                   );
@@ -623,85 +509,45 @@ export const ChatPage = () => {
                 {/* Listing Context Pill */}
                 {activeThread.listingId && (
                   <Link
-                    to={`/listings/${activeThread.listingId._id}`}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      padding: '5px 10px',
-                      background: '#f8fafc',
-                      borderRadius: 8,
-                      border: '1px solid #e2e8f0',
-                      textDecoration: 'none',
-                      color: 'inherit',
-                    }}
+                    to={`/marketplace/${activeThread.listingId._id}`}
+                    className="chat-listing-pill"
                   >
-                    <div
-                      style={{
-                        width: 28,
-                        height: 28,
-                        borderRadius: 4,
-                        background: '#e2e8f0',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#64748b',
-                        overflow: 'hidden',
-                        flexShrink: 0,
-                      }}
-                    >
-                      {activeThread.listingId.images?.[0]?.thumbnailUrl ? (
+                    <div className="chat-listing-thumb">
+                      {activeThread.listingId.images?.[0]?.thumbnailUrl ||
+                      activeThread.listingId.images?.[0]?.url ? (
                         <img
-                          src={activeThread.listingId.images[0].thumbnailUrl}
+                          src={
+                            activeThread.listingId.images[0].thumbnailUrl ||
+                            activeThread.listingId.images[0].url
+                          }
                           alt=""
                           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         />
                       ) : (
-                        <ImageIcon size={14} />
+                        <ImageIcon size={16} />
                       )}
                     </div>
                     <div>
-                      <div
-                        style={{
-                          fontSize: '0.8rem',
-                          fontWeight: 700,
-                          maxWidth: 160,
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          color: '#0f172a',
-                        }}
-                      >
+                      <div className="chat-listing-pill-title">
                         {activeThread.listingId.title}
                       </div>
-                      <div style={{ fontSize: '0.725rem', color: '#2563eb', fontWeight: 600 }}>
-                        {activeThread.listingId.listingType === 'sell' && `₹${activeThread.listingId.price}`}
+                      <div className="chat-listing-pill-link">
+                        {activeThread.listingId.listingType === 'sell' &&
+                          `₹${Number(activeThread.listingId.price || 0).toLocaleString('en-IN')}`}
                         {activeThread.listingId.listingType === 'rent' &&
-                          `₹${activeThread.listingId.rentalRate}/${activeThread.listingId.rentalPeriod}`}
+                          `₹${activeThread.listingId.rentalRate || 0}/${activeThread.listingId.rentalPeriod || 'day'}`}
                         {activeThread.listingId.listingType === 'giveaway' && 'Free'}
                         {activeThread.listingId.listingType === 'exchange' && 'Swap'}
                         {' · '}
-                        <span style={{ textDecoration: 'underline' }}>View item</span>
+                        <span>View item</span>
                       </div>
                     </div>
                   </Link>
                 )}
               </div>
 
-              {/* Messages Container with independent auto-scroll */}
-              <div
-                ref={messagesContainerRef}
-                style={{
-                  flex: 1,
-                  minHeight: 0,
-                  overflowY: 'auto',
-                  padding: '16px 20px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 12,
-                  background: '#ffffff',
-                }}
-              >
+              {/* Messages Container with auto-scroll */}
+              <div ref={messagesContainerRef} className="chat-messages-container">
                 {loadingMessages ? (
                   <div style={{ margin: 'auto', color: '#94a3b8', fontSize: 13 }}>
                     Loading message history...
@@ -730,157 +576,74 @@ export const ChatPage = () => {
                   </div>
                 ) : (
                   messages.map((msg) => {
-                    const isMe = (msg.senderId?._id || msg.senderId)?.toString() === currentUserId?.toString();
-                    const timeStr = new Date(msg.createdAt).toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    });
+                    const isMe =
+                      (msg.senderId?._id || msg.senderId)?.toString() === currentUserId?.toString();
+                    const timeStr = formatThreadTime(msg.createdAt);
                     const orderInfo = parseOrderMessage(msg.content);
 
                     // Structured Order / Meetup Card
                     if (orderInfo && (orderInfo.item || orderInfo.orderId)) {
                       return (
-                        <div
-                          key={msg._id}
-                          style={{
-                            alignSelf: 'center',
-                            width: '100%',
-                            maxWidth: 520,
-                            margin: '8px 0',
-                          }}
-                        >
-                          <div
-                            style={{
-                              background: '#ffffff',
-                              border: '1px solid #e2e8f0',
-                              borderRadius: 14,
-                              padding: '16px 18px',
-                              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
-                            }}
-                          >
+                        <div key={msg._id} className="chat-order-card-wrapper">
+                          <div className="chat-order-card">
                             {/* Card Header */}
-                            <div
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                borderBottom: '1px solid #f1f5f9',
-                                paddingBottom: 10,
-                                marginBottom: 12,
-                              }}
-                            >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                <CheckCircle2 size={22} color="#10b981" />
+                            <div className="chat-order-header">
+                              <div className="chat-order-header-left">
+                                <CheckCircle2 size={24} color="#10b981" />
                                 <div>
-                                  <div style={{ fontWeight: 700, fontSize: '0.925rem', color: '#0f172a' }}>
-                                    Order request placed
-                                  </div>
-                                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                                    Meetup and escrow steps for this order
+                                  <div className="chat-order-title">Order request placed</div>
+                                  <div className="chat-order-subtitle">
+                                    Meetup and escrow steps for this order.
                                   </div>
                                 </div>
                               </div>
-                              <span
-                                style={{
-                                  fontSize: '0.7rem',
-                                  fontWeight: 700,
-                                  padding: '2px 8px',
-                                  borderRadius: 999,
-                                  background: '#eff6ff',
-                                  color: '#2563eb',
-                                  textTransform: 'uppercase',
-                                }}
-                              >
-                                {orderInfo.type || 'Sale'}
+                              <span className="chat-order-badge">
+                                {orderInfo.type || 'SALE'}
                               </span>
                             </div>
 
                             {/* 4-Column Summary Box */}
-                            <div
-                              style={{
-                                display: 'grid',
-                                gridTemplateColumns: 'repeat(4, 1fr)',
-                                gap: 8,
-                                background: '#f8fafc',
-                                borderRadius: 8,
-                                padding: '10px 14px',
-                                marginBottom: 12,
-                                fontSize: '0.775rem',
-                              }}
-                            >
+                            <div className="chat-order-grid">
                               <div>
-                                <div style={{ color: '#64748b', fontSize: '0.7rem' }}>Listing</div>
-                                <div style={{ fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                <div className="chat-order-col-label">Listing</div>
+                                <div className="chat-order-col-val" title={orderInfo.item || 'Item'}>
                                   {orderInfo.item || 'Item'}
                                 </div>
                               </div>
                               <div>
-                                <div style={{ color: '#64748b', fontSize: '0.7rem' }}>Amount</div>
-                                <div style={{ fontWeight: 700, color: '#0f172a' }}>
+                                <div className="chat-order-col-label">Amount</div>
+                                <div className="chat-order-col-val">
                                   {orderInfo.amount || '-'}
                                 </div>
                               </div>
                               <div>
-                                <div style={{ color: '#64748b', fontSize: '0.7rem' }}>Buyer</div>
-                                <div style={{ fontWeight: 700, color: '#0f172a' }}>
+                                <div className="chat-order-col-label">Buyer</div>
+                                <div className="chat-order-col-val">
                                   {orderInfo.buyer || 'Student'}
                                 </div>
                               </div>
                               <div>
-                                <div style={{ color: '#64748b', fontSize: '0.7rem' }}>Order ref</div>
-                                <div style={{ fontWeight: 700, color: '#0f172a', fontFamily: 'monospace' }}>
+                                <div className="chat-order-col-label">Order ref</div>
+                                <div className="chat-order-col-val" style={{ fontFamily: 'monospace' }}>
                                   {orderInfo.orderId ? `#${orderInfo.orderId.slice(-6)}` : '#order'}
                                 </div>
                               </div>
                             </div>
 
                             {/* Meetup and Handover Blue Box */}
-                            <div
-                              style={{
-                                background: '#eff6ff',
-                                border: '1px solid #dbeafe',
-                                borderRadius: 8,
-                                padding: '10px 14px',
-                                fontSize: '0.75rem',
-                                color: '#1e3a8a',
-                                lineHeight: 1.5,
-                              }}
-                            >
-                              <div style={{ fontWeight: 700, marginBottom: 4, color: '#1e3a8a' }}>
-                                Meetup and handover
+                            <div className="chat-order-handover-box">
+                              <div className="chat-order-handover-title">Meetup and handover</div>
+                              <div style={{ paddingLeft: 4 }}>
+                                <div>1. Chat here to agree on a campus meetup spot and time.</div>
+                                <div>2. At the meetup, the seller opens Transactions and tags Show PIN.</div>
+                                <div>3. The buyer enters the 6-digit PIN to confirm receipt and release the payment.</div>
                               </div>
-                              <ol style={{ margin: 0, paddingLeft: 16 }}>
-                                <li>Chat here to agree on a campus meetup spot and time.</li>
-                                <li>At the meetup, the seller opens Transactions and taps Show PIN.</li>
-                                <li>The buyer enters the 6-digit PIN to confirm receipt and release the payment.</li>
-                              </ol>
                             </div>
 
-                            {/* Action Row */}
-                            <div
-                              style={{
-                                marginTop: 12,
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                              }}
-                            >
-                              <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{timeStr}</span>
-                              <Link
-                                to="/transactions"
-                                style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: 6,
-                                  background: '#10b981',
-                                  color: '#ffffff',
-                                  padding: '7px 14px',
-                                  borderRadius: 8,
-                                  fontSize: '0.775rem',
-                                  fontWeight: 600,
-                                  textDecoration: 'none',
-                                }}
-                              >
+                            {/* Action Footer */}
+                            <div className="chat-order-footer">
+                              <span className="chat-order-time">{timeStr}</span>
+                              <Link to="/transactions" className="chat-order-btn">
                                 Open transaction
                               </Link>
                             </div>
@@ -890,38 +653,30 @@ export const ChatPage = () => {
                     }
 
                     // Standard message bubble
-                    return (
-                      <div
-                        key={msg._id}
-                        style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: isMe ? 'flex-end' : 'flex-start',
-                          maxWidth: '70%',
-                          alignSelf: isMe ? 'flex-end' : 'flex-start',
-                        }}
-                      >
-                        <div
-                          style={{
-                            background: isMe ? '#0f172a' : '#f1f5f9',
-                            color: isMe ? '#ffffff' : '#0f172a',
-                            padding: '8px 14px',
-                            borderRadius: isMe ? '12px 12px 2px 12px' : '12px 12px 12px 2px',
-                            fontSize: '0.85rem',
-                            lineHeight: 1.45,
-                            whiteSpace: 'pre-wrap',
-                            wordBreak: 'break-word',
-                          }}
-                        >
-                          {msg.content}
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                          <span style={{ fontSize: '0.675rem', color: '#94a3b8' }}>{timeStr}</span>
-                          {isMe && (
-                            <span style={{ display: 'inline-flex', alignItems: 'center', color: msg.readAt ? '#10b981' : '#94a3b8' }}>
-                              {msg.readAt ? <CheckCheck size={13} /> : <Check size={13} />}
+                    if (isMe) {
+                      return (
+                        <div key={msg._id} className="chat-bubble-outgoing-row">
+                          <div className="chat-bubble-outgoing">{msg.content}</div>
+                          <div className="chat-bubble-time">
+                            <span>{timeStr}</span>
+                            <span className="chat-bubble-receipt-blue">
+                              {msg.readAt ? <CheckCheck size={14} /> : <Check size={14} />}
                             </span>
-                          )}
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    // Incoming message
+                    const otherUser = getOtherParticipant(activeThread, currentUserId);
+                    const otherInitials = getUserInitials(otherUser);
+
+                    return (
+                      <div key={msg._id} className="chat-bubble-incoming-row">
+                        <div className="chat-bubble-avatar">{otherInitials}</div>
+                        <div className="chat-bubble-incoming">{msg.content}</div>
+                        <div className="chat-bubble-time">
+                          <span>{timeStr}</span>
                         </div>
                       </div>
                     );
@@ -930,40 +685,13 @@ export const ChatPage = () => {
               </div>
 
               {/* Quick Reply Pills */}
-              <div
-                style={{
-                  flexShrink: 0,
-                  padding: '6px 18px',
-                  display: 'flex',
-                  gap: 8,
-                  background: '#ffffff',
-                  borderTop: '1px solid #f8fafc',
-                  flexWrap: 'wrap',
-                }}
-              >
+              <div className="chat-quick-replies">
                 {QUICK_REPLIES.map((reply) => (
                   <button
                     key={reply}
                     type="button"
+                    className="chat-quick-chip"
                     onClick={() => setMessageInput(reply)}
-                    style={{
-                      background: '#ffffff',
-                      border: '1px solid #e2e8f0',
-                      borderRadius: 999,
-                      padding: '4px 12px',
-                      fontSize: '0.75rem',
-                      color: '#475569',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = '#10b981';
-                      e.currentTarget.style.color = '#059669';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = '#e2e8f0';
-                      e.currentTarget.style.color = '#475569';
-                    }}
                   >
                     {reply}
                   </button>
@@ -971,52 +699,35 @@ export const ChatPage = () => {
               </div>
 
               {/* Bottom Message Input Bar */}
-              <form
-                onSubmit={handleSendMessage}
-                style={{
-                  flexShrink: 0,
-                  padding: '10px 18px 14px',
-                  display: 'flex',
-                  gap: 10,
-                  background: '#ffffff',
-                }}
-              >
-                <input
-                  type="text"
-                  placeholder="Type a message"
-                  value={messageInput}
-                  onChange={(e) => setMessageInput(e.target.value)}
-                  disabled={sendingMessage}
-                  style={{
-                    flex: 1,
-                    padding: '8px 14px',
-                    fontSize: '0.85rem',
-                    borderRadius: 8,
-                    border: '1px solid #cbd5e1',
-                    outline: 'none',
-                  }}
-                />
-                <button
-                  type="submit"
-                  disabled={!messageInput.trim() || sendingMessage}
-                  style={{
-                    padding: '8px 18px',
-                    borderRadius: 8,
-                    border: 'none',
-                    background: '#10b981',
-                    color: '#ffffff',
-                    fontWeight: 600,
-                    fontSize: '0.825rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    cursor: messageInput.trim() && !sendingMessage ? 'pointer' : 'not-allowed',
-                    opacity: messageInput.trim() && !sendingMessage ? 1 : 0.6,
-                  }}
-                >
-                  <Send size={14} />
-                  <span>Send</span>
-                </button>
+              <form onSubmit={handleSendMessage} className="chat-input-wrapper">
+                <div className="chat-input-box">
+                  <button
+                    type="button"
+                    className="chat-emoji-btn"
+                    title="Insert emoji"
+                    onClick={() => setMessageInput((prev) => prev + ' 😊')}
+                  >
+                    <Smile size={20} />
+                  </button>
+
+                  <input
+                    type="text"
+                    className="chat-text-input"
+                    placeholder="Type a message..."
+                    value={messageInput}
+                    onChange={(e) => setMessageInput(e.target.value)}
+                    disabled={sendingMessage}
+                  />
+
+                  <button
+                    type="submit"
+                    className="chat-send-btn"
+                    disabled={!messageInput.trim() || sendingMessage}
+                  >
+                    <Send size={14} />
+                    <span>Send</span>
+                  </button>
+                </div>
               </form>
             </>
           ) : (
@@ -1049,3 +760,4 @@ export const ChatPage = () => {
     </div>
   );
 };
+export default ChatPage;
