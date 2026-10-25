@@ -843,14 +843,6 @@ export const ListingDetailPage = () => {
                 </div>
               </div>
             </div>
-
-            <button
-              type="button"
-              className="seller-view-profile-link"
-              onClick={() => navigate(`/profile`)}
-            >
-              View Profile &gt;
-            </button>
           </div>
 
           {/* ── Bottom Action Buttons for Non-Owners ── */}
