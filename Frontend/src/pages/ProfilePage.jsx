@@ -1,34 +1,97 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
-  User,
-  Star,
-  ShieldCheck,
-  BookOpen,
-  Clock,
-  Phone,
-  CheckCircle,
-  AlertCircle,
-  Sparkles,
-  Package,
+  Tag,
   ArrowLeftRight,
-  Repeat,
+  Package,
   Heart,
-  ChevronRight,
-  ShoppingBag,
+  CheckCircle2,
+  Plus,
 } from 'lucide-react';
+import { getMyTransactions } from '../features/rental/api/rentalApi';
 
 export default function ProfilePage() {
   const { user, updateProfile } = useAuth();
   const navigate = useNavigate();
 
-  const [name, setName] = useState(user?.profile?.name || '');
-  const [program, setProgram] = useState(user?.profile?.program || '');
-  const [year, setYear] = useState(user?.profile?.year || '');
-  const [contactPreferences, setContactPreferences] = useState(user?.profile?.contactPreferences || '');
+  const [name, setName] = useState(user?.profile?.name || 'Dev Barot');
+  const [program, setProgram] = useState(user?.profile?.program || 'MSc IT');
+  const [year, setYear] = useState(user?.profile?.year || 'Sem 3');
+  const [contactPreferences, setContactPreferences] = useState(
+    user?.profile?.contactPreferences || ''
+  );
+
+  // Meetup spots management
+  const [availableSpots, setAvailableSpots] = useState([
+    'Library',
+    'IT dept foyer',
+    'Canteen',
+    'Hostel gate',
+  ]);
+  const [selectedSpots, setSelectedSpots] = useState(['Library']);
+  const [isAddingSpot, setIsAddingSpot] = useState(false);
+  const [newSpotInput, setNewSpotInput] = useState('');
+  const [shareWhatsApp, setShareWhatsApp] = useState(false);
+
+  const [txCount, setTxCount] = useState(4);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState(null);
+
+  // Sync initial state when user loads
+  useEffect(() => {
+    if (user?.profile) {
+      if (user.profile.name) setName(user.profile.name);
+      if (user.profile.program) setProgram(user.profile.program);
+      if (user.profile.year) setYear(user.profile.year);
+      if (user.profile.contactPreferences) {
+        setContactPreferences(user.profile.contactPreferences);
+      }
+    }
+  }, [user]);
+
+  // Fetch real transaction count for navigation card
+  useEffect(() => {
+    const fetchCount = async () => {
+      try {
+        const res = await getMyTransactions();
+        const list = res.data || res.transactions || (Array.isArray(res) ? res : []);
+        if (list.length > 0) {
+          setTxCount(list.length);
+        }
+      } catch (err) {
+        // Fallback to default
+      }
+    };
+    fetchCount();
+  }, []);
+
+  const toggleSpot = (spot) => {
+    if (selectedSpots.includes(spot)) {
+      setSelectedSpots(selectedSpots.filter((s) => s !== spot));
+    } else {
+      setSelectedSpots([...selectedSpots, spot]);
+    }
+  };
+
+  const handleAddSpot = (e) => {
+    e.preventDefault();
+    const trimmed = newSpotInput.trim();
+    if (trimmed && !availableSpots.includes(trimmed)) {
+      setAvailableSpots([...availableSpots, trimmed]);
+      setSelectedSpots([...selectedSpots, trimmed]);
+      setNewSpotInput('');
+      setIsAddingSpot(false);
+    }
+  };
+
+  const handleDiscard = () => {
+    setName(user?.profile?.name || 'Dev Barot');
+    setProgram(user?.profile?.program || 'MSc IT');
+    setYear(user?.profile?.year || 'Sem 3');
+    setSelectedSpots(['Library']);
+    setFeedback(null);
+  };
 
   const handleUpdate = async (e) => {
     e.preventDefault();
@@ -36,8 +99,17 @@ export default function ProfilePage() {
     setFeedback(null);
 
     try {
-      await updateProfile({ name, program, year, contactPreferences });
-      setFeedback({ type: 'success', text: 'Profile updated successfully!' });
+      const compiledPreferences = `Spots: ${selectedSpots.join(', ')}; WhatsApp: ${
+        shareWhatsApp ? 'Yes' : 'No'
+      }${contactPreferences ? `; Note: ${contactPreferences}` : ''}`;
+
+      await updateProfile({
+        name,
+        program,
+        year,
+        contactPreferences: compiledPreferences,
+      });
+      setFeedback({ type: 'success', text: 'Profile updated successfully' });
     } catch (err) {
       setFeedback({ type: 'error', text: err.message || 'Failed to update profile' });
     } finally {
@@ -45,353 +117,614 @@ export default function ProfilePage() {
     }
   };
 
-  const rating = user?.reputation?.rating || 0;
+  // Helper for initials
+  const displayName = name || user?.profile?.name || user?.email?.split('@')[0] || 'Dev Barot';
+  const initials = displayName
+    .split(/\s+/)
+    .map((p) => p[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase() || 'DB';
+
   const reviewsCount = user?.reputation?.reviewsCount || 0;
+  const rating = user?.reputation?.rating || 0;
 
   return (
-    <div style={{ maxWidth: '850px', margin: '0 auto' }}>
-      {/* Profile Header Card */}
+    <div
+      style={{
+        maxWidth: '920px',
+        margin: '0 auto',
+        padding: '1.5rem 1rem 3rem',
+        boxSizing: 'border-box',
+      }}
+    >
+      {/* ── Page Header ──────────────────────────────────────────────────────── */}
+      <div style={{ marginBottom: '1.5rem' }}>
+        <h1
+          style={{
+            fontSize: '1.65rem',
+            fontWeight: 800,
+            color: '#0f172a',
+            margin: '0 0 4px 0',
+          }}
+        >
+          Profile
+        </h1>
+        <p style={{ color: '#64748b', fontSize: '0.875rem', margin: 0 }}>
+          Your campus identity and handover preferences.
+        </p>
+      </div>
+
+      {feedback && (
+        <div
+          style={{
+            background: feedback.type === 'success' ? '#ecfdf5' : '#fee2e2',
+            color: feedback.type === 'success' ? '#065f46' : '#991b1b',
+            border: `1px solid ${feedback.type === 'success' ? '#a7f3d0' : '#fecaca'}`,
+            padding: '10px 14px',
+            borderRadius: '8px',
+            marginBottom: '1.25rem',
+            fontSize: '0.85rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}
+        >
+          <CheckCircle2 size={16} />
+          <span>{feedback.text}</span>
+        </div>
+      )}
+
+      {/* ── Top Profile Card ─────────────────────────────────────────────────── */}
       <div
-        className="card"
         style={{
-          background: 'linear-gradient(135deg, #0A2540 0%, #163B5F 100%)',
-          color: 'white',
-          border: 'none',
-          marginBottom: '2rem',
-          position: 'relative',
-          overflow: 'hidden',
+          background: '#ffffff',
+          border: '1px solid #e2e8f0',
+          borderRadius: '12px',
+          padding: '1.25rem 1.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1.25rem',
+          marginBottom: '1rem',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
+        {/* Large Initials Avatar */}
+        <div
+          style={{
+            width: '56px',
+            height: '56px',
+            borderRadius: '50%',
+            background: '#dbeafe',
+            color: '#1d4ed8',
+            fontSize: '1.25rem',
+            fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          {initials}
+        </div>
+
+        {/* Identity Details */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
+              {displayName}
+            </span>
+            <span
+              style={{
+                background: '#eff6ff',
+                color: '#2563eb',
+                padding: '2px 8px',
+                borderRadius: '999px',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+              }}
+            >
+              Student
+            </span>
+            <span
+              style={{
+                background: '#ecfdf5',
+                color: '#059669',
+                padding: '2px 8px',
+                borderRadius: '999px',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              <CheckCircle2 size={12} />
+              <span>Verified student</span>
+            </span>
+          </div>
+
+          <div style={{ fontSize: '0.825rem', color: '#64748b', marginTop: '3px' }}>
+            {user?.email || '2025120692@dau.ac.in'}
+          </div>
+
           <div
             style={{
-              width: '80px',
-              height: '80px',
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, var(--accent) 0%, #0ea5e9 100%)',
+              fontSize: '0.775rem',
+              color: '#94a3b8',
+              marginTop: '4px',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '2rem',
-              fontWeight: 700,
-              color: 'white',
-              boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
+              gap: '6px',
+              flexWrap: 'wrap',
             }}
           >
-            {user?.profile?.name ? user.profile.name[0].toUpperCase() : user?.email?.[0].toUpperCase()}
+            <span>{program || 'MSc IT'}</span>
+            <span>·</span>
+            <span>{year || 'Sem 3'}</span>
+            <span>·</span>
+            <span>{reviewsCount > 0 ? `${rating.toFixed(1)} ★ (${reviewsCount} reviews)` : 'No reviews yet'}</span>
+            <span>·</span>
+            <span>Eco level 1</span>
           </div>
+        </div>
+      </div>
 
-          <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-              <h1 style={{ fontSize: '1.75rem', fontWeight: 800 }}>
-                {user?.profile?.name || 'Campus Student'}
-              </h1>
-              <span className="role-pill">{user?.role || 'Student'}</span>
-              <span
+      {/* ── 4 Quick Navigation Cards Row ─────────────────────────────────────── */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: '0.75rem',
+          marginBottom: '1.25rem',
+        }}
+      >
+        {/* Card 1: My listings */}
+        <div
+          onClick={() => navigate('/my-listings')}
+          style={{
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderRadius: '10px',
+            padding: '12px 14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            cursor: 'pointer',
+            transition: 'border-color 0.15s ease',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#10b981')}
+          onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#e2e8f0')}
+        >
+          <Tag size={16} color="#64748b" />
+          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#0f172a' }}>
+            My listings
+          </span>
+        </div>
+
+        {/* Card 2: Transactions */}
+        <div
+          onClick={() => navigate('/transactions')}
+          style={{
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderRadius: '10px',
+            padding: '12px 14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            cursor: 'pointer',
+            transition: 'border-color 0.15s ease',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#10b981')}
+          onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#e2e8f0')}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <ArrowLeftRight size={16} color="#64748b" />
+            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#0f172a' }}>
+              Transactions
+            </span>
+          </div>
+          <span
+            style={{
+              background: '#f1f5f9',
+              color: '#334155',
+              padding: '1px 6px',
+              borderRadius: '999px',
+              fontSize: '0.725rem',
+              fontWeight: 700,
+            }}
+          >
+            {txCount}
+          </span>
+        </div>
+
+        {/* Card 3: Rentals */}
+        <div
+          onClick={() => navigate('/rentals')}
+          style={{
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderRadius: '10px',
+            padding: '12px 14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            cursor: 'pointer',
+            transition: 'border-color 0.15s ease',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#10b981')}
+          onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#e2e8f0')}
+        >
+          <Package size={16} color="#64748b" />
+          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#0f172a' }}>
+            Rentals
+          </span>
+        </div>
+
+        {/* Card 4: Wishlist */}
+        <div
+          onClick={() => navigate('/wishlist')}
+          style={{
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderRadius: '10px',
+            padding: '12px 14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            cursor: 'pointer',
+            transition: 'border-color 0.15s ease',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#10b981')}
+          onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#e2e8f0')}
+        >
+          <Heart size={16} color="#64748b" />
+          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#0f172a' }}>
+            Wishlist
+          </span>
+        </div>
+      </div>
+
+      {/* ── Main Details & Preferences Form Card ─────────────────────────────── */}
+      <form
+        onSubmit={handleUpdate}
+        style={{
+          background: '#ffffff',
+          border: '1px solid #e2e8f0',
+          borderRadius: '12px',
+          padding: '1.5rem',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+        }}
+      >
+        {/* Section 1: Academic details */}
+        <div style={{ marginBottom: '1.75rem' }}>
+          <h2
+            style={{
+              fontSize: '0.95rem',
+              fontWeight: 700,
+              color: '#0f172a',
+              margin: '0 0 1rem 0',
+            }}
+          >
+            Academic details
+          </h2>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '1rem',
+              marginBottom: '1rem',
+            }}
+          >
+            <div>
+              <label
                 style={{
-                  background: 'rgba(32, 201, 151, 0.15)',
-                  color: 'var(--accent)',
-                  padding: '0.2rem 0.6rem',
-                  borderRadius: 'var(--radius-full)',
-                  fontSize: '0.75rem',
+                  display: 'block',
+                  fontSize: '0.8rem',
                   fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.3rem',
+                  color: '#475569',
+                  marginBottom: '6px',
                 }}
               >
-                <ShieldCheck size={14} /> Verified Student
-              </span>
-            </div>
-
-            <p style={{ color: '#94A3B8', fontSize: '0.925rem', marginTop: '0.35rem' }}>
-              {user?.email}
-            </p>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginTop: '0.85rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <Star size={16} fill="#F59E0B" color="#F59E0B" />
-                <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>
-                  {rating.toFixed(1)}
-                </span>
-                <span style={{ color: '#94A3B8', fontSize: '0.85rem' }}>
-                  ({reviewsCount} {reviewsCount === 1 ? 'review' : 'reviews'})
-                </span>
-              </div>
-
-              {user?.profile?.program && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#CBD5E1', fontSize: '0.85rem' }}>
-                  <BookOpen size={15} />
-                  <span>{user.profile.program}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Campus Activity & Order Tracking Hub ────────────────────────────── */}
-      <div className="card" style={{ marginBottom: '2rem', padding: '1.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '8px' }}>
-          <div>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <ShoppingBag size={20} color="var(--primary)" />
-              My Campus Activity & Orders
-            </h2>
-            <p style={{ margin: '4px 0 0 0', fontSize: '0.875rem', color: '#64748b' }}>
-              Track all your active listings, purchases, exchange proposals, giveaways, and rentals
-            </p>
-          </div>
-          <Link
-            to="/marketplace/create"
-            className="btn btn-primary"
-            style={{ fontSize: '0.85rem', padding: '0.45rem 0.9rem' }}
-          >
-            + New Listing
-          </Link>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
-          {/* Card 1: My Listings */}
-          <div
-            onClick={() => navigate('/my-listings')}
-            style={{
-              border: '1px solid #e2e8f0',
-              borderRadius: '12px',
-              padding: '1.2rem',
-              cursor: 'pointer',
-              background: '#ffffff',
-              transition: 'all 0.2s ease',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = '#3b82f6';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.1)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = '#e2e8f0';
-              e.currentTarget.style.boxShadow = 'none';
-            }}
-          >
-            <div>
-              <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.75rem', color: '#1d4ed8' }}>
-                <Package size={22} />
-              </div>
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 4px 0', color: '#0f172a' }}>
-                My Posted Listings
-              </h3>
-              <p style={{ fontSize: '0.825rem', color: '#64748b', margin: 0, lineHeight: 1.4 }}>
-                View and manage items you listed to sell, rent out, trade, or giveaway on campus.
-              </p>
-            </div>
-            <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', fontSize: '0.85rem', fontWeight: 600, color: '#1d4ed8' }}>
-              Manage My Listings <ChevronRight size={16} />
-            </div>
-          </div>
-
-          {/* Card 2: Purchases, Exchanges & Free Claims */}
-          <div
-            onClick={() => navigate('/rentals', { state: { tab: 'Transactions' } })}
-            style={{
-              border: '1px solid #e2e8f0',
-              borderRadius: '12px',
-              padding: '1.2rem',
-              cursor: 'pointer',
-              background: '#ffffff',
-              transition: 'all 0.2s ease',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = '#8b5cf6';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(139, 92, 246, 0.1)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = '#e2e8f0';
-              e.currentTarget.style.boxShadow = 'none';
-            }}
-          >
-            <div>
-              <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#f5f3ff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.75rem', color: '#6b21a8' }}>
-                <ArrowLeftRight size={22} />
-              </div>
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 4px 0', color: '#0f172a' }}>
-                Purchases & Exchanges
-              </h3>
-              <p style={{ fontSize: '0.825rem', color: '#64748b', margin: 0, lineHeight: 1.4 }}>
-                Track bought items, barter proposals, giveaway claims, and 6-digit Meetup PINs.
-              </p>
-            </div>
-            <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', fontSize: '0.85rem', fontWeight: 600, color: '#6b21a8' }}>
-              View Transactions <ChevronRight size={16} />
-            </div>
-          </div>
-
-          {/* Card 3: Rentals & Borrows */}
-          <div
-            onClick={() => navigate('/rentals', { state: { tab: 'Active Rentals' } })}
-            style={{
-              border: '1px solid #e2e8f0',
-              borderRadius: '12px',
-              padding: '1.2rem',
-              cursor: 'pointer',
-              background: '#ffffff',
-              transition: 'all 0.2s ease',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = '#10b981';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.1)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = '#e2e8f0';
-              e.currentTarget.style.boxShadow = 'none';
-            }}
-          >
-            <div>
-              <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.75rem', color: '#166534' }}>
-                <Repeat size={22} />
-              </div>
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 4px 0', color: '#0f172a' }}>
-                Active Rentals
-              </h3>
-              <p style={{ fontSize: '0.825rem', color: '#64748b', margin: 0, lineHeight: 1.4 }}>
-                Track equipment and books you've rented, return due dates, and lender handovers.
-              </p>
-            </div>
-            <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', fontSize: '0.85rem', fontWeight: 600, color: '#166534' }}>
-              Track Rentals <ChevronRight size={16} />
-            </div>
-          </div>
-
-          {/* Card 4: Saved Wishlist */}
-          <div
-            onClick={() => navigate('/wishlist')}
-            style={{
-              border: '1px solid #e2e8f0',
-              borderRadius: '12px',
-              padding: '1.2rem',
-              cursor: 'pointer',
-              background: '#ffffff',
-              transition: 'all 0.2s ease',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = '#ef4444';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.1)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = '#e2e8f0';
-              e.currentTarget.style.boxShadow = 'none';
-            }}
-          >
-            <div>
-              <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.75rem', color: '#dc2626' }}>
-                <Heart size={22} />
-              </div>
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 4px 0', color: '#0f172a' }}>
-                Saved Wishlist
-              </h3>
-              <p style={{ fontSize: '0.825rem', color: '#64748b', margin: 0, lineHeight: 1.4 }}>
-                Quickly access listings you've bookmarked to check availability or purchase later.
-              </p>
-            </div>
-            <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', fontSize: '0.85rem', fontWeight: 600, color: '#dc2626' }}>
-              Open Wishlist <ChevronRight size={16} />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Profile Form Card */}
-      <div className="card">
-        <div className="card-header">
-          <div>
-            <h2 className="card-title">
-              <User size={20} color="var(--primary)" />
-              Academic Profile &amp; Settings
-            </h2>
-            <p className="card-description">
-              Manage your academic credentials and how counterparties contact you on campus
-            </p>
-          </div>
-        </div>
-
-        {feedback && (
-          <div className={`alert ${feedback.type === 'success' ? 'alert-success' : 'alert-danger'}`}>
-            {feedback.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
-            <span>{feedback.text}</span>
-          </div>
-        )}
-
-        <form onSubmit={handleUpdate}>
-          <div className="form-group">
-            <label className="form-label">Full Name</label>
-            <input
-              type="text"
-              className="form-input"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Alex Johnson"
-            />
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
-            <div className="form-group">
-              <label className="form-label">Program / Branch</label>
+                Full name
+              </label>
               <input
                 type="text"
-                className="form-input"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid #e2e8f0',
+                  fontSize: '0.875rem',
+                  color: '#0f172a',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  color: '#475569',
+                  marginBottom: '6px',
+                }}
+              >
+                Program
+              </label>
+              <input
+                type="text"
                 value={program}
                 onChange={(e) => setProgram(e.target.value)}
-                placeholder="e.g. M.Sc. (Information Technology)"
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Semester / Year</label>
-              <input
-                type="text"
-                className="form-input"
-                value={year}
-                onChange={(e) => setYear(e.target.value)}
-                placeholder="e.g. Semester 3"
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid #e2e8f0',
+                  fontSize: '0.875rem',
+                  color: '#0f172a',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
               />
             </div>
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Contact / Handover Preferences</label>
+          <div style={{ width: '50%', paddingRight: '0.5rem', boxSizing: 'border-box' }}>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                color: '#475569',
+                marginBottom: '6px',
+              }}
+            >
+              Semester
+            </label>
             <input
               type="text"
-              className="form-input"
-              value={contactPreferences}
-              onChange={(e) => setContactPreferences(e.target.value)}
-              placeholder="e.g. Campus Library, IT Dept Foyer, or WhatsApp: +91 98765 43210"
+              value={year}
+              onChange={(e) => setYear(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: '1px solid #e2e8f0',
+                fontSize: '0.875rem',
+                color: '#0f172a',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
             />
-            <div className="form-helper">
-              Shared with verified students when coordinating item exchange or rental handover.
-            </div>
+          </div>
+        </div>
+
+        {/* Section 2: Handover preferences */}
+        <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1.25rem', marginBottom: '1.5rem' }}>
+          <h2
+            style={{
+              fontSize: '0.95rem',
+              fontWeight: 700,
+              color: '#0f172a',
+              margin: '0 0 4px 0',
+            }}
+          >
+            Handover preferences
+          </h2>
+          <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '0 0 1rem 0' }}>
+            Meetup spots you are happy to use. Shown to students you trade with.
+          </p>
+
+          {/* Spots Pill Selector */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
+            {availableSpots.map((spot) => {
+              const isSelected = selectedSpots.includes(spot);
+              return (
+                <button
+                  key={spot}
+                  type="button"
+                  onClick={() => toggleSpot(spot)}
+                  style={{
+                    background: isSelected ? '#0f172a' : '#ffffff',
+                    color: isSelected ? '#ffffff' : '#334155',
+                    border: isSelected ? '1px solid #0f172a' : '1px solid #cbd5e1',
+                    borderRadius: '999px',
+                    padding: '6px 14px',
+                    fontSize: '0.8rem',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  {spot}
+                </button>
+              );
+            })}
+
+            {isAddingSpot ? (
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <input
+                  type="text"
+                  placeholder="New spot name"
+                  value={newSpotInput}
+                  onChange={(e) => setNewSpotInput(e.target.value)}
+                  autoFocus
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: '999px',
+                    border: '1px solid #10b981',
+                    fontSize: '0.8rem',
+                    outline: 'none',
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={handleAddSpot}
+                  style={{
+                    background: '#10b981',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '999px',
+                    padding: '4px 10px',
+                    fontSize: '0.75rem',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                  }}
+                >
+                  Add
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsAddingSpot(false)}
+                  style={{
+                    background: 'transparent',
+                    color: '#64748b',
+                    border: 'none',
+                    fontSize: '0.75rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsAddingSpot(true)}
+                style={{
+                  background: '#ffffff',
+                  color: '#64748b',
+                  border: '1px dashed #cbd5e1',
+                  borderRadius: '999px',
+                  padding: '6px 14px',
+                  fontSize: '0.8rem',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                <Plus size={13} />
+                <span>Add spot</span>
+              </button>
+            )}
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
-            <button
-              type="submit"
-              disabled={saving}
-              className="btn btn-primary"
+          {/* WhatsApp Number Toggle Row */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingTop: '0.5rem',
+            }}
+          >
+            <span style={{ fontSize: '0.85rem', color: '#334155' }}>
+              Share my WhatsApp number with students in an active deal
+            </span>
+
+            {/* Custom Toggle Switch */}
+            <label
+              style={{
+                position: 'relative',
+                display: 'inline-block',
+                width: '40px',
+                height: '22px',
+                cursor: 'pointer',
+              }}
             >
-              {saving ? 'Saving Changes...' : 'Save Profile Details'}
-            </button>
+              <input
+                type="checkbox"
+                checked={shareWhatsApp}
+                onChange={(e) => setShareWhatsApp(e.target.checked)}
+                style={{ opacity: 0, width: 0, height: 0 }}
+              />
+              <span
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: shareWhatsApp ? '#10b981' : '#cbd5e1',
+                  borderRadius: '22px',
+                  transition: '0.2s',
+                }}
+              >
+                <span
+                  style={{
+                    position: 'absolute',
+                    content: '""',
+                    height: '16px',
+                    width: '16px',
+                    left: shareWhatsApp ? '20px' : '3px',
+                    bottom: '3px',
+                    backgroundColor: 'white',
+                    borderRadius: '50%',
+                    transition: '0.2s',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                  }}
+                />
+              </span>
+            </label>
           </div>
-        </form>
-      </div>
+        </div>
+
+        {/* ── Action Buttons ─────────────────────────────────────────────────── */}
+        <div
+          style={{
+            borderTop: '1px solid #f1f5f9',
+            paddingTop: '1rem',
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: '10px',
+          }}
+        >
+          <button
+            type="button"
+            onClick={handleDiscard}
+            style={{
+              background: '#ffffff',
+              border: '1px solid #e2e8f0',
+              borderRadius: '8px',
+              padding: '8px 18px',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              color: '#475569',
+              cursor: 'pointer',
+            }}
+          >
+            Discard
+          </button>
+
+          <button
+            type="submit"
+            disabled={saving}
+            style={{
+              background: '#10b981',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '8px 20px',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              color: '#ffffff',
+              cursor: saving ? 'not-allowed' : 'pointer',
+              opacity: saving ? 0.7 : 1,
+            }}
+          >
+            {saving ? 'Saving...' : 'Save changes'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
