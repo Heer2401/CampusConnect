@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { wishlistApi } from '../api/wishlistApi';
 import { useWishlist } from '../context/WishlistContext';
+import { Heart, X, Image as ImageIcon } from 'lucide-react';
 
 export const WishlistPage = () => {
   const [items, setItems] = useState([]);
@@ -83,7 +84,9 @@ export const WishlistPage = () => {
 
       {items.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: '60px 20px' }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>❤️</div>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
+            <Heart size={44} color="#ef4444" fill="#fee2e2" />
+          </div>
           <h2>Your Wishlist is Empty</h2>
           <p className="muted" style={{ maxWidth: 440, margin: '8px auto 20px' }}>
             Find textbooks, lab gear, calculators or furniture in the campus marketplace and click the heart icon to save them here!
@@ -149,7 +152,7 @@ export const WishlistPage = () => {
                     color: '#ef4444'
                   }}
                 >
-                  ✕
+                  <X size={14} />
                 </button>
 
                 <Link
@@ -160,7 +163,9 @@ export const WishlistPage = () => {
                     {imgUrl ? (
                       <img src={imgUrl} alt={listing.title} loading="lazy" />
                     ) : (
-                      <span>📷 Photo</span>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        <ImageIcon size={16} /> Photo
+                      </span>
                     )}
                     {isUnavailable && (
                       <span

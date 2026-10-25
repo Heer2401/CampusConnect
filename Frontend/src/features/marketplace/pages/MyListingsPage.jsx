@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { listingsApi } from '../api/listingsApi';
 import { StatusBadge } from '../components/StatusBadge';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { Package, Image as ImageIcon, Eye } from 'lucide-react';
 import '../marketplace.css';
 
 export const MyListingsPage = () => {
@@ -87,7 +88,9 @@ export const MyListingsPage = () => {
         </div>
       ) : listings.length === 0 ? (
         <div className="card" style={{ padding: 50, textAlign: 'center' }}>
-          <div style={{ fontSize: 36, marginBottom: 8 }}>📭</div>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
+            <Package size={36} color="#94a3b8" />
+          </div>
           <h2>No listings found</h2>
           <p className="muted" style={{ marginBottom: 16 }}>
             {statusFilter ? `You have no listings with status "${statusFilter}".` : 'You have not created any listings yet.'}
@@ -134,7 +137,9 @@ export const MyListingsPage = () => {
                               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                             />
                           ) : (
-                            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>📷</span>
+                            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#94a3b8' }}>
+                              <ImageIcon size={20} />
+                            </span>
                           )}
                         </div>
                         <div>
@@ -156,7 +161,11 @@ export const MyListingsPage = () => {
                       {item.listingType === 'giveaway' && 'Free'}
                     </td>
                     <td><StatusBadge status={item.status} /></td>
-                    <td>👁️ {item.viewCount || 0}</td>
+                    <td>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <Eye size={13} color="#64748b" /> {item.viewCount || 0}
+                      </span>
+                    </td>
                     <td className="muted">{new Date(item.createdAt).toLocaleDateString()}</td>
                     <td style={{ paddingRight: 20, textAlign: 'right' }}>
                       <div style={{ display: 'inline-flex', gap: 8 }}>

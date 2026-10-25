@@ -1,4 +1,5 @@
 import React from 'react';
+import { Package } from 'lucide-react';
 import { ListingCard } from './ListingCard';
 
 export const ListingGrid = ({ listings = [], loading = false, error = null, onRetry, gridClass = 'grid3' }) => {
@@ -32,7 +33,9 @@ export const ListingGrid = ({ listings = [], loading = false, error = null, onRe
   if (!listings || listings.length === 0) {
     return (
       <div className="card" style={{ textAlign: 'center', padding: '50px 20px' }}>
-        <div style={{ fontSize: 36, marginBottom: 8 }}>📦</div>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
+          <Package size={36} color="#94a3b8" />
+        </div>
         <h2>No listings found</h2>
         <p className="muted">Try adjusting your filters or search keywords, or post a new listing!</p>
       </div>

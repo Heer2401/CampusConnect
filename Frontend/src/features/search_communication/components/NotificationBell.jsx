@@ -1,20 +1,41 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../context/NotificationContext';
+import {
+  Bell,
+  MessageSquare,
+  ShoppingBag,
+  Package,
+  CheckCircle2,
+  XCircle,
+  Sparkles,
+  Tag,
+  CreditCard,
+} from 'lucide-react';
 
-const NOTIF_ICONS = {
-  chat_message: '💬',
-  order: '🛒',
-  rental: '📦',
-  rental_reminder: '📦',
-  listing_approved: '✅',
-  listing_rejected: '✗',
-  match_found: '✨',
-  price_alert: '🏷',
-  transaction_update: '💳',
-};
-
-const getNotificationIcon = (type) => NOTIF_ICONS[type] || '🔔';
+function renderNotifIcon(type) {
+  switch (type) {
+    case 'chat_message':
+      return <MessageSquare size={16} color="#2563eb" />;
+    case 'order':
+      return <ShoppingBag size={16} color="#16a34a" />;
+    case 'rental':
+    case 'rental_reminder':
+      return <Package size={16} color="#d97706" />;
+    case 'listing_approved':
+      return <CheckCircle2 size={16} color="#16a34a" />;
+    case 'listing_rejected':
+      return <XCircle size={16} color="#dc2626" />;
+    case 'match_found':
+      return <Sparkles size={16} color="#8b5cf6" />;
+    case 'price_alert':
+      return <Tag size={16} color="#ea580c" />;
+    case 'transaction_update':
+      return <CreditCard size={16} color="#2563eb" />;
+    default:
+      return <Bell size={16} color="#64748b" />;
+  }
+}
 
 
 const formatTimeAgo = (dateStr) => {
@@ -170,7 +191,9 @@ export const NotificationBell = () => {
               </div>
             ) : notifications.length === 0 ? (
               <div style={{ padding: '40px 20px', textAlign: 'center', color: '#64748b' }}>
-                <div style={{ fontSize: 32, marginBottom: 8 }}>🔔</div>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
+                  <Bell size={28} color="#94a3b8" />
+                </div>
                 <div style={{ fontWeight: 600, fontSize: 14 }}>No notifications yet</div>
                 <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
                   You'll be alerted here for chat messages, rental updates, and saved listings.
@@ -191,8 +214,8 @@ export const NotificationBell = () => {
                     transition: 'background 0.15s ease'
                   }}
                 >
-                  <div style={{ fontSize: 20, flexShrink: 0, marginTop: 2 }}>
-                    {getNotificationIcon(notif.type)}
+                  <div style={{ flexShrink: 0, marginTop: 2 }}>
+                    {renderNotifIcon(notif.type)}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
