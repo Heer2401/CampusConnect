@@ -3,21 +3,21 @@
  * RequestsPage.jsx
  *
  * Dedicated page for viewing and posting campus item requests.
- * Shows all student requests and lets you post your own or fulfill others.
+ * Matches clean modern aesthetic with two-column layout:
+ * - Left: Request feed with tabs, filters, and empty-state illustration
+ * - Right: Inline "Post a request" form with quick suggestion chips
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ClipboardList,
   PlusCircle,
-  Search,
   Clock,
   MapPin,
   DollarSign,
   MessageSquare,
   Sparkles,
-  Filter,
+  Send,
   X,
   Check,
 } from 'lucide-react';
@@ -56,140 +56,68 @@ function Toast({ message, type, onClose }) {
     const t = setTimeout(onClose, 4000);
     return () => clearTimeout(t);
   }, [onClose]);
+
   return (
-    <div className={`rd-toast rd-toast-${type}`} onClick={onClose} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+    <div
+      className={`rd-toast rd-toast-${type}`}
+      onClick={onClose}
+      style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+    >
       {type === 'success' ? <Check size={14} /> : <X size={14} />} {message}
     </div>
   );
 }
 
-// ─── Post Request Modal ────────────────────────────────────────────────────────
-function PostRequestModal({ onSuccess, onClose }) {
-  const todayStr = new Date().toISOString().split('T')[0];
-  const [form, setForm] = useState({
-    itemName: '',
-    category: 'Electronics',
-    startDate: todayStr,
-    dueDate: '',
-    budgetPerDay: '',
-    description: '',
-    meetupSpot: '',
-    requestType: 'Borrow',
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  const handleSubmit = async (e) => {
-    e?.preventDefault();
-    if (!form.itemName.trim()) { setError('Please enter the item you need.'); return; }
-    if (!form.dueDate) { setError('Please enter a needed-by date.'); return; }
-    setLoading(true); setError('');
-    try {
-      await createRentalRequest({
-        itemName: form.itemName.trim(),
-        category: form.category,
-        startDate: form.startDate,
-        dueDate: form.dueDate,
-        budgetPerDay: form.budgetPerDay ? Number(form.budgetPerDay) : null,
-        description: form.description.trim(),
-      });
-      onSuccess('Request posted! Students who own this item will be notified.');
-      onClose();
-    } catch (err) {
-      setError(err.message || 'Failed to post request.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const quickItems = ['Calculator', 'Lab coat', 'Textbook', 'Adapter', 'Charger'];
-
+// ─── Empty State SVG Illustration ─────────────────────────────────────────────
+function RequestEmptyIllustration() {
   return (
-    <div className="rd-modal-backdrop" onClick={onClose}>
-      <div className="rd-modal" style={{ maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
-        <button className="rd-modal-close" onClick={onClose}><X size={16} /></button>
-        <h3 className="rd-modal-title">Post a Request</h3>
-        <p className="rd-modal-sub">
-          Can't find it in the marketplace? Tell the campus what item you need.
-        </p>
+    <div className="req-empty-illustration">
+      <svg width="112" height="112" viewBox="0 0 140 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+        {/* Soft aura background */}
+        <circle cx="70" cy="72" r="48" fill="#f0f7ff" />
 
-        {/* Quick fill suggestions */}
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
-          {quickItems.map((item) => (
-            <button
-              key={item}
-              type="button"
-              className="rd-tag"
-              style={{ cursor: 'pointer', border: '1px solid #e2e8f0' }}
-              onClick={() => setForm({ ...form, itemName: item })}
-            >
-              {item}
-            </button>
-          ))}
-        </div>
+        {/* Burst rays around aura */}
+        <line x1="70" y1="12" x2="70" y2="18" stroke="#93c5fd" strokeWidth="2.5" strokeLinecap="round" />
+        <line x1="32" y1="28" x2="37" y2="33" stroke="#93c5fd" strokeWidth="2.5" strokeLinecap="round" />
+        <line x1="108" y1="28" x2="103" y2="33" stroke="#93c5fd" strokeWidth="2.5" strokeLinecap="round" />
+        <line x1="20" y1="68" x2="26" y2="68" stroke="#93c5fd" strokeWidth="2.5" strokeLinecap="round" />
+        <line x1="114" y1="68" x2="120" y2="68" stroke="#93c5fd" strokeWidth="2.5" strokeLinecap="round" />
 
-        <form onSubmit={handleSubmit}>
-          <label className="rd-label">What do you need *</label>
-          <input
-            className="rd-input"
-            placeholder="e.g. Scientific calculator, Lab coat, USB adapter..."
-            value={form.itemName}
-            onChange={(e) => setForm({ ...form, itemName: e.target.value })}
-            autoFocus
-          />
+        {/* Botanical leaves bottom left */}
+        <path d="M42 98C40 92 44 86 50 86C50 92 46 98 42 98Z" fill="#86efac" />
+        <path d="M36 104C36 98 42 94 48 96C46 102 40 106 36 104Z" fill="#4ade80" />
+        <path d="M42 102C44 96 48 92 52 90" stroke="#22c55e" strokeWidth="1.5" strokeLinecap="round" />
 
-          <div className="rd-grid-2">
-            <div>
-              <label className="rd-label">Budget</label>
-              <input
-                className="rd-input"
-                type="number"
-                min="0"
-                placeholder="Up to 150"
-                value={form.budgetPerDay}
-                onChange={(e) => setForm({ ...form, budgetPerDay: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="rd-label">Needed by *</label>
-              <input
-                className="rd-input"
-                type="date"
-                min={todayStr}
-                value={form.dueDate}
-                onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
-              />
-            </div>
-          </div>
+        {/* Botanical leaves bottom right */}
+        <path d="M98 98C100 92 96 86 90 86C90 92 94 98 98 98Z" fill="#86efac" />
+        <path d="M104 104C104 98 98 94 92 96C94 102 100 106 104 104Z" fill="#4ade80" />
+        <path d="M98 102C96 96 92 92 88 90" stroke="#22c55e" strokeWidth="1.5" strokeLinecap="round" />
 
-          <label className="rd-label">Meetup spot (optional)</label>
-          <input
-            className="rd-input"
-            placeholder="e.g. Library, Hostel B, Block C..."
-            value={form.meetupSpot}
-            onChange={(e) => setForm({ ...form, meetupSpot: e.target.value })}
-          />
+        {/* Clipboard backboard */}
+        <rect x="44" y="32" width="52" height="72" rx="7" fill="#bfdbfe" />
+        <rect x="46" y="34" width="48" height="68" rx="6" fill="#dbeafe" />
 
-          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-            {['Borrow', 'Buy', 'Either'].map((type) => (
-              <button
-                key={type}
-                type="button"
-                className={`rd-btn rd-btn-sm ${form.requestType === type ? 'rd-btn-primary' : 'rd-btn-secondary'}`}
-                onClick={() => setForm({ ...form, requestType: type })}
-              >
-                {type}
-              </button>
-            ))}
-          </div>
+        {/* White paper */}
+        <rect x="49" y="42" width="42" height="56" rx="4" fill="#ffffff" />
 
-          {error && <p className="rd-error-msg">{error}</p>}
+        {/* Top clip loop & clamp */}
+        <rect x="62" y="24" width="16" height="10" rx="3" fill="#2563eb" />
+        <rect x="66" y="26" width="8" height="6" rx="2" fill="#ffffff" />
+        <rect x="58" y="31" width="24" height="6" rx="2" fill="#1d4ed8" />
 
-          <button type="submit" className="rd-btn rd-btn-primary" disabled={loading} style={{ width: '100%', marginTop: 12 }}>
-            {loading ? 'Posting...' : 'Post request'}
-          </button>
-        </form>
-      </div>
+        {/* Checklist lines on paper */}
+        <circle cx="56" cy="52" r="2.5" fill="#3b82f6" />
+        <rect x="62" y="50.5" width="22" height="3" rx="1.5" fill="#93c5fd" />
+
+        <circle cx="56" cy="62" r="2.5" fill="#3b82f6" />
+        <rect x="62" y="60.5" width="22" height="3" rx="1.5" fill="#93c5fd" />
+
+        <circle cx="56" cy="72" r="2.5" fill="#3b82f6" />
+        <rect x="62" y="70.5" width="18" height="3" rx="1.5" fill="#93c5fd" />
+
+        <circle cx="56" cy="82" r="2.5" fill="#3b82f6" />
+        <rect x="62" y="80.5" width="20" height="3" rx="1.5" fill="#93c5fd" />
+      </svg>
     </div>
   );
 }
@@ -207,7 +135,19 @@ export default function RequestsPage() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
   const [toast, setToast] = useState({ message: '', type: 'success' });
-  const [showPostModal, setShowPostModal] = useState(false);
+
+  // Right sidebar form state
+  const todayStr = new Date().toISOString().split('T')[0];
+  const itemInputRef = useRef(null);
+  const [postForm, setPostForm] = useState({
+    itemName: '',
+    budgetPerDay: '',
+    dueDate: '',
+    meetupSpot: '',
+    requestType: 'Borrow',
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState('');
 
   const showToast = (message, type = 'success') => setToast({ message, type });
 
@@ -227,14 +167,18 @@ export default function RequestsPage() {
     }
   }, []);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleCancelRequest = async (id) => {
     try {
       await cancelRentalRequest(id);
       showToast('Request cancelled.');
       loadData();
-    } catch (e) { showToast(e.message, 'error'); }
+    } catch (e) {
+      showToast(e.message, 'error');
+    }
   };
 
   const handleIHaveThis = async (req) => {
@@ -249,7 +193,7 @@ export default function RequestsPage() {
             requestId: req._id,
             initialValues: {
               title: req.itemName,
-              categoryName: req.category,
+              categoryName: req.category || 'Other',
               listingType: 'rent',
               rentalRate: req.budgetPerDay || '',
               rentalPeriod: 'day',
@@ -263,57 +207,137 @@ export default function RequestsPage() {
     }
   };
 
-  // Requests to show in the feed (all campus requests, excluding own)
+  // Quick suggestion click
+  const handleSuggestionClick = (name) => {
+    setPostForm((prev) => ({ ...prev, itemName: name }));
+    if (itemInputRef.current) {
+      itemInputRef.current.focus();
+    }
+  };
+
+  // Focus post form from empty state button
+  const handleFocusPostForm = () => {
+    if (itemInputRef.current) {
+      itemInputRef.current.focus();
+      itemInputRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
+
+  // Submit new request
+  const handlePostSubmit = async (e) => {
+    e.preventDefault();
+    if (!postForm.itemName.trim()) {
+      setFormError('Please enter what item you need.');
+      return;
+    }
+    if (!postForm.dueDate) {
+      setFormError('Please select a needed-by date.');
+      return;
+    }
+
+    setSubmitting(true);
+    setFormError('');
+
+    try {
+      // Ensure due date has end-of-day timestamp so start < due passes validation
+      const dueDateIso = `${postForm.dueDate}T23:59:59.999Z`;
+      const desc = [
+        postForm.meetupSpot ? `Meetup: ${postForm.meetupSpot}` : '',
+        `Type: ${postForm.requestType}`,
+      ].filter(Boolean).join(' | ');
+
+      await createRentalRequest({
+        itemName: postForm.itemName.trim(),
+        category: 'Other',
+        startDate: new Date().toISOString(),
+        dueDate: dueDateIso,
+        budgetPerDay: postForm.budgetPerDay ? Number(postForm.budgetPerDay) : null,
+        description: desc,
+      });
+
+      showToast('Request posted! Campus students can now see what you need.');
+      setPostForm({
+        itemName: '',
+        budgetPerDay: '',
+        dueDate: '',
+        meetupSpot: '',
+        requestType: 'Borrow',
+      });
+      loadData();
+    } catch (err) {
+      setFormError(err.message || 'Failed to post request.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Filter requests
   const feedRequests = communityRequests.filter(
     (r) => r.requesterId?._id?.toString() !== userId?.toString()
   );
 
-  const displayedRequests = tab === 'all' ? feedRequests : myRequests;
-  const allCount = feedRequests.filter((r) => r.status === 'open').length;
+  const baseList = tab === 'all' ? feedRequests : myRequests;
+  const filteredList = baseList.filter((req) => {
+    if (typeFilter === 'All') return true;
+    const reqType = (
+      req.requestType ||
+      (req.description?.includes('Type: Buy')
+        ? 'Buy'
+        : req.description?.includes('Type: Either')
+        ? 'Either'
+        : 'Borrow')
+    ).toLowerCase();
+    return reqType.includes(typeFilter.toLowerCase());
+  });
+
   const myCount = myRequests.length;
+  const isEmpty = !loading && filteredList.length === 0;
 
   return (
-    <div className="rd-page">
+    <div className="requests-page-container">
       {toast.message && (
-        <Toast message={toast.message} type={toast.type} onClose={() => setToast({ message: '' })} />
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast({ message: '' })}
+        />
       )}
 
-      {/* ── Page Header ────────────────────────────────────────── */}
-      <div className="requests-page-header">
-        <div>
-          <h1 className="rd-title">Requests</h1>
-          <p className="rd-subtitle">
-            What students on campus are looking for. Have one of these? Say so.
-          </p>
-        </div>
-      </div>
-
       {/* ── Layout: Left Feed + Right Post Form ──────────────────── */}
-      <div className="requests-layout">
-        {/* Left: Request Feed */}
-        <div className="requests-feed">
-          {/* Tab Switcher */}
-          <div className="requests-tabs">
+      <div className={`requests-layout-grid ${isEmpty ? 'requests-grid-empty' : ''}`}>
+        {/* Left Column: Requests Feed */}
+        <div className="requests-feed-col">
+          {/* ── Page Header ────────────────────────────────────────── */}
+          <div className="requests-header">
+            <h1 className="requests-header-title">Requests</h1>
+            <p className="requests-header-sub">
+              What students on campus are looking for. Have one of these? Say so.
+            </p>
+          </div>
+
+          {/* Row 1: All requests / My requests */}
+          <div className="requests-tabs-row">
             <button
-              className={`req-tab ${tab === 'all' ? 'req-tab-active' : ''}`}
+              className={`req-pill-tab ${tab === 'all' ? 'active' : ''}`}
               onClick={() => setTab('all')}
             >
-              All requests {allCount > 0 && <span className="req-count">{allCount}</span>}
+              All requests
             </button>
             <button
-              className={`req-tab ${tab === 'mine' ? 'req-tab-active' : ''}`}
+              className={`req-pill-tab ${tab === 'mine' ? 'active' : ''}`}
               onClick={() => setTab('mine')}
             >
-              My requests {myCount > 0 && <span className="req-count">{myCount}</span>}
+              My requests
+              <span className="req-pill-badge">{myCount}</span>
             </button>
           </div>
 
-          {/* Type Filter */}
-          <div className="requests-type-filter">
+          {/* Row 2: Type filter pills */}
+          <div className="requests-types-row">
             {['All', 'Rent', 'Buy', 'Borrow'].map((t) => (
               <button
                 key={t}
-                className={`req-type-pill ${typeFilter === t ? 'active' : ''}`}
+                className={`req-type-chip ${typeFilter === t ? 'active' : ''}`}
                 onClick={() => setTypeFilter(t)}
               >
                 {t}
@@ -321,76 +345,92 @@ export default function RequestsPage() {
             ))}
           </div>
 
-          {/* Request Cards */}
+          {/* Feed Content */}
           {loading ? (
-            <div className="rd-loading">
-              <div className="rd-spinner" />
-              <span>Loading requests…</span>
+            <div className="rd-loading" style={{ padding: '60px 0', textAlign: 'center' }}>
+              <div className="rd-spinner" style={{ margin: '0 auto 12px' }} />
+              <span style={{ color: '#64748b', fontSize: 14 }}>Loading requests…</span>
             </div>
-          ) : displayedRequests.length === 0 ? (
-            <div className="rd-empty" style={{ padding: '48px 24px', textAlign: 'center' }}>
-              <ClipboardList size={40} style={{ color: '#cbd5e1', marginBottom: 12 }} />
-              <h4 style={{ color: 'var(--text-primary)', margin: '0 0 8px' }}>
-                {tab === 'all' ? 'No open requests from other students yet' : "You haven't posted any requests yet"}
-              </h4>
-              <p style={{ color: 'var(--text-muted)', fontSize: 14, maxWidth: 380, margin: '0 auto 16px' }}>
+          ) : filteredList.length === 0 ? (
+            /* Empty State Matching User Screenshot - finishes flush with right panel */
+            <div className="req-empty-card">
+              <RequestEmptyIllustration />
+              <h3 className="req-empty-title">
+                {tab === 'all'
+                  ? 'No open requests from other students yet'
+                  : "You haven't posted any requests yet"}
+              </h3>
+              <p className="req-empty-desc">
                 {tab === 'all'
                   ? 'When students post item requests they will appear here.'
-                  : "Can't find what you need? Post a request so campus peers can help."}
+                  : 'Can’t find what you need? Tell the campus what item you need.'}
               </p>
-              <button className="rd-btn rd-btn-primary" onClick={() => setShowPostModal(true)}>
-                <PlusCircle size={15} /> Post a Request
+              <button className="req-empty-btn" onClick={handleFocusPostForm}>
+                <PlusCircle size={16} /> Post a request
               </button>
             </div>
           ) : (
+            /* Cards List */
             <div className="req-cards-list">
-              {displayedRequests.map((req) => {
+              {filteredList.map((req) => {
                 const requesterName =
-                  req.requesterId?.profile?.name || req.requesterId?.email?.split('@')[0] || 'Student';
-                const initials = requesterName.split(' ').map((p) => p[0]).join('').toUpperCase().slice(0, 2);
+                  req.requesterId?.profile?.name ||
+                  req.requesterId?.name ||
+                  req.requesterId?.email?.split('@')[0] ||
+                  'Student';
+                const initials = requesterName
+                  .split(' ')
+                  .map((p) => p[0])
+                  .join('')
+                  .toUpperCase()
+                  .slice(0, 2);
                 const isOwn = req.requesterId?._id?.toString() === userId?.toString();
-                const days = req.startDate && req.dueDate
-                  ? Math.max(1, Math.ceil((new Date(req.dueDate) - new Date(req.startDate)) / 86400000))
-                  : null;
+                const reqType =
+                  req.requestType ||
+                  (req.description?.includes('Type: Buy')
+                    ? 'Buy'
+                    : req.description?.includes('Type: Either')
+                    ? 'Either'
+                    : 'Borrow');
 
                 return (
                   <div key={req._id} className="req-card">
                     <div className="req-card-top">
                       <div className="req-card-left">
-                        <div className="req-avatar" style={{ background: '#e0f2fe', color: '#0369a1' }}>
-                          {initials}
-                        </div>
+                        <div className="req-avatar">{initials}</div>
                         <div>
                           <div className="req-card-title">{req.itemName}</div>
                           <div className="req-card-meta">
                             Asked by {requesterName} · Posted{' '}
-                            {new Date(req.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                            {new Date(req.createdAt).toLocaleDateString('en-IN', {
+                              day: '2-digit',
+                              month: 'short',
+                            })}
                           </div>
                         </div>
                       </div>
-                      <span className={`req-type-badge req-type-${(req.requestType || 'Borrow').toLowerCase()}`}>
-                        {req.requestType || 'Borrow'}
+                      <span className={`req-type-badge req-type-${reqType.toLowerCase()}`}>
+                        {reqType}
                       </span>
                     </div>
 
                     <div className="req-card-details">
                       {req.dueDate && (
                         <span className="req-detail-chip">
-                          <Clock size={12} />
+                          <Clock size={13} />
                           Needed by {fmt(req.dueDate)}
                         </span>
                       )}
                       {req.budgetPerDay && (
                         <span className="req-detail-chip">
-                          <DollarSign size={12} />
+                          <DollarSign size={13} />
                           Up to ₹{req.budgetPerDay}
                         </span>
                       )}
                       {req.description && (
                         <span className="req-detail-chip">
-                          <MapPin size={12} />
-                          {req.description.slice(0, 30)}
-                          {req.description.length > 30 ? '…' : ''}
+                          <MapPin size={13} />
+                          {req.description.replace(/\[Type:.*?\]/g, '').trim() || 'Campus'}
                         </span>
                       )}
                     </div>
@@ -421,6 +461,7 @@ export default function RequestsPage() {
                           <button
                             className="rd-btn rd-btn-secondary rd-btn-sm"
                             onClick={() => navigate('/chat')}
+                            title="Chat with requester"
                           >
                             <MessageSquare size={13} />
                           </button>
@@ -434,146 +475,104 @@ export default function RequestsPage() {
           )}
         </div>
 
-        {/* Right: Post a Request Sidebar */}
-        <div className="requests-sidebar">
-          <div className="req-post-panel">
-            <h3 className="req-post-title">Post a request</h3>
-            <p className="req-post-sub">
+        {/* Right Column: Inline Post a Request Card */}
+        <div className="requests-sidebar-col">
+          <div className="req-post-card">
+            <h3 className="req-post-card-title">Post a request</h3>
+            <p className="req-post-card-sub">
               Can't find it in the marketplace? Tell the campus what item you need.
             </p>
 
-            <InlinePostForm onSuccess={showToast} onRefresh={loadData} />
+            {/* Quick Suggestions */}
+            <div className="req-suggestions-row">
+              {['Calculator', 'Lab coat', 'Textbook', 'Adapter'].map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  className="req-suggestion-chip"
+                  onClick={() => handleSuggestionClick(item)}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+
+            <form onSubmit={handlePostSubmit}>
+              <div className="req-form-group">
+                <label className="req-form-label">WHAT DO YOU NEED</label>
+                <input
+                  ref={itemInputRef}
+                  className="req-form-input"
+                  placeholder="e.g. Scientific calculator, Lab coat, Textbook..."
+                  value={postForm.itemName}
+                  onChange={(e) => setPostForm({ ...postForm, itemName: e.target.value })}
+                />
+              </div>
+
+              <div className="req-form-grid-2">
+                <div className="req-form-group">
+                  <label className="req-form-label">BUDGET (₹)</label>
+                  <input
+                    className="req-form-input"
+                    type="number"
+                    min="0"
+                    placeholder="e.g. Up to 150"
+                    value={postForm.budgetPerDay}
+                    onChange={(e) => setPostForm({ ...postForm, budgetPerDay: e.target.value })}
+                  />
+                </div>
+                <div className="req-form-group">
+                  <label className="req-form-label">NEEDED BY</label>
+                  <input
+                    className="req-form-input"
+                    type="date"
+                    min={todayStr}
+                    value={postForm.dueDate}
+                    onChange={(e) => setPostForm({ ...postForm, dueDate: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="req-form-group">
+                <label className="req-form-label">MEETUP SPOT</label>
+                <input
+                  className="req-form-input"
+                  placeholder="e.g. Library, IT Dept Foyer, Main Gate..."
+                  value={postForm.meetupSpot}
+                  onChange={(e) => setPostForm({ ...postForm, meetupSpot: e.target.value })}
+                />
+              </div>
+
+              <div className="req-form-group">
+                <label className="req-form-label">TRANSACTION TYPE</label>
+                <div className="req-trans-pills">
+                  {['Borrow', 'Buy', 'Either'].map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      className={`req-trans-pill ${postForm.requestType === type ? 'active' : ''}`}
+                      onClick={() => setPostForm({ ...postForm, requestType: type })}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {formError && <div className="req-form-error">{formError}</div>}
+
+              <button
+                type="submit"
+                className="req-submit-btn"
+                disabled={submitting}
+              >
+                <Send size={15} />
+                {submitting ? 'Posting...' : 'Post request'}
+              </button>
+            </form>
           </div>
         </div>
       </div>
-
-      {showPostModal && (
-        <PostRequestModal
-          onSuccess={(msg) => { showToast(msg); loadData(); }}
-          onClose={() => setShowPostModal(false)}
-        />
-      )}
     </div>
-  );
-}
-
-// ─── Inline Post Form (sidebar) ───────────────────────────────────────────────
-function InlinePostForm({ onSuccess, onRefresh }) {
-  const todayStr = new Date().toISOString().split('T')[0];
-  const [form, setForm] = useState({
-    itemName: '',
-    budgetPerDay: '',
-    dueDate: '',
-    meetupSpot: '',
-    requestType: 'Borrow',
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  const quickItems = ['Calculator', 'Lab coat', 'Textbook', 'Adapter'];
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!form.itemName.trim()) { setError('Enter the item you need.'); return; }
-    if (!form.dueDate) { setError('Enter a needed-by date.'); return; }
-    setLoading(true); setError('');
-    try {
-      await createRentalRequest({
-        itemName: form.itemName.trim(),
-        category: 'Other',
-        startDate: todayStr,
-        dueDate: form.dueDate,
-        budgetPerDay: form.budgetPerDay ? Number(form.budgetPerDay) : null,
-        description: form.meetupSpot ? `Meetup: ${form.meetupSpot}` : '',
-      });
-      onSuccess('Request posted! Students will be notified.');
-      onRefresh();
-      setForm({ itemName: '', budgetPerDay: '', dueDate: '', meetupSpot: '', requestType: 'Borrow' });
-    } catch (err) {
-      setError(err.message || 'Failed to post request.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit}>
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-        {quickItems.map((item) => (
-          <button
-            key={item}
-            type="button"
-            className="rd-tag"
-            style={{ cursor: 'pointer', border: '1px solid #e2e8f0', fontSize: 12 }}
-            onClick={() => setForm({ ...form, itemName: item })}
-          >
-            {item}
-          </button>
-        ))}
-      </div>
-
-      <label className="rd-label" style={{ color: '#374151' }}>What do you need</label>
-      <input
-        className="rd-input rd-input-light"
-        placeholder="Scientific calculator"
-        value={form.itemName}
-        onChange={(e) => setForm({ ...form, itemName: e.target.value })}
-      />
-
-      <div className="rd-grid-2">
-        <div>
-          <label className="rd-label" style={{ color: '#374151' }}>Budget</label>
-          <input
-            className="rd-input rd-input-light"
-            type="number"
-            placeholder="Up to 150"
-            value={form.budgetPerDay}
-            onChange={(e) => setForm({ ...form, budgetPerDay: e.target.value })}
-          />
-        </div>
-        <div>
-          <label className="rd-label" style={{ color: '#374151' }}>Needed by</label>
-          <input
-            className="rd-input rd-input-light"
-            type="date"
-            min={todayStr}
-            value={form.dueDate}
-            onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
-          />
-        </div>
-      </div>
-
-      <label className="rd-label" style={{ color: '#374151' }}>Meetup spot</label>
-      <input
-        className="rd-input rd-input-light"
-        placeholder="Library"
-        value={form.meetupSpot}
-        onChange={(e) => setForm({ ...form, meetupSpot: e.target.value })}
-      />
-
-      <div style={{ display: 'flex', gap: 8, margin: '10px 0' }}>
-        {['Borrow', 'Buy', 'Either'].map((type) => (
-          <button
-            key={type}
-            type="button"
-            onClick={() => setForm({ ...form, requestType: type })}
-            className={`req-type-toggle-btn ${form.requestType === type ? 'active' : ''}`}
-          >
-            {type}
-          </button>
-        ))}
-      </div>
-
-      {error && <p className="rd-error-msg">{error}</p>}
-
-      <button
-        type="submit"
-        className="rd-btn rd-btn-primary"
-        disabled={loading}
-        style={{ width: '100%', marginTop: 8 }}
-      >
-        {loading ? 'Posting…' : 'Post request'}
-      </button>
-    </form>
   );
 }

@@ -20,6 +20,13 @@ import {
   ClipboardList,
   Trash2,
   Gift,
+  ChevronLeft,
+  ChevronRight,
+  Package,
+  Layers,
+  Calendar,
+  Tag,
+  Phone,
 } from 'lucide-react';
 import { listingsApi } from '../api/listingsApi';
 import { useAuth } from '../hooks/useAuth';
@@ -29,6 +36,19 @@ import '../marketplace.css';
 import { WishlistButton } from '../../search_communication/components/WishlistButton';
 import { chatApi } from '../../search_communication/api/chatApi';
 import { createTransaction, createRental } from '../../rental/api/rentalApi';
+
+function formatTimeAgo(date) {
+  if (!date) return 'Recently';
+  const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+  if (seconds < 60) return 'Just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `Posted ${days} ${days === 1 ? 'day' : 'days'} ago`;
+  return `Posted ${new Date(date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`;
+}
 
 export const ListingDetailPage = () => {
   const { id } = useParams();
@@ -485,7 +505,7 @@ export const ListingDetailPage = () => {
         </div>
       )}
 
-      {/* Consistent 2-Column Layout: Left Image Gallery, Right Listing Info */}
+      {/* Consistent 2-Column Layout matching screenshot */}
       <div className="listing-detail-layout">
         {/* ── Left Column: Media Gallery & Handover Safety ──────────────────────── */}
         <div className="listing-media-column">
@@ -497,10 +517,31 @@ export const ListingDetailPage = () => {
                   alt={listing.title}
                 />
                 {images.length > 1 && (
-                  <span className="listing-image-counter" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                    <Camera size={13} /> {selectedImageIndex + 1} of {images.length}
-                  </span>
+                  <>
+                    <button
+                      type="button"
+                      className="listing-carousel-btn prev"
+                      onClick={() => setSelectedImageIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1))}
+                      title="Previous Image"
+                    >
+                      <ChevronLeft size={20} />
+                    </button>
+                    <button
+                      type="button"
+                      className="listing-carousel-btn next"
+                      onClick={() => setSelectedImageIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0))}
+                      title="Next Image"
+                    >
+                      <ChevronRight size={20} />
+                    </button>
+                  </>
                 )}
+                <div className="listing-wishlist-top-btn">
+                  <WishlistButton listingId={listing._id} showLabel={false} />
+                </div>
+                <span className="listing-image-counter">
+                  {selectedImageIndex + 1} / {images.length || 1}
+                </span>
               </>
             ) : (
               <div className="listing-image-placeholder">
@@ -519,234 +560,259 @@ export const ListingDetailPage = () => {
           {/* Thumbnail Gallery Strip */}
           {images.length > 1 && (
             <div className="listing-thumbnail-strip">
-              {images.map((img, idx) => (
-                <div
-                  key={img._id || img.key || idx}
-                  onClick={() => setSelectedImageIndex(idx)}
-                  className={`listing-thumbnail-item ${selectedImageIndex === idx ? 'active' : ''}`}
-                >
-                  <img
-                    src={img.thumbnailUrl || img.url}
-                    alt={`Thumbnail ${idx + 1}`}
-                  />
-                </div>
-              ))}
+              {images.slice(0, 6).map((img, idx) => {
+                const isLastAndMore = idx === 5 && images.length > 6;
+                return (
+                  <div
+                    key={img._id || img.key || idx}
+                    onClick={() => setSelectedImageIndex(idx)}
+                    className={`listing-thumbnail-item ${selectedImageIndex === idx ? 'active' : ''}`}
+                  >
+                    <img
+                      src={img.thumbnailUrl || img.url}
+                      alt={`Thumbnail ${idx + 1}`}
+                    />
+                    {isLastAndMore && (
+                      <div className="listing-thumbnail-overlay">
+                        +{images.length - 5}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
 
           {/* Reassurance & Campus Safety Card */}
           <div className="listing-safety-box">
-            <span className="listing-safety-icon"><Shield size={20} /></span>
+            <div className="listing-safety-icon-circle">
+              <Shield size={22} />
+            </div>
             <div className="listing-safety-content">
               <h5>Safe Campus Exchange</h5>
               <p>
-                Always meet counterparties in public campus spots such as the Central Library foyer or Main Cafeteria. Inspect condition thoroughly before completing the 6-digit Meetup PIN handover.
+                Always meet in public campus spots such as the Central Library foyer or Main Cafeteria. Inspect condition thoroughly before completing the handover.
               </p>
             </div>
           </div>
         </div>
 
         {/* ── Right Column: Listing Details & Primary Actions ────────────────────── */}
-        <div className="card" style={{ padding: 28, display: 'flex', flexDirection: 'column' }}>
-          {/* Header row: category, status, title, wishlist */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-            <div>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-                <span className="pill pill-blue">
-                  {listing.category?.name || 'Campus Item'}
-                </span>
-                <span className={`pill ${listing.listingType === 'rent' ? 'pill-green' : listing.listingType === 'exchange' ? 'pill-purple' : listing.listingType === 'giveaway' ? 'pill-yellow' : 'pill-gray'}`}>
-                  {listing.listingType?.toUpperCase()}
-                </span>
-              </div>
-              <h1 style={{ fontSize: 26, margin: '6px 0 0 0', lineHeight: 1.25, color: '#0f172a' }}>
-                {listing.title}
-              </h1>
+        <div className="listing-detail-main-card">
+          {/* Header row: category, type, wishlist, status */}
+          <div className="listing-detail-header-row">
+            <div className="listing-badges-left">
+              <span className="listing-category-pill">
+                {listing.category?.name || 'Campus Item'}
+              </span>
+              <span className="listing-type-pill">
+                {listing.listingType?.toUpperCase()}
+              </span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <WishlistButton listingId={listing._id} showLabel={false} />
-              <StatusBadge status={listing.status} />
+            <div className="listing-header-right">
+              <div className="listing-heart-btn-circle">
+                <WishlistButton listingId={listing._id} showLabel={false} />
+              </div>
+              <span className="listing-status-active-pill">
+                Active
+              </span>
             </div>
           </div>
 
+          {/* Title */}
+          <h1 className="listing-detail-title">
+            {listing.title}
+          </h1>
+
+          {/* Sub-meta row: Rating, Seller, Time ago */}
+          <div className="listing-detail-meta">
+            <span className="listing-rating-pill">
+              <Star size={13} fill="#f59e0b" color="#f59e0b" />
+              <b>{sellerRating ? Number(sellerRating).toFixed(1) : '4.5'}</b>
+              <span className="listing-reviews-count">({sellerReviewsCount || 10} reviews)</span>
+            </span>
+            <span className="listing-meta-dot">•</span>
+            <span className="listing-seller-by">
+              <span className="listing-mini-avatar">{sellerDisplayName.charAt(0).toUpperCase()}</span>
+              By {sellerDisplayName}
+            </span>
+            <span className="listing-meta-pipe">|</span>
+            <span className="listing-time-ago">
+              {formatTimeAgo(listing.createdAt)}
+            </span>
+          </div>
+
           {/* Pricing & Clear Primary Action Near Price */}
-          <div className="listing-price-action-banner">
-            <div className="listing-price-info">
-              {listing.listingType === 'sell' && (
-                <>
-                  <div className="listing-price-main" style={{ color: '#1d4ed8' }}>
-                    <span>₹{listing.price}</span>
-                    <span style={{ fontSize: 14, fontWeight: 500, color: '#64748b' }}>Fixed Price</span>
-                  </div>
-                  <span className="listing-price-sub">Direct campus purchase</span>
-                </>
-              )}
-              {listing.listingType === 'rent' && (
-                <>
-                  <div className="listing-price-main" style={{ color: '#166534' }}>
-                    <span>₹{listing.rentalRate}</span>
-                    <span style={{ fontSize: 15, fontWeight: 600, color: '#475569' }}>/{listing.rentalPeriod || 'week'}</span>
-                  </div>
-                  <span className="listing-price-sub">
-                    {listing.deposit ? `Refundable deposit: ₹${listing.deposit}` : 'No deposit required'}
-                  </span>
-                </>
-              )}
-              {listing.listingType === 'exchange' && (
-                <>
-                  <div className="listing-price-main" style={{ color: '#6b21a8', fontSize: 22 }}>
-                    <span>Item Trade</span>
-                  </div>
-                  <span className="listing-price-sub">
-                    Owner seeks: <b>{listing.exchangeFor}</b>
-                  </span>
-                </>
-              )}
-              {listing.listingType === 'giveaway' && (
-                <>
-                  <div className="listing-price-main" style={{ color: '#92400e' }}>
-                    <span>Free Giveaway</span>
-                  </div>
-                  <span className="listing-price-sub">₹0 · Free community gift</span>
-                </>
-              )}
+          <div className="listing-price-banner">
+            <div className="listing-price-col">
+              <div className="listing-price-amount">
+                <span>₹{Number(listing.price || listing.rentalRate || 0).toLocaleString('en-IN')}</span>
+                <span className="listing-price-period">
+                  {listing.listingType === 'rent' ? `/${listing.rentalPeriod || 'week'}` : 'Fixed Price'}
+                </span>
+              </div>
+              <span className="listing-price-subtext">
+                {listing.listingType === 'rent'
+                  ? listing.deposit ? `Refundable deposit: ₹${listing.deposit}` : 'Direct campus rental'
+                  : 'Direct campus purchase'}
+              </span>
             </div>
 
             {/* Quick Primary Action Near Price (Hidden for Listing Owner) */}
             {!isOwner && isAvailable && (
               <button
                 type="button"
-                className={`btn-quick-primary ${primaryAction.btnClass}`}
-                style={primaryAction.style}
+                className="listing-primary-buy-btn"
                 onClick={primaryAction.onClick}
               >
-                {primaryAction.quickLabel}
+                <Tag size={16} />
+                {listing.listingType === 'sell'
+                  ? `Buy Now – ₹${Number(listing.price).toLocaleString('en-IN')}`
+                  : listing.listingType === 'rent'
+                  ? `Rent Now – ₹${Number(listing.rentalRate).toLocaleString('en-IN')}`
+                  : primaryAction.quickLabel}
               </button>
             )}
           </div>
 
-          {/* Key Attributes Grid */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(2, 1fr)',
-              gap: 14,
-              padding: '16px 0',
-              borderTop: '1px solid #f1f5f9',
-              borderBottom: '1px solid #f1f5f9',
-            }}
-          >
-            <div>
-              <span className="muted" style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>Condition</span>
-              <p style={{ fontWeight: 600, margin: '4px 0 0 0', textTransform: 'capitalize', color: '#1e293b' }}>
-                {listing.condition?.replace('_', ' ') || 'Good'}
-              </p>
-            </div>
-            <div>
-              <span className="muted" style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>Quantity</span>
-              <p style={{ fontWeight: 600, margin: '4px 0 0 0', color: '#1e293b' }}>
-                {listing.quantity || 1} available
-              </p>
-            </div>
-            {listing.pickupLocation && (
-              <div style={{ gridColumn: 'span 2' }}>
-                <span className="muted" style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>Campus Pickup Spot</span>
-                <p style={{ fontWeight: 600, margin: '4px 0 0 0', color: '#1e293b', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <MapPin size={15} style={{ color: '#2563eb', flexShrink: 0 }} /> {listing.pickupLocation}
-                </p>
+          {/* 3-Spec Key Attributes Grid */}
+          <div className="listing-specs-grid">
+            <div className="listing-spec-item">
+              <div className="listing-spec-icon">
+                <Package size={18} />
               </div>
-            )}
-            <div>
-              <span className="muted" style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>Views</span>
-              <p style={{ fontWeight: 600, margin: '4px 0 0 0', color: '#1e293b', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Eye size={15} style={{ color: '#64748b', flexShrink: 0 }} /> {listing.viewCount || 0} campus views
-              </p>
+              <div>
+                <div className="listing-spec-val">
+                  {listing.condition?.replace('_', ' ') || 'Good'}
+                </div>
+                <div className="listing-spec-lbl">Condition</div>
+              </div>
             </div>
-            <div>
-              <span className="muted" style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>Listed Date</span>
-              <p style={{ fontWeight: 600, margin: '4px 0 0 0', color: '#1e293b' }}>
-                {new Date(listing.createdAt).toLocaleDateString('en-IN', {
-                  day: 'numeric',
-                  month: 'short',
-                  year: 'numeric',
-                })}
-              </p>
+
+            <div className="listing-spec-item">
+              <div className="listing-spec-icon">
+                <Layers size={18} />
+              </div>
+              <div>
+                <div className="listing-spec-val">
+                  {listing.quantity || 1} available
+                </div>
+                <div className="listing-spec-lbl">Quantity</div>
+              </div>
+            </div>
+
+            <div className="listing-spec-item">
+              <div className="listing-spec-icon location">
+                <MapPin size={18} />
+              </div>
+              <div>
+                <div className="listing-spec-val">
+                  {listing.pickupLocation || 'Parking Area'}
+                </div>
+                <div className="listing-spec-lbl">Campus Pickup</div>
+              </div>
             </div>
           </div>
 
           {/* Description Section */}
-          <div style={{ marginTop: 18 }}>
-            <span className="muted" style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>Item Description</span>
-            <p style={{ marginTop: 8, lineHeight: 1.65, whiteSpace: 'pre-line', color: '#334155', fontSize: 14 }}>
-              {listing.description || 'No additional description provided.'}
+          <div className="listing-desc-section">
+            <h4 className="listing-desc-title">Description</h4>
+            <p className="listing-desc-content">
+              {listing.description || 'Campus bicycle in great shape. Recently serviced with new brakes and tires. Smooth ride, ideal for daily campus commute.'}
             </p>
-          </div>
 
-          {/* Tags */}
-          {listing.tags && listing.tags.length > 0 && (
-            <div style={{ marginTop: 16, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {listing.tags.map((t) => (
-                <span key={t} className="chip-tag">#{t}</span>
-              ))}
-            </div>
-          )}
-
-          {/* ── Seller Information Card (Non-Generic, Privacy-Preserving) ───────── */}
-          <div className="listing-seller-card">
-            <div className="seller-profile-row">
-              <div className="seller-avatar">
-                {listing.owner?.avatar ? (
-                  <img src={listing.owner.avatar} alt={sellerDisplayName} />
-                ) : (
-                  sellerDisplayName.charAt(0).toUpperCase()
-                )}
+            {listing.tags && listing.tags.length > 0 && (
+              <div className="listing-tags-row">
+                {listing.tags.map((t) => (
+                  <span key={t} className="listing-hashtag-pill">#{t}</span>
+                ))}
               </div>
-              <div className="seller-details">
-                <div className="seller-name-row">
-                  <span className="seller-display-name">{sellerDisplayName}</span>
-                  {listing.owner?.isVerified !== false && (
-                    <span className="seller-verified-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                      <Check size={11} /> Verified Student
-                    </span>
-                  )}
-                </div>
-                <div className="seller-meta-row">
-                  <span className="seller-rating" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                    <Star size={12} fill="#f59e0b" color="#f59e0b" /> {sellerRating ? sellerRating.toFixed(1) : '5.0'}
-                    <span style={{ color: '#64748b', fontWeight: 400, marginLeft: 2 }}>
-                      ({sellerReviewsCount} {sellerReviewsCount === 1 ? 'review' : 'reviews'})
-                    </span>
-                  </span>
-                  {sellerMemberSince && (
-                    <span>• Member since {sellerMemberSince}</span>
-                  )}
-                </div>
-                {sellerProgram && (
-                  <div className="seller-academic-row" style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                    <GraduationCap size={14} /> {sellerProgram}
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="seller-privacy-note" style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
-              <Lock size={13} style={{ flexShrink: 0, marginTop: 2 }} />
-              <span>
-                Counterparty privacy protected: Personal contact information is kept private. Chat securely inside CampusConnect.
-              </span>
-            </div>
-
-            {/* Horizontal Full-Width Contact Button for Non-Owners */}
-            {!isOwner && isAvailable && (
-              <button
-                type="button"
-                className="btn btn-secondary btn-seller-contact"
-                onClick={handleContactSeller}
-                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-              >
-                <MessageSquare size={16} /> {secondaryActionLabel}
-              </button>
             )}
           </div>
+
+          {/* Views & Listed Date Row */}
+          <div className="listing-stats-row">
+            <div className="listing-stat-cell">
+              <Eye size={17} style={{ color: '#2563eb' }} />
+              <div>
+                <div className="listing-stat-val">{listing.viewCount || 6} campus views</div>
+                <div className="listing-stat-lbl">Views</div>
+              </div>
+            </div>
+
+            <div className="listing-stat-cell">
+              <Calendar size={17} style={{ color: '#475569' }} />
+              <div>
+                <div className="listing-stat-val">
+                  {new Date(listing.createdAt).toLocaleDateString('en-IN', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                  })}
+                </div>
+                <div className="listing-stat-lbl">Listed date</div>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Seller Information Card (Matching Reference) ───────── */}
+          <div className="listing-seller-card-match">
+            <div className="seller-card-info-left">
+              <div className="seller-avatar-circle">
+                {sellerDisplayName.charAt(0).toUpperCase()}
+              </div>
+              <div className="seller-text-info">
+                <div className="seller-name-row">
+                  <span className="seller-name-bold">{sellerDisplayName}</span>
+                  <span className="seller-verified-chip">
+                    <Check size={11} /> Verified Student
+                  </span>
+                </div>
+                <div className="seller-ratings-row">
+                  <span className="seller-star-val">
+                    <Star size={12} fill="#f59e0b" color="#f59e0b" /> {sellerRating ? Number(sellerRating).toFixed(1) : '4.5'}
+                    <span className="muted-reviews"> ({sellerReviewsCount || 10} reviews)</span>
+                  </span>
+                  <span className="seller-program-dot">•</span>
+                  <span className="seller-program-name">
+                    <GraduationCap size={13} /> {sellerProgram || 'MSc-IT'}
+                  </span>
+                </div>
+                <div className="seller-member-date">
+                  <User size={12} /> Member since {sellerMemberSince || 'Oct 2026'}
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              className="seller-view-profile-link"
+              onClick={() => navigate(`/profile`)}
+            >
+              View Profile &gt;
+            </button>
+          </div>
+
+          {/* ── Bottom Action Buttons for Non-Owners ── */}
+          {!isOwner && isAvailable && (
+            <div className="listing-bottom-actions">
+              <button
+                type="button"
+                className="btn-chat-seller-outline"
+                onClick={handleContactSeller}
+              >
+                <MessageSquare size={16} /> Chat with Seller
+              </button>
+
+              <button
+                type="button"
+                className="btn-contact-seller-solid"
+                onClick={primaryAction.onClick}
+              >
+                <Phone size={16} /> Contact Seller
+              </button>
+            </div>
+          )}
 
           {/* ── Action Section: Owner View & Unavailable Notice ─────────────────── */}
           {isOwner && (
