@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   Tag,
@@ -8,15 +8,27 @@ import {
   Heart,
   CheckCircle2,
   Plus,
-  Star,
+  X,
+  Mail,
+  GraduationCap,
+  Calendar,
+  Leaf,
+  Edit3,
+  User,
+  BookOpen,
+  MapPin,
+  ShieldCheck,
+  Save,
+  ChevronDown,
 } from 'lucide-react';
 import { getMyTransactions } from '../features/rental/api/rentalApi';
 
 export default function ProfilePage() {
   const { user, updateProfile } = useAuth();
   const navigate = useNavigate();
+  const nameInputRef = useRef(null);
 
-  const [name, setName] = useState(user?.profile?.name || 'Dev Barot');
+  const [name, setName] = useState(user?.profile?.name || 'Dev');
   const [program, setProgram] = useState(user?.profile?.program || 'MSc IT');
   const [year, setYear] = useState(user?.profile?.year || 'Sem 3');
   const [contactPreferences, setContactPreferences] = useState(
@@ -33,9 +45,8 @@ export default function ProfilePage() {
   const [selectedSpots, setSelectedSpots] = useState(['Library']);
   const [isAddingSpot, setIsAddingSpot] = useState(false);
   const [newSpotInput, setNewSpotInput] = useState('');
-  const [shareWhatsApp, setShareWhatsApp] = useState(false);
 
-  const [txCount, setTxCount] = useState(4);
+  const [txCount, setTxCount] = useState(3);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState(null);
 
@@ -75,6 +86,12 @@ export default function ProfilePage() {
     }
   };
 
+  const removeSpot = (e, spot) => {
+    e.stopPropagation();
+    setSelectedSpots(selectedSpots.filter((s) => s !== spot));
+    setAvailableSpots(availableSpots.filter((s) => s !== spot));
+  };
+
   const handleAddSpot = (e) => {
     e.preventDefault();
     const trimmed = newSpotInput.trim();
@@ -87,11 +104,18 @@ export default function ProfilePage() {
   };
 
   const handleDiscard = () => {
-    setName(user?.profile?.name || 'Dev Barot');
+    setName(user?.profile?.name || 'Dev');
     setProgram(user?.profile?.program || 'MSc IT');
     setYear(user?.profile?.year || 'Sem 3');
     setSelectedSpots(['Library']);
     setFeedback(null);
+  };
+
+  const handleFocusEdit = () => {
+    if (nameInputRef.current) {
+      nameInputRef.current.focus();
+      nameInputRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
   };
 
   const handleUpdate = async (e) => {
@@ -100,9 +124,9 @@ export default function ProfilePage() {
     setFeedback(null);
 
     try {
-      const compiledPreferences = `Spots: ${selectedSpots.join(', ')}; WhatsApp: ${
-        shareWhatsApp ? 'Yes' : 'No'
-      }${contactPreferences ? `; Note: ${contactPreferences}` : ''}`;
+      const compiledPreferences = `Spots: ${selectedSpots.join(', ')}${
+        contactPreferences ? `; Note: ${contactPreferences}` : ''
+      }`;
 
       await updateProfile({
         name,
@@ -111,6 +135,7 @@ export default function ProfilePage() {
         contactPreferences: compiledPreferences,
       });
       setFeedback({ type: 'success', text: 'Profile updated successfully' });
+      setTimeout(() => setFeedback(null), 3500);
     } catch (err) {
       setFeedback({ type: 'error', text: err.message || 'Failed to update profile' });
     } finally {
@@ -119,41 +144,20 @@ export default function ProfilePage() {
   };
 
   // Helper for initials
-  const displayName = name || user?.profile?.name || user?.email?.split('@')[0] || 'Dev Barot';
-  const initials = displayName
-    .split(/\s+/)
-    .map((p) => p[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase() || 'DB';
-
-  const reviewsCount = user?.reputation?.reviewsCount || 0;
-  const rating = user?.reputation?.rating || 0;
+  const displayName = name || user?.profile?.name || user?.email?.split('@')[0] || 'Dev';
+  const initial = displayName.trim().charAt(0).toUpperCase() || 'D';
+  const userEmail = user?.email || '2025120691@dau.ac.in';
 
   return (
-    <div
-      style={{
-        maxWidth: '920px',
-        margin: '0 auto',
-        padding: '1.5rem 1rem 3rem',
-        boxSizing: 'border-box',
-      }}
-    >
+    <div className="profile-page">
       {/* ── Page Header ──────────────────────────────────────────────────────── */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h1
-          style={{
-            fontSize: '1.65rem',
-            fontWeight: 800,
-            color: '#0f172a',
-            margin: '0 0 4px 0',
-          }}
-        >
-          Profile
-        </h1>
-        <p style={{ color: '#64748b', fontSize: '0.875rem', margin: 0 }}>
-          Your campus identity and handover preferences.
-        </p>
+      <div className="profile-header-container">
+        <div>
+          <h1 className="profile-header-title">Profile</h1>
+          <p className="profile-header-subtitle">
+            Your campus identity and handover preferences.
+          </p>
+        </div>
       </div>
 
       {feedback && (
@@ -162,10 +166,10 @@ export default function ProfilePage() {
             background: feedback.type === 'success' ? '#ecfdf5' : '#fee2e2',
             color: feedback.type === 'success' ? '#065f46' : '#991b1b',
             border: `1px solid ${feedback.type === 'success' ? '#a7f3d0' : '#fecaca'}`,
-            padding: '10px 14px',
-            borderRadius: '8px',
-            marginBottom: '1.25rem',
-            fontSize: '0.85rem',
+            padding: '10px 16px',
+            borderRadius: '10px',
+            marginBottom: '20px',
+            fontSize: '13.5px',
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
@@ -176,417 +180,206 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* ── Top Profile Card ─────────────────────────────────────────────────── */}
-      <div
-        style={{
-          background: '#ffffff',
-          border: '1px solid #e2e8f0',
-          borderRadius: '12px',
-          padding: '1.25rem 1.5rem',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '1.25rem',
-          marginBottom: '1rem',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-        }}
-      >
-        {/* Large Initials Avatar */}
-        <div
-          style={{
-            width: '56px',
-            height: '56px',
-            borderRadius: '50%',
-            background: '#dbeafe',
-            color: '#1d4ed8',
-            fontSize: '1.25rem',
-            fontWeight: 700,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}
+      {/* ── Top Profile Hero Card ────────────────────────────────────────────── */}
+      <div className="profile-hero-card">
+        <div className="profile-hero-left">
+          {/* Avatar Circle */}
+          <div className="profile-hero-avatar">{initial}</div>
+
+          {/* Identity Details */}
+          <div>
+            <div className="profile-hero-name-row">
+              <span className="profile-hero-name">{displayName}</span>
+              <span className="profile-pill-role">Student</span>
+              <span className="profile-pill-verified">
+                <CheckCircle2 size={13} />
+                <span>Verified student</span>
+              </span>
+            </div>
+
+            <div className="profile-hero-meta-row">
+              <span className="profile-meta-item">
+                <Mail size={13} color="#64748b" />
+                <span>{userEmail}</span>
+              </span>
+              <span className="profile-meta-dot">·</span>
+              <span className="profile-meta-item">
+                <GraduationCap size={13} color="#64748b" />
+                <span>{program}</span>
+              </span>
+              <span className="profile-meta-dot">·</span>
+              <span className="profile-meta-item">
+                <Calendar size={13} color="#64748b" />
+                <span>{year}</span>
+              </span>
+              <span className="profile-meta-dot">·</span>
+              <span className="profile-meta-item" style={{ color: '#16a34a' }}>
+                <Leaf size={13} color="#16a34a" />
+                <span>Eco level 1</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Edit profile button */}
+        <button
+          type="button"
+          onClick={handleFocusEdit}
+          className="profile-edit-btn"
         >
-          {initials}
-        </div>
-
-        {/* Identity Details */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
-              {displayName}
-            </span>
-            <span
-              style={{
-                background: '#eff6ff',
-                color: '#2563eb',
-                padding: '2px 8px',
-                borderRadius: '999px',
-                fontSize: '0.75rem',
-                fontWeight: 600,
-              }}
-            >
-              Student
-            </span>
-            <span
-              style={{
-                background: '#ecfdf5',
-                color: '#059669',
-                padding: '2px 8px',
-                borderRadius: '999px',
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-              }}
-            >
-              <CheckCircle2 size={12} />
-              <span>Verified student</span>
-            </span>
-          </div>
-
-          <div style={{ fontSize: '0.825rem', color: '#64748b', marginTop: '3px' }}>
-            {user?.email || '2025120692@dau.ac.in'}
-          </div>
-
-          <div
-            style={{
-              fontSize: '0.775rem',
-              color: '#94a3b8',
-              marginTop: '4px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              flexWrap: 'wrap',
-            }}
-          >
-            <span>{program || 'MSc IT'}</span>
-            <span>·</span>
-            <span>{year || 'Sem 3'}</span>
-            <span>·</span>
-            <span>
-              {reviewsCount > 0 ? (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                  {rating.toFixed(1)} <Star size={12} fill="#f59e0b" color="#f59e0b" /> ({reviewsCount} reviews)
-                </span>
-              ) : (
-                'No reviews yet'
-              )}
-            </span>
-            <span>·</span>
-            <span>Eco level 1</span>
-          </div>
-        </div>
+          <Edit3 size={14} />
+          <span>Edit profile</span>
+        </button>
       </div>
 
       {/* ── 4 Quick Navigation Cards Row ─────────────────────────────────────── */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: '0.75rem',
-          marginBottom: '1.25rem',
-        }}
-      >
+      <div className="profile-nav-grid">
         {/* Card 1: My listings */}
-        <div
-          onClick={() => navigate('/my-listings')}
-          style={{
-            background: '#ffffff',
-            border: '1px solid #e2e8f0',
-            borderRadius: '10px',
-            padding: '12px 14px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            cursor: 'pointer',
-            transition: 'border-color 0.15s ease',
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#10b981')}
-          onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#e2e8f0')}
-        >
-          <Tag size={16} color="#64748b" />
-          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#0f172a' }}>
-            My listings
-          </span>
-        </div>
+        <Link to="/my-listings" className="profile-nav-card">
+          <Tag size={16} color="#16a34a" />
+          <span>My listings</span>
+        </Link>
 
         {/* Card 2: Transactions */}
-        <div
-          onClick={() => navigate('/transactions')}
-          style={{
-            background: '#ffffff',
-            border: '1px solid #e2e8f0',
-            borderRadius: '10px',
-            padding: '12px 14px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            cursor: 'pointer',
-            transition: 'border-color 0.15s ease',
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#10b981')}
-          onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#e2e8f0')}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <ArrowLeftRight size={16} color="#64748b" />
-            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#0f172a' }}>
-              Transactions
-            </span>
-          </div>
-          <span
-            style={{
-              background: '#f1f5f9',
-              color: '#334155',
-              padding: '1px 6px',
-              borderRadius: '999px',
-              fontSize: '0.725rem',
-              fontWeight: 700,
-            }}
-          >
-            {txCount}
-          </span>
-        </div>
+        <Link to="/transactions" className="profile-nav-card">
+          <ArrowLeftRight size={16} color="#16a34a" />
+          <span>Transactions</span>
+          <span className="profile-tx-badge">{txCount}</span>
+        </Link>
 
         {/* Card 3: Rentals */}
-        <div
-          onClick={() => navigate('/rentals')}
-          style={{
-            background: '#ffffff',
-            border: '1px solid #e2e8f0',
-            borderRadius: '10px',
-            padding: '12px 14px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            cursor: 'pointer',
-            transition: 'border-color 0.15s ease',
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#10b981')}
-          onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#e2e8f0')}
-        >
-          <Package size={16} color="#64748b" />
-          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#0f172a' }}>
-            Rentals
-          </span>
-        </div>
+        <Link to="/rentals" className="profile-nav-card">
+          <Package size={16} color="#16a34a" />
+          <span>Rentals</span>
+        </Link>
 
         {/* Card 4: Wishlist */}
-        <div
-          onClick={() => navigate('/wishlist')}
-          style={{
-            background: '#ffffff',
-            border: '1px solid #e2e8f0',
-            borderRadius: '10px',
-            padding: '12px 14px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            cursor: 'pointer',
-            transition: 'border-color 0.15s ease',
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#10b981')}
-          onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#e2e8f0')}
-        >
-          <Heart size={16} color="#64748b" />
-          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#0f172a' }}>
-            Wishlist
-          </span>
-        </div>
+        <Link to="/wishlist" className="profile-nav-card">
+          <Heart size={16} color="#16a34a" />
+          <span>Wishlist</span>
+        </Link>
       </div>
 
-      {/* ── Main Details & Preferences Form Card ─────────────────────────────── */}
-      <form
-        onSubmit={handleUpdate}
-        style={{
-          background: '#ffffff',
-          border: '1px solid #e2e8f0',
-          borderRadius: '12px',
-          padding: '1.5rem',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-        }}
-      >
+      {/* ── Main Details & Preferences Form ──────────────────────────────────── */}
+      <form onSubmit={handleUpdate}>
         {/* Section 1: Academic details */}
-        <div style={{ marginBottom: '1.75rem' }}>
-          <h2
-            style={{
-              fontSize: '0.95rem',
-              fontWeight: 700,
-              color: '#0f172a',
-              margin: '0 0 1rem 0',
-            }}
-          >
-            Academic details
-          </h2>
-
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '1rem',
-              marginBottom: '1rem',
-            }}
-          >
-            <div>
-              <label
-                style={{
-                  display: 'block',
-                  fontSize: '0.8rem',
-                  fontWeight: 600,
-                  color: '#475569',
-                  marginBottom: '6px',
-                }}
-              >
-                Full name
-              </label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid #e2e8f0',
-                  fontSize: '0.875rem',
-                  color: '#0f172a',
-                  outline: 'none',
-                  boxSizing: 'border-box',
-                }}
-              />
-            </div>
-
-            <div>
-              <label
-                style={{
-                  display: 'block',
-                  fontSize: '0.8rem',
-                  fontWeight: 600,
-                  color: '#475569',
-                  marginBottom: '6px',
-                }}
-              >
-                Program
-              </label>
-              <input
-                type="text"
-                value={program}
-                onChange={(e) => setProgram(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid #e2e8f0',
-                  fontSize: '0.875rem',
-                  color: '#0f172a',
-                  outline: 'none',
-                  boxSizing: 'border-box',
-                }}
-              />
+        <div className="profile-section-card">
+          <div className="profile-section-header">
+            <div className="profile-section-title-wrap">
+              <div className="profile-icon-box profile-icon-blue">
+                <GraduationCap size={20} />
+              </div>
+              <div>
+                <h2 className="profile-section-title">Academic details</h2>
+                <p className="profile-section-subtitle">
+                  Keep your academic information up to date.
+                </p>
+              </div>
             </div>
           </div>
 
-          <div style={{ width: '50%', paddingRight: '0.5rem', boxSizing: 'border-box' }}>
-            <label
-              style={{
-                display: 'block',
-                fontSize: '0.8rem',
-                fontWeight: 600,
-                color: '#475569',
-                marginBottom: '6px',
-              }}
-            >
-              Semester
-            </label>
-            <input
-              type="text"
-              value={year}
-              onChange={(e) => setYear(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                borderRadius: '8px',
-                border: '1px solid #e2e8f0',
-                fontSize: '0.875rem',
-                color: '#0f172a',
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
-            />
+          <div className="profile-fields-row">
+            {/* Full Name */}
+            <div className="profile-field-group">
+              <label className="profile-field-label">Full name</label>
+              <div className="profile-input-container">
+                <User size={16} color="#64748b" />
+                <input
+                  ref={nameInputRef}
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="profile-input-field"
+                  placeholder="Enter full name"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Program */}
+            <div className="profile-field-group">
+              <label className="profile-field-label">Program</label>
+              <div className="profile-input-container">
+                <BookOpen size={16} color="#64748b" />
+                <select
+                  value={program}
+                  onChange={(e) => setProgram(e.target.value)}
+                  className="profile-select-field"
+                >
+                  <option value="MSc IT">MSc IT</option>
+                  <option value="BTech CSE">BTech CSE</option>
+                  <option value="BTech ICT">BTech ICT</option>
+                  <option value="BTech MnC">BTech MnC</option>
+                  <option value="MTech">MTech</option>
+                  <option value="PhD">PhD</option>
+                </select>
+                <ChevronDown size={14} color="#64748b" style={{ pointerEvents: 'none' }} />
+              </div>
+            </div>
+
+            {/* Semester */}
+            <div className="profile-field-group">
+              <label className="profile-field-label">Semester</label>
+              <div className="profile-input-container">
+                <Calendar size={16} color="#64748b" />
+                <select
+                  value={year}
+                  onChange={(e) => setYear(e.target.value)}
+                  className="profile-select-field"
+                >
+                  <option value="Sem 1">Sem 1</option>
+                  <option value="Sem 2">Sem 2</option>
+                  <option value="Sem 3">Sem 3</option>
+                  <option value="Sem 4">Sem 4</option>
+                  <option value="Sem 5">Sem 5</option>
+                  <option value="Sem 6">Sem 6</option>
+                  <option value="Sem 7">Sem 7</option>
+                  <option value="Sem 8">Sem 8</option>
+                </select>
+                <ChevronDown size={14} color="#64748b" style={{ pointerEvents: 'none' }} />
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Section 2: Handover preferences */}
-        <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1.25rem', marginBottom: '1.5rem' }}>
-          <h2
-            style={{
-              fontSize: '0.95rem',
-              fontWeight: 700,
-              color: '#0f172a',
-              margin: '0 0 4px 0',
-            }}
-          >
-            Handover preferences
-          </h2>
-          <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '0 0 1rem 0' }}>
-            Meetup spots you are happy to use. Shown to students you trade with.
-          </p>
+        <div className="profile-section-card">
+          <div className="profile-section-header">
+            <div className="profile-section-title-wrap">
+              <div className="profile-icon-box profile-icon-green">
+                <MapPin size={20} />
+              </div>
+              <div>
+                <h2 className="profile-section-title">Handover preferences</h2>
+                <p className="profile-section-subtitle">
+                  Meetup spots you are happy to use. Shown to students you trade with.
+                </p>
+              </div>
+            </div>
 
-          {/* Spots Pill Selector */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
-            {availableSpots.map((spot) => {
-              const isSelected = selectedSpots.includes(spot);
-              return (
-                <button
-                  key={spot}
-                  type="button"
-                  onClick={() => toggleSpot(spot)}
-                  style={{
-                    background: isSelected ? '#0f172a' : '#ffffff',
-                    color: isSelected ? '#ffffff' : '#334155',
-                    border: isSelected ? '1px solid #0f172a' : '1px solid #cbd5e1',
-                    borderRadius: '999px',
-                    padding: '6px 14px',
-                    fontSize: '0.8rem',
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  {spot}
-                </button>
-              );
-            })}
-
+            {/* Add Spot button */}
             {isAddingSpot ? (
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                 <input
                   type="text"
-                  placeholder="New spot name"
+                  placeholder="Spot name"
                   value={newSpotInput}
                   onChange={(e) => setNewSpotInput(e.target.value)}
                   autoFocus
                   style={{
-                    padding: '4px 10px',
-                    borderRadius: '999px',
-                    border: '1px solid #10b981',
-                    fontSize: '0.8rem',
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid #2563eb',
+                    fontSize: '13px',
                     outline: 'none',
+                    width: 140,
                   }}
                 />
                 <button
                   type="button"
                   onClick={handleAddSpot}
-                  style={{
-                    background: '#10b981',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '999px',
-                    padding: '4px 10px',
-                    fontSize: '0.75rem',
-                    cursor: 'pointer',
-                    fontWeight: 600,
-                  }}
+                  className="profile-add-spot-btn"
+                  style={{ background: '#2563eb', color: '#fff', border: 'none' }}
                 >
                   Add
                 </button>
@@ -595,9 +388,9 @@ export default function ProfilePage() {
                   onClick={() => setIsAddingSpot(false)}
                   style={{
                     background: 'transparent',
-                    color: '#64748b',
                     border: 'none',
-                    fontSize: '0.75rem',
+                    color: '#64748b',
+                    fontSize: '12px',
                     cursor: 'pointer',
                   }}
                 >
@@ -608,130 +401,67 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={() => setIsAddingSpot(true)}
-                style={{
-                  background: '#ffffff',
-                  color: '#64748b',
-                  border: '1px dashed #cbd5e1',
-                  borderRadius: '999px',
-                  padding: '6px 14px',
-                  fontSize: '0.8rem',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
+                className="profile-add-spot-btn"
               >
-                <Plus size={13} />
+                <Plus size={14} />
                 <span>Add spot</span>
               </button>
             )}
           </div>
 
-          {/* WhatsApp Number Toggle Row */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              paddingTop: '0.5rem',
-            }}
-          >
-            <span style={{ fontSize: '0.85rem', color: '#334155' }}>
-              Share my WhatsApp number with students in an active deal
-            </span>
-
-            {/* Custom Toggle Switch */}
-            <label
-              style={{
-                position: 'relative',
-                display: 'inline-block',
-                width: '40px',
-                height: '22px',
-                cursor: 'pointer',
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={shareWhatsApp}
-                onChange={(e) => setShareWhatsApp(e.target.checked)}
-                style={{ opacity: 0, width: 0, height: 0 }}
-              />
-              <span
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  backgroundColor: shareWhatsApp ? '#10b981' : '#cbd5e1',
-                  borderRadius: '22px',
-                  transition: '0.2s',
-                }}
-              >
-                <span
-                  style={{
-                    position: 'absolute',
-                    content: '""',
-                    height: '16px',
-                    width: '16px',
-                    left: shareWhatsApp ? '20px' : '3px',
-                    bottom: '3px',
-                    backgroundColor: 'white',
-                    borderRadius: '50%',
-                    transition: '0.2s',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                  }}
-                />
-              </span>
-            </label>
+          {/* Spots Pills */}
+          <div className="profile-spots-container">
+            {availableSpots.map((spot) => {
+              const isSelected = selectedSpots.includes(spot);
+              return (
+                <button
+                  key={spot}
+                  type="button"
+                  onClick={() => toggleSpot(spot)}
+                  className={`profile-spot-pill ${isSelected ? 'active' : 'inactive'}`}
+                >
+                  <span>{spot}</span>
+                  <X
+                    size={13}
+                    onClick={(e) => removeSpot(e, spot)}
+                    style={{ opacity: isSelected ? 0.8 : 0.4 }}
+                  />
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* ── Action Buttons ─────────────────────────────────────────────────── */}
-        <div
-          style={{
-            borderTop: '1px solid #f1f5f9',
-            paddingTop: '1rem',
-            display: 'flex',
-            justifyContent: 'flex-end',
-            gap: '10px',
-          }}
-        >
-          <button
-            type="button"
-            onClick={handleDiscard}
-            style={{
-              background: '#ffffff',
-              border: '1px solid #e2e8f0',
-              borderRadius: '8px',
-              padding: '8px 18px',
-              fontSize: '0.85rem',
-              fontWeight: 600,
-              color: '#475569',
-              cursor: 'pointer',
-            }}
-          >
-            Discard
-          </button>
+        {/* ── Bottom Verification & Action Bar ──────────────────────────────── */}
+        <div className="profile-bottom-bar">
+          <div className="profile-verify-callout">
+            <ShieldCheck size={20} color="#2563eb" style={{ flexShrink: 0 }} />
+            <div>
+              <div className="profile-verify-title">Verified student</div>
+              <div className="profile-verify-sub">
+                Your profile is verified using your campus email address. This helps build trust within the CampusConnect community.
+              </div>
+            </div>
+          </div>
 
-          <button
-            type="submit"
-            disabled={saving}
-            style={{
-              background: '#10b981',
-              border: 'none',
-              borderRadius: '8px',
-              padding: '8px 20px',
-              fontSize: '0.85rem',
-              fontWeight: 600,
-              color: '#ffffff',
-              cursor: saving ? 'not-allowed' : 'pointer',
-              opacity: saving ? 0.7 : 1,
-            }}
-          >
-            {saving ? 'Saving...' : 'Save changes'}
-          </button>
+          <div className="profile-actions-group">
+            <button
+              type="button"
+              onClick={handleDiscard}
+              className="profile-discard-btn"
+            >
+              Discard
+            </button>
+
+            <button
+              type="submit"
+              disabled={saving}
+              className="profile-save-btn"
+            >
+              <Save size={15} />
+              <span>{saving ? 'Saving...' : 'Save changes'}</span>
+            </button>
+          </div>
         </div>
       </form>
     </div>
