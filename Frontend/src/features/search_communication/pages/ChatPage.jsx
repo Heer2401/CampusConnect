@@ -98,15 +98,20 @@ export const ChatPage = () => {
   const [messageInput, setMessageInput] = useState('');
   const [error, setError] = useState(null);
 
-  const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
 
-  // Auto-scroll messages to bottom
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  // Directly scroll the messages container without scrolling the browser window
+  const scrollToBottom = (behavior = 'smooth') => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior
+      });
+    }
   };
 
   useEffect(() => {
-    scrollToBottom();
+    scrollToBottom('smooth');
   }, [messages]);
 
   // Load threads on mount
@@ -161,6 +166,7 @@ export const ChatPage = () => {
 
         setActiveThread(threadRes.data);
         setMessages(messagesRes.data || []);
+        setTimeout(() => scrollToBottom('auto'), 40);
 
         // Decrement or clear local unread count for this thread
         setThreads(prev =>
@@ -292,10 +298,19 @@ export const ChatPage = () => {
   const currentUserId = user?._id || user?.id;
 
   return (
-    <div className="page" style={{ height: 'calc(100vh - 110px)', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+    <div
+      className="page chat-page-wrapper"
+      style={{
+        height: 'calc(100vh - 120px)',
+        maxHeight: 'calc(100vh - 120px)',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden'
+      }}
+    >
+      <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <div>
-          <h1 style={{ fontSize: 22, margin: 0 }}>Marketplace Messages</h1>
+          <h1 style={{ fontSize: 20, margin: 0, fontWeight: 700, color: '#0f172a' }}>Marketplace Messages</h1>
           <p className="muted" style={{ fontSize: 13, marginTop: 2 }}>
             Real-time chat with campus listing owners and buyers
           </p>
@@ -317,7 +332,7 @@ export const ChatPage = () => {
       </div>
 
       {error && (
-        <div style={{ background: '#fee2e2', color: '#991b1b', padding: '8px 14px', borderRadius: 6, marginBottom: 12, fontSize: 13 }}>
+        <div style={{ flexShrink: 0, background: '#fee2e2', color: '#991b1b', padding: '8px 14px', borderRadius: 6, marginBottom: 10, fontSize: 13 }}>
           {error}
         </div>
       )}
@@ -327,27 +342,48 @@ export const ChatPage = () => {
         className="card"
         style={{
           flex: 1,
+          minHeight: 0,
+          height: '100%',
           padding: 0,
           display: 'grid',
           gridTemplateColumns: '320px 1fr',
           overflow: 'hidden',
-          borderRadius: 12
+          borderRadius: 12,
+          boxShadow: '0 2px 10px rgba(0,0,0,0.06)'
         }}
       >
-        {/* Left: Conversations List */}
+        {/* Left: Conversations List with independent scroll */}
         <div
           style={{
             borderRight: '1px solid #e2e8f0',
             display: 'flex',
             flexDirection: 'column',
-            background: '#fafbfc'
+            height: '100%',
+            minHeight: 0,
+            background: '#fafbfc',
+            overflow: 'hidden'
           }}
         >
-          <div style={{ padding: '14px 16px', borderBottom: '1px solid #e2e8f0', fontWeight: 600, fontSize: 14 }}>
+          <div
+            style={{
+              flexShrink: 0,
+              padding: '14px 16px',
+              borderBottom: '1px solid #e2e8f0',
+              fontWeight: 600,
+              fontSize: 14,
+              background: '#fff'
+            }}
+          >
             Conversations ({threads.length})
           </div>
 
-          <div style={{ flex: 1, overflowY: 'auto' }}>
+          <div
+            style={{
+              flex: 1,
+              minHeight: 0,
+              overflowY: 'auto'
+            }}
+          >
             {loadingThreads ? (
               <div style={{ padding: 24, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
                 Loading conversations...
@@ -439,18 +475,30 @@ export const ChatPage = () => {
         </div>
 
         {/* Right: Active Chat Thread */}
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100%',
+            minHeight: 0,
+            overflow: 'hidden'
+          }}
+        >
           {activeThread ? (
             <>
-              {/* Thread Header with Listing Context */}
+              {/* Sticky Thread Header with Listing Context */}
               <div
                 style={{
+                  flexShrink: 0,
                   padding: '12px 20px',
                   borderBottom: '1px solid #e2e8f0',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  background: '#fff'
+                  background: '#fff',
+                  position: 'sticky',
+                  top: 0,
+                  zIndex: 10
                 }}
               >
                 {/* Other participant info */}
@@ -519,10 +567,12 @@ export const ChatPage = () => {
                 )}
               </div>
 
-              {/* Scrollable Messages Container */}
+              {/* Independent Scrollable Messages Container */}
               <div
+                ref={messagesContainerRef}
                 style={{
                   flex: 1,
+                  minHeight: 0,
                   overflowY: 'auto',
                   padding: 20,
                   display: 'flex',
@@ -745,18 +795,21 @@ export const ChatPage = () => {
                     );
                   })
                 )}
-                <div ref={messagesEndRef} />
               </div>
 
-              {/* Message Input Bar */}
+              {/* Sticky Bottom Message Input Bar */}
               <form
                 onSubmit={handleSendMessage}
                 style={{
+                  flexShrink: 0,
                   padding: 14,
                   borderTop: '1px solid #e2e8f0',
                   display: 'flex',
                   gap: 10,
-                  background: '#fff'
+                  background: '#fff',
+                  position: 'sticky',
+                  bottom: 0,
+                  zIndex: 10
                 }}
               >
                 <input

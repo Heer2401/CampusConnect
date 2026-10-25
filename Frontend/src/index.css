@@ -289,6 +289,17 @@ body {
   padding: 2rem 1.5rem;
 }
 
+/* Chat view viewport optimization */
+.main-content:has(.chat-page-wrapper) {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  overflow: hidden;
+}
+
+body:has(.chat-page-wrapper) {
+  overflow: hidden;
+}
+
 /* Page Header */
 .page-header {
   display: flex;
