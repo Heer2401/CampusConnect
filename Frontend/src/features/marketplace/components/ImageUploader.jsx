@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { Camera, AlertTriangle, Star, X } from 'lucide-react';
 
 const MAX_FILES = 6;
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
@@ -88,7 +89,9 @@ export const ImageUploader = ({
           transition: 'all 0.15s ease'
         }}
       >
-        <div style={{ fontSize: 36, marginBottom: 8 }}>📸</div>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8, color: '#2563eb' }}>
+          <Camera size={36} />
+        </div>
         <div style={{ fontWeight: 700, color: '#1e293b', marginBottom: 4, fontSize: 15 }}>
           Drag photos here or click to upload
         </div>
@@ -112,8 +115,8 @@ export const ImageUploader = ({
       </div>
 
       {errorMessage && (
-        <p className="error-text" style={{ marginTop: 8 }}>
-          ⚠️ {errorMessage}
+        <p className="error-text" style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <AlertTriangle size={14} /> {errorMessage}
         </p>
       )}
 
@@ -122,7 +125,7 @@ export const ImageUploader = ({
         <div style={{ marginTop: 14 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>
-              Photo Previews (Click ★ to set Main Image)
+              Photo Previews (Click to set Main Image)
             </span>
             <span className="muted" style={{ fontSize: 11 }}>
               First image is the cover photo
@@ -150,9 +153,9 @@ export const ImageUploader = ({
                 {img.isPrimary && (
                   <span
                     className="pill pill-blue"
-                    style={{ position: 'absolute', top: 4, left: 4, fontSize: 10, padding: '2px 6px', fontWeight: 700 }}
+                    style={{ position: 'absolute', top: 4, left: 4, fontSize: 10, padding: '2px 6px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 3 }}
                   >
-                    ★ Main Photo
+                    <Star size={10} fill="#fff" /> Main Photo
                   </span>
                 )}
                 <div style={{ position: 'absolute', top: 4, right: 4, display: 'flex', gap: 4 }}>
@@ -160,10 +163,10 @@ export const ImageUploader = ({
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); onSetPrimaryExisting(img._id); }}
-                      style={{ background: 'rgba(15, 23, 42, 0.75)', color: '#fff', border: 'none', borderRadius: 4, fontSize: 11, padding: '2px 6px', cursor: 'pointer' }}
+                      style={{ background: 'rgba(15, 23, 42, 0.75)', color: '#fff', border: 'none', borderRadius: 4, fontSize: 11, padding: '2px 6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 3 }}
                       title="Set as Main Cover Photo"
                     >
-                      ★ Main
+                      <Star size={10} /> Main
                     </button>
                   )}
                   {onDeleteExisting && (
@@ -173,7 +176,7 @@ export const ImageUploader = ({
                       style={{ background: '#b42318', color: '#fff', border: 'none', borderRadius: 4, fontSize: 12, width: 22, height: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                       title="Delete Photo"
                     >
-                      ×
+                      <X size={13} />
                     </button>
                   )}
                 </div>
@@ -204,9 +207,9 @@ export const ImageUploader = ({
                   {isFirst ? (
                     <span
                       className="pill pill-blue"
-                      style={{ position: 'absolute', top: 4, left: 4, fontSize: 10, padding: '2px 6px', fontWeight: 700 }}
+                      style={{ position: 'absolute', top: 4, left: 4, fontSize: 10, padding: '2px 6px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 3 }}
                     >
-                      ★ Main Photo
+                      <Star size={10} fill="#fff" /> Main Photo
                     </span>
                   ) : (
                     <button
@@ -223,11 +226,14 @@ export const ImageUploader = ({
                         fontSize: 10,
                         padding: '2px 6px',
                         cursor: 'pointer',
-                        fontWeight: 600
+                        fontWeight: 600,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 3
                       }}
                       title="Set as Main Cover Photo"
                     >
-                      ★ Make Main
+                      <Star size={10} /> Make Main
                     </button>
                   )}
                   <button
@@ -251,7 +257,7 @@ export const ImageUploader = ({
                     }}
                     title="Remove Photo"
                   >
-                    ×
+                    <X size={13} />
                   </button>
                 </div>
               );

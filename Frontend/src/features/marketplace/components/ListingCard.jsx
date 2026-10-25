@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { WishlistButton } from '../../search_communication/components/WishlistButton';
-import { Image as ImageIcon } from 'lucide-react';
+import { Image as ImageIcon, Star } from 'lucide-react';
 
 const conditionMap = {
   new: 'New',
@@ -259,7 +259,7 @@ export const ListingCard = ({ listing }) => {
                 fontWeight: 700,
               }}
             >
-              <span style={{ color: '#f59e0b' }}>★</span>
+              <Star size={11} fill="#f59e0b" color="#f59e0b" />
               <span>{rating.toFixed(1)}</span>
               <span style={{ fontWeight: 500, color: '#92400e' }}>({reviewsCount})</span>
             </span>

@@ -105,7 +105,7 @@ export default function ListingModerationView({ listings = [], categories = [], 
             >
               <option value="moderation_needed">Needs Moderation (Reported / Low Rating)</option>
               <option value="reported">Reported by Students ({totalReported})</option>
-              <option value="low_rating">Low Seller Rating &lt; 3.0★ ({totalLowRating})</option>
+              <option value="low_rating">Low Seller Rating &lt; 3.0 Stars ({totalLowRating})</option>
               <option value="pending_only">Pending Approval</option>
               <option value="all">All Marketplace Listings ({listings.length})</option>
             </select>
@@ -176,8 +176,8 @@ export default function ListingModerationView({ listings = [], categories = [], 
                             </span>
                           )}
                           {isLowRating && (
-                            <span className="adm-pill amber">
-                              <AlertTriangle size={12} /> Low Rating ({rating.toFixed(1)} ★)
+                            <span className="adm-pill amber" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                              <AlertTriangle size={12} /> Low Rating ({rating.toFixed(1)} <Star size={11} fill="#d97706" color="#d97706" />)
                             </span>
                           )}
                           {item.status === 'pending' || item.status === 'pending_approval' ? (

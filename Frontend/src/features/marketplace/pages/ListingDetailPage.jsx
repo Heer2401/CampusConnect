@@ -1,5 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import {
+  Clock,
+  AlertTriangle,
+  Info,
+  User,
+  Camera,
+  Shield,
+  MapPin,
+  Eye,
+  Check,
+  Star,
+  GraduationCap,
+  Lock,
+  MessageSquare,
+  Settings,
+  Edit,
+  Pause,
+  ClipboardList,
+  Trash2,
+  Gift,
+} from 'lucide-react';
 import { listingsApi } from '../api/listingsApi';
 import { useAuth } from '../hooks/useAuth';
 import { StatusBadge } from '../components/StatusBadge';
@@ -265,7 +286,9 @@ export const ListingDetailPage = () => {
     return (
       <div className="marketplace-page page">
         <div className="card" style={{ padding: 48, textAlign: 'center' }}>
-          <div style={{ fontSize: 24, marginBottom: 8 }}>⏳</div>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8, color: '#64748b' }}>
+            <Clock size={32} />
+          </div>
           <p style={{ fontWeight: 600, color: '#475569' }}>Loading listing details...</p>
         </div>
       </div>
@@ -276,7 +299,9 @@ export const ListingDetailPage = () => {
     return (
       <div className="marketplace-page page">
         <div className="card" style={{ padding: 48, textAlign: 'center', maxWidth: 480, margin: '40px auto' }}>
-          <div style={{ fontSize: 36, marginBottom: 12 }}>⚠️</div>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12, color: '#dc2626' }}>
+            <AlertTriangle size={36} />
+          </div>
           <p style={{ color: '#dc2626', fontWeight: 600, marginBottom: 16 }}>{error || 'Listing not found'}</p>
           <Link to="/marketplace" className="btn btn-secondary">
             ← Back to Marketplace
@@ -387,9 +412,12 @@ export const ListingDetailPage = () => {
           style={{
             background: actionNoticeType === 'error' ? '#fef2f2' : undefined,
             borderColor: actionNoticeType === 'error' ? '#fca5a5' : undefined,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6
           }}
         >
-          {actionNoticeType === 'error' ? '⚠️' : 'ℹ️'} {actionNotice}
+          {actionNoticeType === 'error' ? <AlertTriangle size={15} /> : <Info size={15} />} {actionNotice}
         </div>
       )}
 
@@ -416,7 +444,7 @@ export const ListingDetailPage = () => {
         >
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 16 }}>👤</span>
+              <User size={16} style={{ color: '#166534' }} />
               <b style={{ color: '#166534' }}>You are the owner of this listing</b>
               <StatusBadge status={listing.status} />
             </div>
@@ -469,15 +497,15 @@ export const ListingDetailPage = () => {
                   alt={listing.title}
                 />
                 {images.length > 1 && (
-                  <span className="listing-image-counter">
-                    📷 {selectedImageIndex + 1} of {images.length}
+                  <span className="listing-image-counter" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <Camera size={13} /> {selectedImageIndex + 1} of {images.length}
                   </span>
                 )}
               </>
             ) : (
               <div className="listing-image-placeholder">
                 <div className="placeholder-icon-circle">
-                  📷
+                  <Camera size={32} />
                 </div>
                 <span className="placeholder-badge">No Photos Uploaded</span>
                 <h4>No Images Provided</h4>
@@ -508,7 +536,7 @@ export const ListingDetailPage = () => {
 
           {/* Reassurance & Campus Safety Card */}
           <div className="listing-safety-box">
-            <span className="listing-safety-icon">🛡️</span>
+            <span className="listing-safety-icon"><Shield size={20} /></span>
             <div className="listing-safety-content">
               <h5>Safe Campus Exchange</h5>
               <p>
@@ -623,15 +651,15 @@ export const ListingDetailPage = () => {
             {listing.pickupLocation && (
               <div style={{ gridColumn: 'span 2' }}>
                 <span className="muted" style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>Campus Pickup Spot</span>
-                <p style={{ fontWeight: 600, margin: '4px 0 0 0', color: '#1e293b' }}>
-                  📍 {listing.pickupLocation}
+                <p style={{ fontWeight: 600, margin: '4px 0 0 0', color: '#1e293b', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <MapPin size={15} style={{ color: '#2563eb', flexShrink: 0 }} /> {listing.pickupLocation}
                 </p>
               </div>
             )}
             <div>
               <span className="muted" style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>Views</span>
-              <p style={{ fontWeight: 600, margin: '4px 0 0 0', color: '#1e293b' }}>
-                👁️ {listing.viewCount || 0} campus views
+              <p style={{ fontWeight: 600, margin: '4px 0 0 0', color: '#1e293b', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Eye size={15} style={{ color: '#64748b', flexShrink: 0 }} /> {listing.viewCount || 0} campus views
               </p>
             </div>
             <div>
@@ -677,14 +705,14 @@ export const ListingDetailPage = () => {
                 <div className="seller-name-row">
                   <span className="seller-display-name">{sellerDisplayName}</span>
                   {listing.owner?.isVerified !== false && (
-                    <span className="seller-verified-badge">
-                      ✓ Verified Student
+                    <span className="seller-verified-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <Check size={11} /> Verified Student
                     </span>
                   )}
                 </div>
                 <div className="seller-meta-row">
-                  <span className="seller-rating">
-                    ★ {sellerRating ? sellerRating.toFixed(1) : '5.0'}
+                  <span className="seller-rating" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <Star size={12} fill="#f59e0b" color="#f59e0b" /> {sellerRating ? sellerRating.toFixed(1) : '5.0'}
                     <span style={{ color: '#64748b', fontWeight: 400, marginLeft: 2 }}>
                       ({sellerReviewsCount} {sellerReviewsCount === 1 ? 'review' : 'reviews'})
                     </span>
@@ -694,14 +722,14 @@ export const ListingDetailPage = () => {
                   )}
                 </div>
                 {sellerProgram && (
-                  <div className="seller-academic-row">
-                    🎓 {sellerProgram}
+                  <div className="seller-academic-row" style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                    <GraduationCap size={14} /> {sellerProgram}
                   </div>
                 )}
               </div>
             </div>
-            <div className="seller-privacy-note">
-              <span>🔒</span>
+            <div className="seller-privacy-note" style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+              <Lock size={13} style={{ flexShrink: 0, marginTop: 2 }} />
               <span>
                 Counterparty privacy protected: Personal contact information is kept private. Chat securely inside CampusConnect.
               </span>
@@ -713,8 +741,9 @@ export const ListingDetailPage = () => {
                 type="button"
                 className="btn btn-secondary btn-seller-contact"
                 onClick={handleContactSeller}
+                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
               >
-                💬 {secondaryActionLabel}
+                <MessageSquare size={16} /> {secondaryActionLabel}
               </button>
             )}
           </div>
@@ -725,8 +754,8 @@ export const ListingDetailPage = () => {
               {/* Owner Management Controls */}
               <div className="listing-owner-panel">
                 <div className="owner-panel-header">
-                  <span className="owner-badge">
-                    ⚙️ Owner Controls
+                  <span className="owner-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <Settings size={13} /> Owner Controls
                   </span>
                   <span className="muted" style={{ fontSize: 12 }}>
                     Listing is currently <b>{listing.status}</b>
@@ -736,8 +765,9 @@ export const ListingDetailPage = () => {
                   <Link
                     to={`/marketplace/edit/${listing._id}`}
                     className="btn-owner-action btn-owner-edit"
+                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                   >
-                    ✏️ Edit Listing
+                    <Edit size={14} /> Edit Listing
                   </Link>
 
                   <button
@@ -745,12 +775,17 @@ export const ListingDetailPage = () => {
                     onClick={handleToggleStatus}
                     disabled={togglingStatus}
                     className="btn-owner-action btn-owner-toggle"
+                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                   >
-                    {togglingStatus
-                      ? 'Updating...'
-                      : isAvailable
-                      ? '⏸ Mark Unavailable'
-                      : '▶ Mark Available'}
+                    {togglingStatus ? (
+                      'Updating...'
+                    ) : isAvailable ? (
+                      <>
+                        <Pause size={14} /> Mark Unavailable
+                      </>
+                    ) : (
+                      'Mark Available'
+                    )}
                   </button>
 
                   <button
@@ -759,16 +794,18 @@ export const ListingDetailPage = () => {
                       navigate('/rentals', { state: { tab: 'Transactions' } })
                     }
                     className="btn-owner-action btn-owner-trans"
+                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                   >
-                    📋 View Transactions
+                    <ClipboardList size={14} /> View Transactions
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setShowDeleteModal(true)}
                     className="btn-owner-action btn-owner-delete"
+                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                   >
-                    🗑️ Delete Listing
+                    <Trash2 size={14} /> Delete Listing
                   </button>
                 </div>
               </div>
@@ -988,8 +1025,9 @@ export const ListingDetailPage = () => {
               Coordinate with <b>{sellerDisplayName}</b> for campus pickup.
               The listing will be reserved for you.
             </p>
-            <div style={{ background: '#fef3c7', border: '1px solid #fbbf24', borderRadius: 8, padding: 12, marginBottom: 20, fontSize: 13, color: '#92400e' }}>
-              🎁 This is a campus giveaway. Be a supportive campus peer — only request items you genuinely have a use for.
+            <div style={{ background: '#fef3c7', border: '1px solid #fbbf24', borderRadius: 8, padding: 12, marginBottom: 20, fontSize: 13, color: '#92400e', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+              <Gift size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+              <span>This is a campus giveaway. Be a supportive campus peer — only request items you genuinely have a use for.</span>
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
               <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowGiveawayModal(false)} disabled={actionLoading}>

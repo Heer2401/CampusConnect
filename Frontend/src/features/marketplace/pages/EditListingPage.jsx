@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Check } from 'lucide-react';
 import { listingsApi } from '../api/listingsApi';
 import { ListingForm } from '../components/ListingForm';
 import '../marketplace.css';
@@ -103,8 +104,8 @@ export const EditListingPage = () => {
       )}
 
       {toastMessage && (
-        <div className="toast">
-          ✓ {toastMessage}
+        <div className="toast" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <Check size={16} /> {toastMessage}
         </div>
       )}
 

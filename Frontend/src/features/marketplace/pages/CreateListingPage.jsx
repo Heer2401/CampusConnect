@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { Sparkles, AlertTriangle, Clock, CheckCircle2, Info } from 'lucide-react';
 import { listingsApi } from '../api/listingsApi';
 import { ListingForm } from '../components/ListingForm';
 import '../marketplace.css';
@@ -67,7 +68,7 @@ export const CreateListingPage = () => {
             gap: 10,
           }}
         >
-          <span style={{ fontSize: 20 }}>✨</span>
+          <Sparkles size={20} style={{ color: '#4f46e5', flexShrink: 0 }} />
           <p style={{ margin: 0, color: '#3730a3', fontSize: 14 }}>
             <strong>Fulfilling Rental Request:</strong> Pre-filled for{' '}
             <strong>"{initialValues.title}"</strong>. The requesting peer will be notified once published!
@@ -86,8 +87,8 @@ export const CreateListingPage = () => {
             padding: '14px 18px',
           }}
         >
-          <p style={{ color: '#b91c1c', margin: 0, fontWeight: 600, fontSize: 14 }}>
-            ⚠️ {errorMessage}
+          <p style={{ color: '#b91c1c', margin: 0, fontWeight: 600, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <AlertTriangle size={16} /> {errorMessage}
           </p>
           <p className="muted" style={{ margin: '4px 0 0 0', fontSize: 12 }}>
             Your entered data has been preserved below. Please correct the highlighted errors and try again.
@@ -140,7 +141,7 @@ export const CreateListingPage = () => {
                 margin: '0 auto 16px auto',
               }}
             >
-              {successData.status === 'pending' ? '⏳' : '🎉'}
+              {successData.status === 'pending' ? <Clock size={32} /> : <CheckCircle2 size={32} />}
             </div>
 
             <h3 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 8px 0', color: '#0f172a' }}>
@@ -178,9 +179,13 @@ export const CreateListingPage = () => {
                   color: '#92400e',
                   marginBottom: 16,
                   textAlign: 'left',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6
                 }}
               >
-                ℹ️ {successData.imageWarning}
+                <Info size={14} style={{ flexShrink: 0 }} />
+                <span>{successData.imageWarning}</span>
               </div>
             )}
 

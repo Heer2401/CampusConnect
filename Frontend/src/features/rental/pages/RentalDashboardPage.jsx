@@ -3,9 +3,9 @@
  * RentalDashboardPage.jsx
  *
  * Refactored into 3 clear, dedicated pillars to eliminate confusion:
- *   1. 📦 Renting Hub: Active borrowings, lent items, due dates, QR handovers
- *   2. 📢 Wanted Requests: Campus request board, student needs, fulfill/list requests
- *   3. 📊 Dashboard & Escrow: In-person Meetup PINs, escrow transactions, overview metrics
+ *   1. Renting Hub: Active borrowings, lent items, due dates, QR handovers
+ *   2. Wanted Requests: Campus request board, student needs, fulfill/list requests
+ *   3. Dashboard & Escrow: In-person Meetup PINs, escrow transactions, overview metrics
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
@@ -26,6 +26,14 @@ import {
   AlertCircle,
   RefreshCw,
   Sparkles,
+  Check,
+  X,
+  Handshake,
+  Lock,
+  Megaphone,
+  CreditCard,
+  Home,
+  AlertTriangle,
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import {
@@ -81,8 +89,8 @@ function Toast({ message, type, onClose }) {
   }, [onClose]);
   if (!message) return null;
   return (
-    <div className={`rd-toast rd-toast-${type}`} onClick={onClose}>
-      {type === 'success' ? '✓' : '✗'} {message}
+    <div className={`rd-toast rd-toast-${type}`} onClick={onClose} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      {type === 'success' ? <Check size={14} /> : <X size={14} />} {message}
     </div>
   );
 }
@@ -103,7 +111,7 @@ function QRModal({ rentalId, onClose }) {
   return (
     <div className="rd-modal-backdrop" onClick={onClose}>
       <div className="rd-modal" onClick={(e) => e.stopPropagation()}>
-        <button className="rd-modal-close" onClick={onClose}>✕</button>
+        <button className="rd-modal-close" onClick={onClose}><X size={16} /></button>
         <h3 className="rd-modal-title">QR Handover Code</h3>
         {loading && <div className="rd-spinner" />}
         {error && <p className="rd-error-msg">{error}</p>}
@@ -142,7 +150,7 @@ function ScanQRModal({ rentalId, onSuccess, onClose }) {
   return (
     <div className="rd-modal-backdrop" onClick={onClose}>
       <div className="rd-modal" onClick={(e) => e.stopPropagation()}>
-        <button className="rd-modal-close" onClick={onClose}>✕</button>
+        <button className="rd-modal-close" onClick={onClose}><X size={16} /></button>
         <h3 className="rd-modal-title">Verify QR Handover</h3>
         <p className="rd-modal-sub">Enter the token displayed on the item owner's screen:</p>
         <input
@@ -191,8 +199,10 @@ function ShowPinModal({ transaction, onSuccess, onClose }) {
   return (
     <div className="rd-modal-backdrop" onClick={onClose}>
       <div className="rd-modal" style={{ maxWidth: 440, textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
-        <button className="rd-modal-close" onClick={onClose}>✕</button>
-        <div style={{ fontSize: '2.5rem', marginBottom: '8px' }}>🤝</div>
+        <button className="rd-modal-close" onClick={onClose}><X size={16} /></button>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
+          <Handshake size={36} color="#6366f1" />
+        </div>
         <h3 className="rd-modal-title">In-Person Handover PIN</h3>
         <p className="rd-modal-sub" style={{ marginBottom: '14px' }}>
           Item: <strong>{transaction?.listingId?.title || 'Listing'}</strong><br />
@@ -211,8 +221,8 @@ function ShowPinModal({ transaction, onSuccess, onClose }) {
         )}
 
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '16px' }}>
-          <button className="rd-btn rd-btn-secondary" onClick={fetchOrGeneratePin} disabled={loading}>
-            🔄 Regenerate PIN
+          <button className="rd-btn rd-btn-secondary" onClick={fetchOrGeneratePin} disabled={loading} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <RefreshCw size={13} /> Regenerate PIN
           </button>
           <button className="rd-btn rd-btn-primary" onClick={onClose}>
             Done
@@ -239,7 +249,7 @@ function VerifyPinModal({ transaction, onSuccess, onClose }) {
     setError('');
     try {
       await verifyTransactionPin(transaction._id, pin.trim());
-      onSuccess('Handover verified! Transaction completed successfully 🎉');
+      onSuccess('Handover verified! Transaction completed successfully.');
       onClose();
     } catch (err) {
       setError(err.message || 'Invalid PIN. Please check the seller screen.');
@@ -251,8 +261,10 @@ function VerifyPinModal({ transaction, onSuccess, onClose }) {
   return (
     <div className="rd-modal-backdrop" onClick={onClose}>
       <div className="rd-modal" style={{ maxWidth: 440, textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
-        <button className="rd-modal-close" onClick={onClose}>✕</button>
-        <div style={{ fontSize: '2.5rem', marginBottom: '8px' }}>🔐</div>
+        <button className="rd-modal-close" onClick={onClose}><X size={16} /></button>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
+          <Lock size={36} color="#6366f1" />
+        </div>
         <h3 className="rd-modal-title">Verify Meetup Handover</h3>
         <p className="rd-modal-sub" style={{ marginBottom: '14px' }}>
           Item: <strong>{transaction?.listingId?.title || 'Listing'}</strong><br />
@@ -336,8 +348,10 @@ function RequestItemModal({ onSuccess, onClose }) {
   return (
     <div className="rd-modal-backdrop" onClick={onClose}>
       <div className="rd-modal" style={{ maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
-        <button className="rd-modal-close" onClick={onClose}>✕</button>
-        <h3 className="rd-modal-title">📢 Post an Item Request</h3>
+        <button className="rd-modal-close" onClick={onClose}><X size={16} /></button>
+        <h3 className="rd-modal-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Megaphone size={18} color="#6366f1" /> Post an Item Request
+        </h3>
         <p className="rd-modal-sub">
           Can't find what you need on CampusConnect? Post your requirement so students with the item can lend or list it for you.
         </p>
@@ -720,14 +734,16 @@ export default function RentalDashboardPage() {
               <button
                 className={`hub-subview-btn ${rentalSubView === 'borrowing' ? 'active' : ''}`}
                 onClick={() => setRentalSubView('borrowing')}
+                style={{ display: 'inline-flex', alignItems: 'center' }}
               >
-                🎒 Items I'm Borrowing ({borrowingRentals.length})
+                <Package size={14} style={{ marginRight: 6 }} /> Items I'm Borrowing ({borrowingRentals.length})
               </button>
               <button
                 className={`hub-subview-btn ${rentalSubView === 'lending' ? 'active' : ''}`}
                 onClick={() => setRentalSubView('lending')}
+                style={{ display: 'inline-flex', alignItems: 'center' }}
               >
-                🏠 Items I'm Lending Out ({lendingRentals.length})
+                <Home size={14} style={{ marginRight: 6 }} /> Items I'm Lending Out ({lendingRentals.length})
               </button>
             </div>
 
@@ -757,7 +773,9 @@ export default function RentalDashboardPage() {
               </div>
             ) : currentRentalsList.length === 0 ? (
               <div className="rd-empty" style={{ padding: '50px 20px', textAlign: 'center' }}>
-                <div style={{ fontSize: 40, marginBottom: 12 }}>📦</div>
+                <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}>
+                  <Package size={40} color="#94a3b8" />
+                </div>
                 <h4 style={{ color: 'var(--text-primary)', margin: '0 0 8px' }}>
                   {rentalSubView === 'borrowing'
                     ? rentalStatusFilter === 'active'
@@ -773,8 +791,8 @@ export default function RentalDashboardPage() {
                     : 'Have gadgets, books, or equipment sitting unused? List them for rent and earn passive income!'}
                 </p>
                 {rentalSubView === 'borrowing' ? (
-                  <button className="rd-btn rd-btn-primary" onClick={() => navigate('/marketplace?type=rent')}>
-                    🔍 Browse Campus Rentals
+                  <button className="rd-btn rd-btn-primary" onClick={() => navigate('/marketplace?type=rent')} style={{ display: 'inline-flex', alignItems: 'center' }}>
+                    <Search size={14} style={{ marginRight: 6 }} /> Browse Campus Rentals
                   </button>
                 ) : (
                   <button
@@ -816,7 +834,11 @@ export default function RentalDashboardPage() {
                           <td>{fmt(r.startDate)}</td>
                           <td className={r.status === 'overdue' ? 'rd-overdue-text' : ''}>
                             {fmt(r.dueDate)}
-                            {r.status === 'overdue' && <span style={{ marginLeft: 6 }}>⚠️ Overdue</span>}
+                            {r.status === 'overdue' && (
+                              <span style={{ marginLeft: 6, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                                <AlertTriangle size={12} /> Overdue
+                              </span>
+                            )}
                           </td>
                           <td><StatusBadge status={r.status} /></td>
                           <td className="rd-actions">
@@ -826,14 +848,16 @@ export default function RentalDashboardPage() {
                                 <button
                                   className="rd-btn rd-btn-success rd-btn-sm"
                                   onClick={() => handleStatusUpdate(r._id, 'approved', 'Rental approved!')}
+                                  style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
                                 >
-                                  ✓ Approve
+                                  <Check size={13} /> Approve
                                 </button>
                                 <button
                                   className="rd-btn rd-btn-danger rd-btn-sm"
                                   onClick={() => handleStatusUpdate(r._id, 'cancelled', 'Rental rejected.')}
+                                  style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
                                 >
-                                  ✕ Reject
+                                  <X size={13} /> Reject
                                 </button>
                               </>
                             )}
@@ -850,8 +874,9 @@ export default function RentalDashboardPage() {
                               <button
                                 className="rd-btn rd-btn-success rd-btn-sm"
                                 onClick={() => handleConfirmReturn(r._id)}
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
                               >
-                                ✓ Confirm Return
+                                <Check size={13} /> Confirm Return
                               </button>
                             )}
 
@@ -876,7 +901,9 @@ export default function RentalDashboardPage() {
 
                             {/* Done states */}
                             {(r.status === 'completed' || r.status === 'cancelled') && (
-                              <span className="rd-done-label">Completed ✓</span>
+                              <span className="rd-done-label" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                <Check size={12} /> Completed
+                              </span>
                             )}
                             {r.status === 'active' && rentalSubView === 'borrowing' && (
                               <span className="rd-done-label" style={{ color: '#4ade80' }}>Active Rental</span>
@@ -922,14 +949,16 @@ export default function RentalDashboardPage() {
               <button
                 className={`hub-subview-btn ${requestSubView === 'my_requests' ? 'active' : ''}`}
                 onClick={() => setRequestSubView('my_requests')}
+                style={{ display: 'inline-flex', alignItems: 'center' }}
               >
-                📋 My Posted Requests ({myRequests.length})
+                <ClipboardList size={14} style={{ marginRight: 6 }} /> My Posted Requests ({myRequests.length})
               </button>
               <button
                 className={`hub-subview-btn ${requestSubView === 'campus_feed' ? 'active' : ''}`}
                 onClick={() => setRequestSubView('campus_feed')}
+                style={{ display: 'inline-flex', alignItems: 'center' }}
               >
-                🤝 Campus Requests to Fulfill ({communityRequests.length})
+                <Handshake size={14} style={{ marginRight: 6 }} /> Campus Requests to Fulfill ({communityRequests.length})
               </button>
             </div>
           </div>
@@ -945,7 +974,9 @@ export default function RentalDashboardPage() {
               /* MY REQUESTS TABLE */
               myRequests.length === 0 ? (
                 <div className="rd-empty" style={{ padding: '50px 20px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
+                  <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}>
+                    <ClipboardList size={40} color="#94a3b8" />
+                  </div>
                   <h4 style={{ color: 'var(--text-primary)', margin: '0 0 8px' }}>
                     You haven't posted any item requests yet
                   </h4>
@@ -1016,7 +1047,9 @@ export default function RentalDashboardPage() {
               /* CAMPUS COMMUNITY FEED */
               communityRequests.length === 0 ? (
                 <div className="rd-empty" style={{ padding: '50px 20px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 40, marginBottom: 12 }}>🤝</div>
+                  <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}>
+                    <Handshake size={40} color="#94a3b8" />
+                  </div>
                   <h4 style={{ color: 'var(--text-primary)', margin: '0 0 8px' }}>
                     No open requests from students right now
                   </h4>
@@ -1097,7 +1130,7 @@ export default function RentalDashboardPage() {
               onClick={() => handlePillarChange('renting')}
               title="Click to view Renting Hub"
             >
-              <div className="rd-stat-icon">📦</div>
+              <div className="rd-stat-icon"><Package size={22} color="#6366f1" /></div>
               <div className="rd-stat-value">{activeRentalsCount}</div>
               <div className="rd-stat-label">Active Rentals →</div>
             </div>
@@ -1107,7 +1140,7 @@ export default function RentalDashboardPage() {
               onClick={() => handlePillarChange('requesting')}
               title="Click to view Campus Request Board"
             >
-              <div className="rd-stat-icon">📢</div>
+              <div className="rd-stat-icon"><Megaphone size={22} color="#8b5cf6" /></div>
               <div className="rd-stat-value">{openRequestsCount}</div>
               <div className="rd-stat-label">Open Item Requests →</div>
             </div>
@@ -1117,7 +1150,7 @@ export default function RentalDashboardPage() {
               onClick={() => setTxnFilter('pending')}
               title="Filter to awaiting handovers"
             >
-              <div className="rd-stat-icon">🤝</div>
+              <div className="rd-stat-icon"><Handshake size={22} color="#f59e0b" /></div>
               <div className="rd-stat-value">{pendingTxnCount}</div>
               <div className="rd-stat-label">Awaiting Meetup PIN</div>
             </div>
@@ -1127,7 +1160,7 @@ export default function RentalDashboardPage() {
               onClick={() => setTxnFilter('completed')}
               title="Filter to completed transactions"
             >
-              <div className="rd-stat-icon">💳</div>
+              <div className="rd-stat-icon"><CreditCard size={22} color="#10b981" /></div>
               <div className="rd-stat-value">
                 {transactions.filter((t) => t.status === 'completed').length}
               </div>
@@ -1138,7 +1171,7 @@ export default function RentalDashboardPage() {
           {/* Escrow Safety Guide Banner */}
           <div className="escrow-security-banner">
             <div className="escrow-security-info">
-              <div className="escrow-security-icon">🛡️</div>
+              <div className="escrow-security-icon"><ShieldCheck size={26} color="#10b981" /></div>
               <div className="escrow-security-text">
                 <h5>CampusConnect In-Person Escrow Protection</h5>
                 <p>
@@ -1147,8 +1180,8 @@ export default function RentalDashboardPage() {
               </div>
             </div>
             <div>
-              <span className="rd-tag" style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#34d399' }}>
-                ✓ Protected Meetup
+              <span className="rd-tag" style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#34d399', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <Check size={12} /> Protected Meetup
               </span>
             </div>
           </div>
@@ -1180,7 +1213,9 @@ export default function RentalDashboardPage() {
               </div>
             ) : filteredTransactions.length === 0 ? (
               <div className="rd-empty" style={{ padding: '40px 20px', textAlign: 'center' }}>
-                <div style={{ fontSize: 36, marginBottom: 10 }}>💳</div>
+                <div style={{ marginBottom: 10, display: 'flex', justifyContent: 'center' }}>
+                  <CreditCard size={36} color="#94a3b8" />
+                </div>
                 <h4 style={{ color: 'var(--text-primary)', margin: '0 0 6px' }}>No transactions in this filter</h4>
                 <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: '0 auto' }}>
                   Transactions are created when you buy, rent, exchange, or claim a free item on CampusConnect.
@@ -1266,7 +1301,11 @@ export default function RentalDashboardPage() {
                               </button>
                             )}
 
-                            {t.status === 'completed' && <span className="rd-done-label">Done ✓</span>}
+                            {t.status === 'completed' && (
+                              <span className="rd-done-label" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                <Check size={12} /> Done
+                              </span>
+                            )}
                             {t.status === 'cancelled' && <span className="rd-done-label">Cancelled</span>}
                             {alreadyConfirmed && !canConfirm && t.status !== 'completed' && t.status !== 'cancelled' && (
                               <span className="rd-done-label">Awaiting other party</span>

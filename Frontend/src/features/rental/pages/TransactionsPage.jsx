@@ -18,6 +18,7 @@ import {
   MessageSquare,
   ShieldCheck,
   X,
+  Check,
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import {
@@ -54,8 +55,8 @@ function Toast({ message, type, onClose }) {
     return () => clearTimeout(t);
   }, [onClose]);
   return (
-    <div className={`rd-toast rd-toast-${type}`} onClick={onClose}>
-      {type === 'success' ? '✓' : '✗'} {message}
+    <div className={`rd-toast rd-toast-${type}`} onClick={onClose} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      {type === 'success' ? <Check size={14} /> : <X size={14} />} {message}
     </div>
   );
 }

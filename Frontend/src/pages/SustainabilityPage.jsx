@@ -9,6 +9,7 @@ import {
   Info,
   ChevronDown,
   ChevronUp,
+  Check,
 } from 'lucide-react';
 
 export default function SustainabilityPage() {
@@ -306,11 +307,9 @@ export default function SustainabilityPage() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   margin: '0 auto 6px',
-                  fontSize: '12px',
-                  fontWeight: 700,
                 }}
               >
-                ✓
+                <Check size={14} />
               </div>
               <div style={{ fontWeight: 700, fontSize: '0.825rem', color: '#0f172a' }}>
                 Reuser
@@ -332,11 +331,9 @@ export default function SustainabilityPage() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   margin: '0 auto 6px',
-                  fontSize: '12px',
-                  fontWeight: 700,
                 }}
               >
-                {currentLevel >= 2 ? '✓' : ''}
+                {currentLevel >= 2 ? <Check size={14} /> : null}
               </div>
               <div style={{ fontWeight: 700, fontSize: '0.825rem', color: '#0f172a' }}>
                 Contributor
@@ -358,11 +355,9 @@ export default function SustainabilityPage() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   margin: '0 auto 6px',
-                  fontSize: '12px',
-                  fontWeight: 700,
                 }}
               >
-                {currentLevel >= 3 ? '✓' : ''}
+                {currentLevel >= 3 ? <Check size={14} /> : null}
               </div>
               <div style={{ fontWeight: 700, fontSize: '0.825rem', color: '#0f172a' }}>
                 Ambassador

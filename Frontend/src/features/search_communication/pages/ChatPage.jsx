@@ -918,8 +918,8 @@ export const ChatPage = () => {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
                           <span style={{ fontSize: '0.675rem', color: '#94a3b8' }}>{timeStr}</span>
                           {isMe && (
-                            <span style={{ fontSize: '0.675rem', color: msg.readAt ? '#10b981' : '#94a3b8' }}>
-                              {msg.readAt ? '✓✓' : '✓'}
+                            <span style={{ display: 'inline-flex', alignItems: 'center', color: msg.readAt ? '#10b981' : '#94a3b8' }}>
+                              {msg.readAt ? <CheckCheck size={13} /> : <Check size={13} />}
                             </span>
                           )}
                         </div>

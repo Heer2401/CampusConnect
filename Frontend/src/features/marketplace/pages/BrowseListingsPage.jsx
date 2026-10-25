@@ -576,7 +576,7 @@ export const BrowseListingsPage = () => {
             <span>Filters</span>
           </button>
 
-          {/* Active Chips (e.g. "Available ✕") */}
+          {/* Active Chips (e.g. "Available") */}
           {appliedChips.map((chip) => (
             <span
               key={chip.key}
@@ -734,7 +734,7 @@ export const BrowseListingsPage = () => {
                 className="mobile-drawer-close"
                 onClick={() => setIsMobileDrawerOpen(false)}
               >
-                ✕
+                <X size={18} />
               </button>
             </div>
             <div className="mobile-drawer-body">

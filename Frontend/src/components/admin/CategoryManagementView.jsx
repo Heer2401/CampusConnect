@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FolderTree, Plus, Search, Edit2, Trash2, Check, X, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import { FolderTree, Plus, Search, Edit2, Trash2, Check, X, ShieldAlert, CheckCircle2, Package } from 'lucide-react';
 import { adminApi } from '../../services/adminApi';
 import AdminModal from './AdminModal';
 
@@ -12,7 +12,7 @@ export default function CategoryManagementView({ categories = [], onReload, onTo
   // Form state for Create / Edit
   const [formData, setFormData] = useState({
     name: '',
-    icon: '📦',
+    icon: '',
     description: '',
     sortOrder: 0,
     requiresModeration: false,
@@ -24,7 +24,7 @@ export default function CategoryManagementView({ categories = [], onReload, onTo
   const openCreate = () => {
     setFormData({
       name: '',
-      icon: '📦',
+      icon: '',
       description: '',
       sortOrder: categories.length + 1,
       requiresModeration: false,
@@ -38,7 +38,7 @@ export default function CategoryManagementView({ categories = [], onReload, onTo
     setEditingCategory(cat);
     setFormData({
       name: cat.name || '',
-      icon: cat.icon || '📦',
+      icon: cat.icon || '',
       description: cat.description || '',
       sortOrder: cat.sortOrder ?? 0,
       requiresModeration: Boolean(cat.requiresModeration),
@@ -56,7 +56,7 @@ export default function CategoryManagementView({ categories = [], onReload, onTo
     try {
       await adminApi.createCategory({
         name: formData.name.trim(),
-        icon: formData.icon.trim() || '📦',
+        icon: formData.icon.trim() || '',
         description: formData.description.trim(),
         sortOrder: Number(formData.sortOrder) || 0,
         requiresModeration: formData.requiresModeration
@@ -80,7 +80,7 @@ export default function CategoryManagementView({ categories = [], onReload, onTo
     try {
       await adminApi.updateCategory(editingCategory._id, {
         name: formData.name.trim(),
-        icon: formData.icon.trim() || '📦',
+        icon: formData.icon.trim() || '',
         description: formData.description.trim(),
         sortOrder: Number(formData.sortOrder) || 0,
         requiresModeration: formData.requiresModeration,
@@ -187,7 +187,7 @@ export default function CategoryManagementView({ categories = [], onReload, onTo
               ) : (
                 filtered.map(cat => (
                   <tr key={cat._id}>
-                    <td style={{ fontSize: '1.4rem', textAlign: 'center' }}>{cat.icon || '📦'}</td>
+                    <td style={{ textAlign: 'center' }}><Package size={18} style={{ color: '#64748b' }} /></td>
                     <td>
                       <div className="adm-cell-title">{cat.name}</div>
                       {cat.description && <div className="adm-cell-sub">{cat.description}</div>}
@@ -269,11 +269,11 @@ export default function CategoryManagementView({ categories = [], onReload, onTo
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div className="adm-field">
-              <label className="adm-label">Emoji / Icon</label>
+              <label className="adm-label">Icon Tag</label>
               <input
                 type="text"
                 className="adm-input"
-                placeholder="e.g. 💻 or 📐"
+                placeholder="e.g. Tools, Electronics"
                 value={formData.icon}
                 onChange={(e) => setFormData(prev => ({ ...prev, icon: e.target.value }))}
               />
@@ -337,7 +337,7 @@ export default function CategoryManagementView({ categories = [], onReload, onTo
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div className="adm-field">
-              <label className="adm-label">Emoji / Icon</label>
+              <label className="adm-label">Icon Tag</label>
               <input
                 type="text"
                 className="adm-input"

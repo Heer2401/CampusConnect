@@ -1,4 +1,5 @@
 import React from 'react';
+import { X } from 'lucide-react';
 
 export const ListingFilters = ({
   filters = {},
@@ -85,7 +86,7 @@ export const ListingFilters = ({
               }}
               title="Close filters"
             >
-              ✕
+              <X size={14} />
             </button>
           )}
         </div>

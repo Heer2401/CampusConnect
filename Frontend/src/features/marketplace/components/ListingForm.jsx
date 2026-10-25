@@ -1,4 +1,21 @@
 import React, { useState, useEffect } from 'react';
+import {
+  Sparkles,
+  Check,
+  Lightbulb,
+  Lock,
+  FileText,
+  Tag,
+  Clock,
+  Repeat,
+  Gift,
+  MapPin,
+  Package,
+  Camera,
+  Star,
+  Send,
+  AlertCircle
+} from 'lucide-react';
 import { useCategories } from '../hooks/useCategories';
 import { listingsApi } from '../api/listingsApi';
 import { ImageUploader } from './ImageUploader';
@@ -128,7 +145,7 @@ export const ListingForm = ({
       setAiGeneratedFields(updatedFields);
       setAiSource(suggestion.source || 'AI');
       setAiMetadata(suggestion.ai_metadata || { source: suggestion.source || 'AI', generatedAt: new Date().toISOString() });
-      setAiMessage('✨ AI suggestions generated! All fields remain 100% editable in the next step.');
+      setAiMessage('AI suggestions generated! All fields remain 100% editable in the next step.');
     } catch (error) {
       setAiMessage(
         error.message ||
@@ -293,7 +310,7 @@ export const ListingForm = ({
           className={`stepper-step ${currentStep === 1 ? 'active' : visitedSteps.includes(1) ? 'completed' : ''}`}
           onClick={() => goToStep(1)}
         >
-          <span className="stepper-number">{visitedSteps.includes(1) && currentStep > 1 ? '✓' : '1'}</span>
+          <span className="stepper-number">{visitedSteps.includes(1) && currentStep > 1 ? <Check size={13} /> : '1'}</span>
           <span className="stepper-label">Photos & AI</span>
         </div>
         <div className={`stepper-divider ${currentStep > 1 ? 'active' : ''}`} />
@@ -302,7 +319,7 @@ export const ListingForm = ({
           className={`stepper-step ${currentStep === 2 ? 'active' : visitedSteps.includes(2) ? 'completed' : ''}`}
           onClick={() => goToStep(2)}
         >
-          <span className="stepper-number">{visitedSteps.includes(2) && currentStep > 2 ? '✓' : '2'}</span>
+          <span className="stepper-number">{visitedSteps.includes(2) && currentStep > 2 ? <Check size={13} /> : '2'}</span>
           <span className="stepper-label">Item Details</span>
         </div>
         <div className={`stepper-divider ${currentStep > 2 ? 'active' : ''}`} />
@@ -311,7 +328,7 @@ export const ListingForm = ({
           className={`stepper-step ${currentStep === 3 ? 'active' : visitedSteps.includes(3) ? 'completed' : ''}`}
           onClick={() => goToStep(3)}
         >
-          <span className="stepper-number">{visitedSteps.includes(3) && currentStep > 3 ? '✓' : '3'}</span>
+          <span className="stepper-number">{visitedSteps.includes(3) && currentStep > 3 ? <Check size={13} /> : '3'}</span>
           <span className="stepper-label">Pricing & Terms</span>
         </div>
         <div className={`stepper-divider ${currentStep > 3 ? 'active' : ''}`} />
@@ -354,8 +371,8 @@ export const ListingForm = ({
             />
 
             <div className="step-nav-footer">
-              <span className="muted" style={{ fontSize: 13 }}>
-                💡 Tip: Photos increase response rates by over 3x on campus.
+              <span className="muted" style={{ fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <Lightbulb size={15} style={{ color: '#d97706' }} /> Tip: Photos increase response rates by over 3x on campus.
               </span>
               <button
                 type="button"
@@ -371,7 +388,7 @@ export const ListingForm = ({
           {/* AI Assistance Column */}
           <div className="card" style={{ padding: 24, background: '#faf5ff', border: '1.5px solid #e9d5ff' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <span style={{ fontSize: 22 }}>✨</span>
+              <Sparkles size={20} color="#7e22ce" />
               <h3 style={{ fontSize: 17, fontWeight: 700, color: '#581c87', margin: 0 }}>
                 AI Listing Assistant
               </h3>
@@ -453,7 +470,13 @@ export const ListingForm = ({
                 gap: 8
               }}
             >
-              {isSuggesting ? 'Analyzing Photo with AI…' : '✨ Generate Listing Draft with AI'}
+              {isSuggesting ? (
+                'Analyzing Photo with AI…'
+              ) : (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <Sparkles size={16} /> Generate Listing Draft with AI
+                </span>
+              )}
             </button>
 
             {aiMessage && (
@@ -473,8 +496,9 @@ export const ListingForm = ({
               </div>
             )}
 
-            <div style={{ marginTop: 14, padding: '10px 12px', background: 'rgba(255,255,255,0.7)', borderRadius: 8, fontSize: 11, color: '#6b21a8' }}>
-              🔒 <b>Student Control Guaranteed:</b> AI provides suggestions only. You can edit, adjust, or completely rewrite every field in Step 2.
+            <div style={{ marginTop: 14, padding: '10px 12px', background: 'rgba(255,255,255,0.7)', borderRadius: 8, fontSize: 11, color: '#6b21a8', display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+              <Lock size={13} style={{ flexShrink: 0, marginTop: 2 }} />
+              <span><b>Student Control Guaranteed:</b> AI provides suggestions only. You can edit, adjust, or completely rewrite every field in Step 2.</span>
             </div>
           </div>
         </div>
@@ -551,8 +575,8 @@ export const ListingForm = ({
 
           {/* Duplicate Notice for Study Material / Question Papers */}
           {isStudyMaterial && (
-            <div className="academic-duplicate-warning">
-              <span style={{ fontSize: 18 }}>📝</span>
+            <div className="academic-duplicate-warning" style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+              <FileText size={18} style={{ color: '#2563eb', flexShrink: 0, marginTop: 2 }} />
               <p>
                 <b>Sharing Academic Study Material?</b> Please make sure these lecture notes or past question papers aren't already uploaded by your class representative or peers in this category to prevent duplicate campus listings.
               </p>
@@ -677,7 +701,7 @@ export const ListingForm = ({
               className={`type-select-card ${listingType === 'sell' ? 'active' : ''}`}
               onClick={() => handleTypeChange('sell')}
             >
-              <span className="type-select-icon">🏷️</span>
+              <Tag size={20} className="type-select-icon" style={{ color: '#2563eb' }} />
               <span className="type-select-title">Sell</span>
               <span className="type-select-desc">Direct campus purchase</span>
             </div>
@@ -686,7 +710,7 @@ export const ListingForm = ({
               className={`type-select-card ${listingType === 'rent' ? 'active' : ''}`}
               onClick={() => handleTypeChange('rent')}
             >
-              <span className="type-select-icon">⏳</span>
+              <Clock size={20} className="type-select-icon" style={{ color: '#16a34a' }} />
               <span className="type-select-title">Rent</span>
               <span className="type-select-desc">Temporary borrowing</span>
             </div>
@@ -695,7 +719,7 @@ export const ListingForm = ({
               className={`type-select-card ${listingType === 'exchange' ? 'active' : ''}`}
               onClick={() => handleTypeChange('exchange')}
             >
-              <span className="type-select-icon">🔄</span>
+              <Repeat size={20} className="type-select-icon" style={{ color: '#9333ea' }} />
               <span className="type-select-title">Exchange</span>
               <span className="type-select-desc">Item-for-item barter</span>
             </div>
@@ -704,7 +728,7 @@ export const ListingForm = ({
               className={`type-select-card ${listingType === 'giveaway' ? 'active' : ''}`}
               onClick={() => handleTypeChange('giveaway')}
             >
-              <span className="type-select-icon">🎁</span>
+              <Gift size={20} className="type-select-icon" style={{ color: '#d97706' }} />
               <span className="type-select-title">Giveaway</span>
               <span className="type-select-desc">Free community gift</span>
             </div>
@@ -729,8 +753,9 @@ export const ListingForm = ({
               {errors.price ? (
                 <span className="error-text">{errors.price}</span>
               ) : (
-                <div className="form-field-helper">
-                  💡 Tip: Fair campus pricing (30–50% below retail) ensures fast sales among students.
+                <div className="form-field-helper" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Lightbulb size={13} style={{ color: '#d97706', flexShrink: 0 }} />
+                  <span>Tip: Fair campus pricing (30–50% below retail) ensures fast sales among students.</span>
                 </div>
               )}
             </div>
@@ -787,8 +812,9 @@ export const ListingForm = ({
                 {errors.deposit ? (
                   <span className="error-text">{errors.deposit}</span>
                 ) : (
-                  <div className="form-field-helper">
-                    🔒 Refunded in full to the renter when the item is returned in good condition.
+                  <div className="form-field-helper" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Lock size={12} style={{ flexShrink: 0 }} />
+                    <span>Refunded in full to the renter when the item is returned in good condition.</span>
                   </div>
                 )}
               </div>
@@ -821,7 +847,9 @@ export const ListingForm = ({
           {/* D. Giveaway Fields */}
           {listingType === 'giveaway' && (
             <div style={{ background: '#fef3c7', padding: 16, borderRadius: 12, border: '1px solid #fde68a', marginBottom: 20 }}>
-              <b style={{ color: '#92400e', fontSize: 14 }}>🎁 Free Campus Giveaway (₹0)</b>
+              <b style={{ color: '#92400e', fontSize: 14, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <Gift size={16} /> Free Campus Giveaway (₹0)
+              </b>
               <p style={{ margin: '4px 0 0 0', fontSize: 13, color: '#b45309', lineHeight: 1.45 }}>
                 This item will be listed for free campus pickup. Sharing items gives them a second life and boosts your Campus Eco Score!
               </p>
@@ -840,8 +868,9 @@ export const ListingForm = ({
                 value={pickupLocation}
                 onChange={(e) => setPickupLocation(e.target.value)}
               />
-              <div className="form-field-helper">
-                📍 Where you prefer to physically meet counterparties on campus.
+              <div className="form-field-helper" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <MapPin size={12} style={{ flexShrink: 0 }} />
+                <span>Where you prefer to physically meet counterparties on campus.</span>
               </div>
             </div>
             <div>
@@ -925,16 +954,18 @@ export const ListingForm = ({
                   />
                 ) : (
                   <div style={{ textAlign: 'center', color: '#94a3b8', padding: 20 }}>
-                    <div style={{ fontSize: 32, marginBottom: 4 }}>📷</div>
+                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 6, color: '#94a3b8' }}>
+                      <Camera size={32} />
+                    </div>
                     <span style={{ fontSize: 12 }}>No photo uploaded</span>
                   </div>
                 )}
                 {totalPhotosCount > 0 && (
                   <span
                     className="pill pill-blue"
-                    style={{ position: 'absolute', top: 8, left: 8, fontSize: 11, fontWeight: 700 }}
+                    style={{ position: 'absolute', top: 8, left: 8, fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}
                   >
-                    ★ Main Photo ({totalPhotosCount} total)
+                    <Star size={11} fill="#fff" /> Main Photo ({totalPhotosCount} total)
                   </span>
                 )}
               </div>
@@ -991,8 +1022,12 @@ export const ListingForm = ({
               </p>
 
               <div style={{ display: 'flex', gap: 16, fontSize: 12, color: '#64748b' }}>
-                <span>📍 {pickupLocation || 'Campus meetup spot to be coordinated'}</span>
-                <span>📦 Qty: {quantity}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <MapPin size={13} /> {pickupLocation || 'Campus meetup spot to be coordinated'}
+                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <Package size={13} /> Qty: {quantity}
+                </span>
               </div>
 
               {tags.length > 0 && (
@@ -1020,7 +1055,7 @@ export const ListingForm = ({
               color: '#166534'
             }}
           >
-            <span>✓</span>
+            <Check size={16} />
             <span>
               <b>Instant Live Publishing:</b> Your listing will be visible across the campus marketplace immediately upon confirmation.
             </span>
@@ -1051,7 +1086,13 @@ export const ListingForm = ({
                 disabled={isSubmitting}
                 style={{ minWidth: 160 }}
               >
-                {isSubmitting ? 'Publishing...' : '🚀 Publish Listing Now'}
+                {isSubmitting ? (
+                  'Publishing...'
+                ) : (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <Send size={15} /> Publish Listing Now
+                  </span>
+                )}
               </button>
             </div>
           </div>

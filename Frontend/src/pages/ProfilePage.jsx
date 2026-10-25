@@ -8,6 +8,7 @@ import {
   Heart,
   CheckCircle2,
   Plus,
+  Star,
 } from 'lucide-react';
 import { getMyTransactions } from '../features/rental/api/rentalApi';
 
@@ -263,7 +264,15 @@ export default function ProfilePage() {
             <span>·</span>
             <span>{year || 'Sem 3'}</span>
             <span>·</span>
-            <span>{reviewsCount > 0 ? `${rating.toFixed(1)} ★ (${reviewsCount} reviews)` : 'No reviews yet'}</span>
+            <span>
+              {reviewsCount > 0 ? (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                  {rating.toFixed(1)} <Star size={12} fill="#f59e0b" color="#f59e0b" /> ({reviewsCount} reviews)
+                </span>
+              ) : (
+                'No reviews yet'
+              )}
+            </span>
             <span>·</span>
             <span>Eco level 1</span>
           </div>
