@@ -1,17 +1,4 @@
-/**
- * Deep Boghara — Database, DevOps & Integration Lead
- * crossModuleIntegration.test.js
- * 
- * TASK 8: Cross-Module Integration Tests
- * 
- * Validates the complete multi-module handshakes across all merged teammate modules:
- * 1. Auth ➔ Marketplace: Authenticated listing creation with JWT token gating
- * 2. Marketplace ➔ Rental: Multi-user rental handshake, ownership validation & date conflict detection
- * 3. Rental Lifecycle ➔ Transaction: Request approval, booking conflict lock & financial auditing
- * 4. Marketplace ➔ Admin Moderation: Listing report, admin approval/rejection & automated dispute dismissal
- * 5. Rental / Marketplace ➔ Communication: Notification dispatch & chat thread linking
- * 6. Completed Transaction ➔ Sustainability Impact: Campus eco-points & CO2 savings tracking
- */
+
 
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
