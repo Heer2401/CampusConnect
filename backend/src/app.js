@@ -12,10 +12,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// Health Check (FR-7.4)
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', service: 'CampusConnect-Backend', timestamp: new Date() });
-});
+// Health & Performance Monitoring 
+const { getHealthStatus } = require('./controllers/healthController');
+app.get('/api/health', getHealthStatus);
 
 // Dhrumil Doshi — Authentication, User Management & Sustainability
 app.use('/api/auth', require('./routes/authRoutes'));
