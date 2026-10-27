@@ -76,7 +76,7 @@ npm.cmd run dev
 | `GET` | `/api/v1/health` | Service health status, operating mode (`live`/`mock`), and active model. |
 | `POST` | `/api/v1/listings/suggest`<br>`/api/v1/listings/generate` | Generates listing details from `image_base64` or `image_url` + optional seller hints. |
 | `POST` | `/api/v1/listings/generate-upload` | Multipart form endpoint accepting direct image file upload and optional hints. |
-| `POST` | `/api/v1/pricing/estimate` | Estimates price based on comparable items and condition adjustment. |
+| `POST` | `/api/v1/pricing/estimate` | Estimates price using same-category comparables, IQR outlier filtering, and condition adjustment. |
 | `POST` | `/api/v1/matching/evaluate` | Evaluates and ranks open wanted posts against a newly published listing. |
 | `POST` | `/api/v1/ocr/check-upload` | Ingests PDF or image documents and extracts canonical text via OCR. |
 | `POST` | `/api/v1/ocr/check` | Compares extracted document text against an existing corpus for duplicates. |

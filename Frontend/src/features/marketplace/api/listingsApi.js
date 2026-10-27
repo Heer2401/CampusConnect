@@ -78,6 +78,14 @@ export const listingsApi = {
     return res.data;
   },
 
+  estimatePrice: async ({ title, category, condition }) => {
+    const res = await apiClient('/listings/price-estimate', {
+      method: 'POST',
+      body: { title, category, condition },
+    });
+    return res.data;
+  },
+
   deleteImage: async (listingId, imageId) => {
     const res = await apiClient(`/listings/${listingId}/images/${imageId}`, {
       method: 'DELETE',

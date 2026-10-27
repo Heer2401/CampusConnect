@@ -339,10 +339,38 @@ def _price_estimate(request: PriceEstimateRequest) -> dict[str, Any]:
             "price_low": None,
             "price_high": None,
             "comparable_count": 0,
+            "submitted_comparable_count": 0,
+            "excluded_outlier_count": 0,
+            "outlier_filter": "none",
             "method": "insufficient_comparables",
         }
 
-    median = statistics.median(prices)
+    submitted_count = len(prices)
+    retained_prices = sorted(prices)
+    # Use Tukey hinges (medians of the lower and upper halves) for stable
+    # quartiles. With fewer than four records, the sample is too small to
+    # identify outliers reliably, so retain every comparable.
+    outlier_filter = "skipped_small_sample"
+    if len(retained_prices) >= 4:
+        midpoint = len(retained_prices) // 2
+        if len(retained_prices) % 2:
+            lower_half = retained_prices[:midpoint]
+            upper_half = retained_prices[midpoint + 1:]
+        else:
+            lower_half = retained_prices[:midpoint]
+            upper_half = retained_prices[midpoint:]
+        q1 = statistics.median(lower_half)
+        q3 = statistics.median(upper_half)
+        iqr = q3 - q1
+        lower_fence = q1 - (1.5 * iqr)
+        upper_fence = q3 + (1.5 * iqr)
+        retained_prices = [price for price in retained_prices if lower_fence <= price <= upper_fence]
+        outlier_filter = "iqr_1_5"
+
+    # At least two points remain when the sample is large enough to filter,
+    # and all points are retained for smaller samples.
+    q1, q3 = _quartiles(retained_prices)
+    median = statistics.median(retained_prices)
     norm_cond, _ = _normalize_condition(request.condition)
     condition_factor = {"new": 1.0, "like_new": 0.90, "good": 0.75, "fair": 0.55, "poor": 0.35}
     factor = condition_factor.get(norm_cond, 0.75)
@@ -351,11 +379,26 @@ def _price_estimate(request: PriceEstimateRequest) -> dict[str, Any]:
         "title": request.title,
         "category": request.category,
         "estimated_price": estimate,
-        "price_low": round(min(prices) * factor / 0.75, 2),
-        "price_high": round(max(prices) * factor / 0.75, 2),
-        "comparable_count": len(prices),
+        "price_low": round(q1 * factor / 0.75, 2),
+        "price_high": round(q3 * factor / 0.75, 2),
+        "comparable_count": len(retained_prices),
+        "submitted_comparable_count": submitted_count,
+        "excluded_outlier_count": submitted_count - len(retained_prices),
+        "outlier_filter": outlier_filter,
         "method": "category_median_adjusted_for_condition",
     }
+
+
+def _quartiles(values: list[float]) -> tuple[float, float]:
+    """Return Tukey hinge quartiles for an already sorted non-empty list."""
+    midpoint = len(values) // 2
+    if len(values) % 2:
+        lower_half = values[:midpoint] or values
+        upper_half = values[midpoint + 1:] or values
+    else:
+        lower_half = values[:midpoint] or values
+        upper_half = values[midpoint:] or values
+    return statistics.median(lower_half), statistics.median(upper_half)
 
 
 _TOKEN_RE = re.compile(r"[a-z0-9]+")

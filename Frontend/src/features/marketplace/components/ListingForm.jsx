@@ -69,6 +69,15 @@ export const ListingForm = ({
   const [aiMetadata, setAiMetadata] = useState(null);
   const [showAiHints, setShowAiHints] = useState(false);
   const [aiGeneratedFields, setAiGeneratedFields] = useState([]);
+  const [isEstimatingPrice, setIsEstimatingPrice] = useState(false);
+  const [priceEstimate, setPriceEstimate] = useState(null);
+  const [priceEstimateMessage, setPriceEstimateMessage] = useState('');
+
+  const invalidatePriceEstimate = () => {
+    if (priceEstimate) setPrice('');
+    setPriceEstimate(null);
+    setPriceEstimateMessage('');
+  };
 
   useEffect(() => {
     if (categories.length > 0 && !category) {
@@ -104,6 +113,7 @@ export const ListingForm = ({
         condition: aiConditionHint,
       });
 
+      invalidatePriceEstimate();
       const updatedFields = [];
       if (suggestion.title) {
         setTitle(suggestion.title);
@@ -165,6 +175,35 @@ export const ListingForm = ({
       setDeposit('');
     }
     if (newType !== 'exchange') setExchangeFor('');
+  };
+
+  const handlePriceEstimate = async () => {
+    if (!title.trim() || !category) {
+      setPriceEstimateMessage('Add an item title and choose a category first.');
+      return;
+    }
+
+    setIsEstimatingPrice(true);
+    setPriceEstimate(null);
+    setPriceEstimateMessage('');
+    try {
+      const estimate = await listingsApi.estimatePrice({
+        title: title.trim(),
+        category,
+        condition,
+      });
+      if (estimate.estimated_price === null || estimate.estimated_price === undefined) {
+        setPriceEstimateMessage('There are not enough comparable listings yet. Enter a price manually.');
+        return;
+      }
+      setPrice(String(Math.round(Number(estimate.estimated_price))));
+      setPriceEstimate(estimate);
+      setPriceEstimateMessage('Estimate added. You can edit the price before publishing.');
+    } catch (error) {
+      setPriceEstimateMessage(error.message || 'Price estimation is unavailable. Enter a price manually.');
+    } finally {
+      setIsEstimatingPrice(false);
+    }
   };
 
   const handleAddTag = (e) => {
@@ -531,7 +570,10 @@ export const ListingForm = ({
               placeholder="e.g. Thomas Calculus 14th Edition with Solution Guide"
               value={title}
               maxLength={100}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => {
+                invalidatePriceEstimate();
+                setTitle(e.target.value);
+              }}
               className={errors.title ? 'error' : ''}
             />
             {errors.title ? (
@@ -551,7 +593,10 @@ export const ListingForm = ({
             <select
               id="category"
               value={category}
-              onChange={(e) => setCategory(e.target.value)}
+              onChange={(e) => {
+                invalidatePriceEstimate();
+                setCategory(e.target.value);
+              }}
               disabled={categoriesLoading}
               className={errors.category ? 'error' : ''}
             >
@@ -591,7 +636,10 @@ export const ListingForm = ({
             <select
               id="condition"
               value={condition}
-              onChange={(e) => setCondition(e.target.value)}
+              onChange={(e) => {
+                invalidatePriceEstimate();
+                setCondition(e.target.value);
+              }}
             >
               <option value="new">New (Unopened, in original packaging)</option>
               <option value="like_new">Like New (Barely used, zero flaws)</option>
@@ -747,9 +795,36 @@ export const ListingForm = ({
                 min="1"
                 placeholder="e.g. 450"
                 value={price}
-                onChange={(e) => setPrice(e.target.value)}
+                onChange={(e) => {
+                  setPrice(e.target.value);
+                  setPriceEstimate(null);
+                  setPriceEstimateMessage('');
+                }}
                 className={errors.price ? 'error' : ''}
               />
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={handlePriceEstimate}
+                disabled={isEstimatingPrice || !title.trim() || !category}
+                style={{ marginTop: 10 }}
+              >
+                {isEstimatingPrice ? 'Estimating…' : 'Get price estimate'}
+              </button>
+              {priceEstimateMessage && (
+                <div className="form-field-helper" role="status" style={{ marginTop: 8 }}>
+                  {priceEstimateMessage}
+                </div>
+              )}
+              {priceEstimate && (
+                <div className="form-field-helper" style={{ marginTop: 4 }}>
+                  Suggested range: ₹{Math.round(priceEstimate.price_low)}–₹{Math.round(priceEstimate.price_high)}
+                  {' '}from {priceEstimate.comparable_count} comparable listing{priceEstimate.comparable_count === 1 ? '' : 's'}.
+                  {priceEstimate.excluded_outlier_count > 0 && (
+                    <> {priceEstimate.excluded_outlier_count} unusual price{priceEstimate.excluded_outlier_count === 1 ? ' was' : 's were'} excluded.</>
+                  )}
+                </div>
+              )}
               {errors.price ? (
                 <span className="error-text">{errors.price}</span>
               ) : (

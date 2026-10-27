@@ -103,15 +103,16 @@ University marketplaces exhibit unique pricing patterns compared to general cons
 2. **Standardized Course Catalogs:** Multiple students sell identical items (e.g., *Boylestad Circuit Analysis*, Casio FX-991EX calculators, lab aprons) across cohorts.
 3. **Accelerated Wear:** Academic items experience heavy mechanical wear over short durations.
 
-### 3.2 Implemented Baseline: Condition-Adjusted Category Median
+### 3.2 Implemented Baseline: IQR-Filtered, Condition-Adjusted Category Median
 
-The current live endpoint (`POST /api/v1/pricing/estimate`) uses a robust non-parametric statistical baseline:
-- Collects same-category comparable listings active on campus.
-- Filters outliers using interquartile range (IQR) boundaries.
-- Computes the median asking price $M = \text{median}(\{P_1, P_2, \dots, P_k\})$.
+The FastAPI endpoint (`POST /api/v1/pricing/estimate`) accepts same-category campus comparables. The Express backend route (`POST /api/v1/listings/price-estimate`) gathers up to 100 recent active or approved sell listings in the selected category, excludes the requesting user's listings, and forwards their prices to the AI service.
+
+The estimator uses a robust non-parametric baseline:
+- Filters outliers with Tukey's 1.5 × IQR fences when at least four comparable prices are available; smaller samples are retained because quartile-based outlier detection is unreliable with very few records.
+- Computes the median asking price of the retained comparables, $M = \text{median}(\{P_1, P_2, \dots, P_k\})$.
 - Applies a condition-based depreciation scalar $D_c$:
   $$D_{new} = 1.00,\quad D_{like\_new} = 0.90,\quad D_{good} = 0.75,\quad D_{fair} = 0.55,\quad D_{poor} = 0.35$$
-- Computes estimated price $\hat{P} = \text{round}\left(M \times \frac{D_c}{0.75}, 2\right)$, providing lower and upper confidence bands $[P_{low}, P_{high}]$.
+- Computes estimated price $\hat{P} = \text{round}\left(M \times \frac{D_c}{0.75}, 2\right)$. The displayed price band uses the first and third quartiles of retained comparables, adjusted by the same condition scalar; the API reports submitted, retained, and excluded comparable counts.
 - If no comparables are present, it returns an explicit `insufficient_comparables` code, avoiding false price hallucinations.
 
 ### 3.3 Final Project Phase: Machine Learning Price Regression

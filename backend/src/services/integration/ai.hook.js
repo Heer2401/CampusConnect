@@ -28,6 +28,17 @@ const getListingSuggestions = async ({
   return response.data;
 };
 
+const estimateListingPrice = async ({ title, category, condition, comparableItems = [] }) => {
+  const baseUrl = process.env.AI_SERVICE_URL || 'http://localhost:8001';
+  const response = await axios.post(
+    `${baseUrl.replace(/\/$/, '')}/api/v1/pricing/estimate`,
+    { title, category, condition, comparable_items: comparableItems },
+    { timeout: 10000 }
+  );
+  return response.data;
+};
+
 module.exports = {
   getListingSuggestions,
+  estimateListingPrice,
 };

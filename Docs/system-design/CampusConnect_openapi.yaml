@@ -241,6 +241,49 @@ paths:
                   estimatedPrice: { type: number }
         '503': { description: AI service unavailable - client should fall back to manual entry (NFR-6.1) }
 
+  /listings/price-estimate:
+    post:
+      tags: [AI, Listings]
+      summary: Estimate a selling price from active campus comparables (FR-3.2)
+      description: The backend gathers up to 100 recent active or approved sell listings in the selected category, excluding the requesting user's listings, then asks the AI service to filter IQR outliers and apply the target item's condition adjustment.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, category]
+              properties:
+                title: { type: string, minLength: 1, maxLength: 160 }
+                category: { type: string, description: MongoDB category ID }
+                condition:
+                  type: string
+                  enum: [new, like_new, good, fair, poor]
+                  default: good
+      responses:
+        '200':
+          description: Estimated price and comparable price band; estimate may be null when no comparables exist
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      estimated_price: { type: number, nullable: true }
+                      price_low: { type: number, nullable: true }
+                      price_high: { type: number, nullable: true }
+                      comparable_count: { type: integer }
+                      submitted_comparable_count: { type: integer }
+                      excluded_outlier_count: { type: integer }
+                      outlier_filter: { type: string, enum: [none, skipped_small_sample, iqr_1_5] }
+                      method: { type: string }
+        '400': { description: Invalid title or inactive/invalid category }
+        '503': { description: AI pricing service unavailable; continue with manual price entry }
+
   /listings/{id}/ocr-check:
     post:
       tags: [AI, Listings]

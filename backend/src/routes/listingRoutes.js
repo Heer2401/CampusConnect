@@ -17,9 +17,10 @@ const {
   reorderImages
 } = require('../controllers/imageController');
 const upload = require('../middlewares/uploadMiddleware');
-const { suggestListing } = require('../controllers/aiController');
+const { suggestListing, getPriceEstimate } = require('../controllers/aiController');
 
 router.post('/ai-suggest', requireAuth, upload.single('image'), suggestListing);
+router.post('/price-estimate', requireAuth, getPriceEstimate);
 router.post('/', requireAuth, createListing);
 router.get('/', getListings);
 router.get('/mine', requireAuth, getMyListings);
