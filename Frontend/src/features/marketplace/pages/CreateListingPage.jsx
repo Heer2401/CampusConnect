@@ -33,10 +33,20 @@ export const CreateListingPage = () => {
         }
       }
 
+      let matchingResult = null;
+      let matchingWarning = '';
+      try {
+        matchingResult = await listingsApi.evaluateWantedMatches(newListing._id);
+      } catch (matchError) {
+        matchingWarning = matchError.message || 'Wanted-post matching could not run right now.';
+      }
+
       setSuccessData({
         listing: newListing,
         status: newListing.status || formData.status || 'active',
         imageWarning: imageUploadWarning,
+        matching: matchingResult,
+        matchingWarning,
       });
     } catch (err) {
       setErrorMessage(err.message || 'Failed to create listing. Please check required fields and try again.');
@@ -186,6 +196,34 @@ export const CreateListingPage = () => {
               >
                 <Info size={14} style={{ flexShrink: 0 }} />
                 <span>{successData.imageWarning}</span>
+              </div>
+            )}
+
+            {successData.matchingWarning && (
+              <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: 10, fontSize: 12, color: '#92400e', marginBottom: 16, textAlign: 'left' }}>
+                {successData.matchingWarning}
+              </div>
+            )}
+            {successData.matching?.deferred && (
+              <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: 10, fontSize: 12, color: '#1e40af', marginBottom: 16, textAlign: 'left' }}>
+                Wanted-post matching will run after this listing is approved.
+              </div>
+            )}
+            {successData.matching && !successData.matching.deferred && (
+              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 10, fontSize: 12, color: '#166534', marginBottom: 16, textAlign: 'left' }}>
+                {successData.matching.matches?.length ? (
+                  <>
+                    <strong>{successData.matching.matches.length} wanted-post match{successData.matching.matches.length === 1 ? '' : 'es'} found.</strong>
+                    <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
+                      {successData.matching.matches.slice(0, 5).map((match) => (
+                        <li key={match.wanted_post_id}>{match.title} ({Math.round(match.similarity_score * 100)}% match)</li>
+                      ))}
+                    </ul>
+                    <span>Matched students were notified.</span>
+                  </>
+                ) : successData.matching.open_wanted_post_count === 0
+                  ? 'There are no open wanted posts to match against yet.'
+                  : 'Matching checked open wanted posts. No matches were found.'}
               </div>
             )}
 

@@ -24,6 +24,7 @@ import './features/marketplace/marketplace.css';
 import { ChatPage } from './features/search_communication/pages/ChatPage';
 import { WishlistPage } from './features/search_communication/pages/WishlistPage';
 import RequestsPage from './features/search_communication/pages/RequestsPage';
+import WantedPostsPage from './features/search_communication/pages/WantedPostsPage';
 import AdminDashboard from './components/admin/AdminDashboard';
 
 // Charmi Bhayani — Rental & Transaction Management
@@ -178,6 +179,14 @@ export default function App() {
                       element={
                         <ProtectedRoute roleRequired="student">
                           <RequestsPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/wanted-posts"
+                      element={
+                        <ProtectedRoute roleRequired="student">
+                          <WantedPostsPage />
                         </ProtectedRoute>
                       }
                     />

@@ -72,11 +72,24 @@ export const ListingForm = ({
   const [isEstimatingPrice, setIsEstimatingPrice] = useState(false);
   const [priceEstimate, setPriceEstimate] = useState(null);
   const [priceEstimateMessage, setPriceEstimateMessage] = useState('');
+  const [studyDocument, setStudyDocument] = useState(null);
+  const [isCheckingDocument, setIsCheckingDocument] = useState(false);
+  const [ocrResult, setOcrResult] = useState(null);
+  const [ocrMessage, setOcrMessage] = useState('');
+  const [checkedStudyDocument, setCheckedStudyDocument] = useState(null);
+  const [extractedDocumentText, setExtractedDocumentText] = useState('');
 
   const invalidatePriceEstimate = () => {
     if (priceEstimate) setPrice('');
     setPriceEstimate(null);
     setPriceEstimateMessage('');
+  };
+
+  const invalidateOcrCheck = () => {
+    setOcrResult(null);
+    setOcrMessage('');
+    setCheckedStudyDocument(null);
+    setExtractedDocumentText('');
   };
 
   useEffect(() => {
@@ -206,6 +219,31 @@ export const ListingForm = ({
     }
   };
 
+  const runOcrCheck = async () => {
+    if (!studyDocument || !category) {
+      setOcrMessage('Choose a study document and category first.');
+      return null;
+    }
+    setIsCheckingDocument(true);
+    setOcrResult(null);
+    setOcrMessage('Extracting text and checking existing study materials…');
+    try {
+      const result = await listingsApi.checkStudyDocument(studyDocument, category);
+      setOcrResult(result);
+      setCheckedStudyDocument(studyDocument);
+      setExtractedDocumentText(result.extracted_text || '');
+      setOcrMessage(result.is_duplicate
+        ? `Possible duplicate: ${result.matched_title || 'an existing study material'} (${Math.round(result.similarity * 100)}% similar).`
+        : `No duplicate found. Checked against ${result.candidate_count} existing document${result.candidate_count === 1 ? '' : 's'}.`);
+      return result;
+    } catch (error) {
+      setOcrMessage(error.message || 'OCR is unavailable. Save a draft and try again before publishing.');
+      return null;
+    } finally {
+      setIsCheckingDocument(false);
+    }
+  };
+
   const handleAddTag = (e) => {
     if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault();
@@ -292,9 +330,20 @@ export const ListingForm = ({
     }
   };
 
-  const handleSubmit = (e, status = 'active') => {
+  const handleSubmit = async (e, status = 'active') => {
     e.preventDefault();
     if (!validateStep2() || !validateStep3()) return;
+
+    let documentText = '';
+    if (status !== 'draft' && isStudyMaterial && studyDocument) {
+      const check = checkedStudyDocument === studyDocument ? ocrResult : await runOcrCheck();
+      if (!check) return;
+      if (check.is_duplicate) {
+        setCurrentStep(2);
+        return;
+      }
+      documentText = check.extracted_text || '';
+    }
 
     const payload = {
       title: title.trim(),
@@ -307,6 +356,7 @@ export const ListingForm = ({
       tags,
       status,
     };
+    if (documentText) payload.documentText = documentText;
 
     if (listingType === 'sell') {
       payload.price = Number(price);
@@ -328,7 +378,7 @@ export const ListingForm = ({
       };
     }
 
-    onSubmit(payload, pendingFiles);
+    await onSubmit(payload, pendingFiles);
   };
 
   // Duplicate Check for Notes / Question Papers
@@ -595,6 +645,7 @@ export const ListingForm = ({
               value={category}
               onChange={(e) => {
                 invalidatePriceEstimate();
+                invalidateOcrCheck();
                 setCategory(e.target.value);
               }}
               disabled={categoriesLoading}
@@ -620,11 +671,42 @@ export const ListingForm = ({
 
           {/* Duplicate Notice for Study Material / Question Papers */}
           {isStudyMaterial && (
-            <div className="academic-duplicate-warning" style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-              <FileText size={18} style={{ color: '#2563eb', flexShrink: 0, marginTop: 2 }} />
-              <p>
-                <b>Sharing Academic Study Material?</b> Please make sure these lecture notes or past question papers aren't already uploaded by your class representative or peers in this category to prevent duplicate campus listings.
-              </p>
+            <div style={{ marginTop: 16 }}>
+              <div className="academic-duplicate-warning" style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <FileText size={18} style={{ color: '#2563eb', flexShrink: 0, marginTop: 2 }} />
+                <p><b>Sharing Academic Study Material?</b> Upload the notes or question paper to check for duplicates before publishing.</p>
+              </div>
+              <label htmlFor="studyDocument" style={{ marginTop: 10 }}>Study document (PDF or image, optional)</label>
+              <input
+                id="studyDocument"
+                type="file"
+                accept=".pdf,image/jpeg,image/png,image/webp,image/tiff,image/bmp"
+                onChange={(event) => {
+                  const file = event.target.files?.[0] || null;
+                  if (file && file.size > 10 * 1024 * 1024) {
+                    setOcrMessage('Document must be 10 MB or smaller.');
+                    event.target.value = '';
+                    return;
+                  }
+                  setStudyDocument(file);
+                  invalidateOcrCheck();
+                }}
+              />
+              {studyDocument && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
+                  <span className="muted" style={{ fontSize: 12 }}>{studyDocument.name}</span>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => {
+                    setStudyDocument(null);
+                    invalidateOcrCheck();
+                  }}>Remove document</button>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={runOcrCheck} disabled={isCheckingDocument || !category}>
+                    {isCheckingDocument ? 'Checking…' : 'Check for duplicates'}
+                  </button>
+                </div>
+              )}
+              {ocrMessage && (
+                <p role="status" style={{ fontSize: 12, margin: '8px 0 0', color: ocrResult?.is_duplicate ? '#b91c1c' : ocrResult ? '#166534' : '#475569' }}>{ocrMessage}</p>
+              )}
             </div>
           )}
 

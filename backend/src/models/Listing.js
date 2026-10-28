@@ -114,6 +114,11 @@ const listingSchema = new mongoose.Schema({
   aiMeta: {
     type: mongoose.Schema.Types.Mixed,
   },
+  documentText: {
+    type: String,
+    maxlength: 100000,
+    select: false,
+  },
   viewCount: {
     type: Number,
     default: 0,

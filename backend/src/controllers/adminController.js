@@ -178,6 +178,12 @@ const approveListing = async (req, res, next) => {
 
     await listing.save();
 
+      // Matching is triggered when a moderated listing becomes visible.
+      const { matchListingToWantedPosts } = require('../services/wantedPostMatchingService');
+      matchListingToWantedPosts(req.app, listing._id).catch((matchError) => {
+        console.error('[wanted-post matching] approval trigger failed:', matchError.message);
+      });
+
     // Auto-dismiss open disputes/reports on this listing since it was cleared
     await Dispute.updateMany(
       { relatedListing: listing._id, status: { $in: ['pending', 'under_review'] } },

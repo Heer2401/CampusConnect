@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const Listing = require('../models/Listing');
 const Category = require('../models/Category');
 const storage = require('../services/storage');
+const { findDocumentDuplicate } = require('../services/documentDuplicateService');
 
 const validateTypeFields = (data) => {
   const { listingType, price, rentalRate, rentalPeriod, deposit, exchangeFor } = data;
@@ -67,6 +68,33 @@ const createListing = async (req, res, next) => {
       return res.status(400).json({ success: false, error: { code: 400, message: 'Category not found or inactive' } });
     }
 
+    if (data.documentText !== undefined) {
+      if (typeof data.documentText !== 'string' || data.documentText.length > 100000) {
+        return res.status(400).json({ success: false, error: { code: 400, message: 'Extracted document text must be 100,000 characters or fewer' } });
+      }
+      data.documentText = data.documentText.trim();
+      if (data.documentText && data.status !== 'draft') {
+        const duplicate = await findDocumentDuplicate({
+          documentText: data.documentText,
+          categoryId: category._id,
+        });
+        if (duplicate.is_duplicate) {
+          return res.status(409).json({
+            success: false,
+            error: {
+              code: 409,
+              message: `This document closely matches "${duplicate.matched_title || 'an existing study material listing'}" (${Math.round(duplicate.similarity * 100)}% similarity).`,
+              data: duplicate,
+            },
+          });
+        }
+        data.documentText = data.documentText.slice(0, 100000);
+      }
+      if (!data.documentText) {
+        delete data.documentText;
+      }
+    }
+
     const typeError = validateTypeFields(data);
     if (typeError) {
       return res.status(400).json({ success: false, error: { code: 400, message: typeError } });
@@ -86,6 +114,9 @@ const createListing = async (req, res, next) => {
   } catch (error) {
     if (error.name === 'ValidationError') {
       return res.status(400).json({ success: false, error: { code: 400, message: error.message } });
+    }
+    if (error.response || error.code === 'ECONNABORTED' || error.code === 'ECONNREFUSED') {
+      return res.status(503).json({ success: false, error: { code: 503, message: 'OCR is unavailable. Try again before publishing the document.' } });
     }
     next(error);
   }
@@ -282,8 +313,30 @@ const updateListing = async (req, res, next) => {
     const whitelistedFields = [
       'title', 'description', 'category', 'listingType', 'price',
       'rentalRate', 'rentalPeriod', 'deposit', 'exchangeFor',
-      'condition', 'tags', 'pickupLocation', 'quantity', 'status'
+      'condition', 'tags', 'pickupLocation', 'quantity', 'status', 'documentText'
     ];
+
+    if (typeof req.body.documentText === 'string' && req.body.documentText.length > 100000) {
+      return res.status(400).json({ success: false, error: { code: 400, message: 'Extracted document text must be 100,000 characters or fewer' } });
+    }
+    if (req.body.documentText && req.body.status !== 'draft') {
+      const targetCategory = req.body.category || listing.category;
+      const duplicate = await findDocumentDuplicate({
+        documentText: req.body.documentText,
+        categoryId: targetCategory,
+        excludeListingId: listing._id,
+      });
+      if (duplicate.is_duplicate) {
+        return res.status(409).json({
+          success: false,
+          error: {
+            code: 409,
+            message: `This document closely matches "${duplicate.matched_title || 'an existing study material listing'}" (${Math.round(duplicate.similarity * 100)}% similarity).`,
+            data: duplicate,
+          },
+        });
+      }
+    }
 
     let coreContentChanged = false;
     ['title', 'description', 'price', 'rentalRate', 'exchangeFor'].forEach(f => {
@@ -304,6 +357,9 @@ const updateListing = async (req, res, next) => {
   } catch (error) {
     if (error.name === 'ValidationError') {
       return res.status(400).json({ success: false, error: { code: 400, message: error.message } });
+    }
+    if (error.response || error.code === 'ECONNABORTED' || error.code === 'ECONNREFUSED') {
+      return res.status(503).json({ success: false, error: { code: 503, message: 'OCR is unavailable. Try again before publishing the document.' } });
     }
     next(error);
   }

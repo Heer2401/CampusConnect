@@ -284,10 +284,31 @@ paths:
         '400': { description: Invalid title or inactive/invalid category }
         '503': { description: AI pricing service unavailable; continue with manual price entry }
 
-  /listings/{id}/ocr-check:
+  /listings/ocr-check:
     post:
       tags: [AI, Listings]
-      summary: Run OCR duplicate-detection on an uploaded notes/PYQ document (FR-3.4)
+      summary: Extract and check uploaded study material for duplicates (FR-3.4)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, category]
+              properties:
+                file: { type: string, format: binary }
+                category: { type: string, description: MongoDB category ID }
+      responses:
+        '200': { description: OCR text and duplicate comparison result }
+        '400': { description: Missing document or invalid category }
+        '409': { description: A duplicate is blocked when publishing the listing }
+        '503': { description: OCR service unavailable; save a draft and retry before publishing }
+
+  /listings/{id}/matches:
+    post:
+      tags: [AI, Listings]
+      summary: Evaluate a live listing against open wanted posts (FR-3.3)
       security: [{ bearerAuth: [] }]
       parameters:
         - name: id
@@ -295,16 +316,9 @@ paths:
           required: true
           schema: { type: string }
       responses:
-        '200':
-          description: Duplicate-detection result
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  isDuplicate: { type: boolean }
-                  matchedListingId: { type: string, nullable: true }
-                  similarity: { type: number }
+        '200': { description: Matches and notification status; matching is deferred until approval for moderated listings }
+        '403': { description: Only the owner or an administrator may request matching results }
+        '503': { description: Matching service unavailable }
 
   /categories:
     get:
@@ -346,20 +360,38 @@ paths:
   /wanted-posts:
     get:
       tags: [WantedPosts]
-      summary: List open wanted posts
+      summary: List open wanted posts; use mine=true for the current user's posts
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: mine
+          in: query
+          schema: { type: boolean }
       responses:
         '200': { description: Array of wanted posts }
     post:
       tags: [WantedPosts]
-      summary: Create a wanted post (US-05)
+      summary: Create a wanted post that feeds listing matching (FR-3.3)
       security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, description, categoryId]
+              properties:
+                title: { type: string, minLength: 3, maxLength: 160 }
+                description: { type: string, minLength: 5, maxLength: 2000 }
+                categoryId: { type: string }
+                budgetMax: { type: number, minimum: 0, nullable: true }
       responses:
         '201': { description: Wanted post created }
+        '400': { description: Invalid wanted post fields }
 
-  /wanted-posts/{id}:
-    delete:
+  /wanted-posts/{id}/close:
+    patch:
       tags: [WantedPosts]
-      summary: Close/withdraw a wanted post
+      summary: Close one of the current user's open wanted posts
       security: [{ bearerAuth: [] }]
       parameters:
         - name: id
@@ -367,7 +399,8 @@ paths:
           required: true
           schema: { type: string }
       responses:
-        '204': { description: Wanted post closed }
+        '200': { description: Wanted post closed }
+        '404': { description: Open wanted post not found }
 
   /search:
     get:

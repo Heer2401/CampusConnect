@@ -1881,6 +1881,13 @@
 }
 
 /* Duplicate Academic Material Warning Banner */
+.wanted-posts-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.85fr) minmax(360px, 1.4fr);
+  gap: 20px;
+  align-items: start;
+}
+
 .academic-duplicate-warning {
   background: #fffbeb;
   border: 1px solid #fde68a;
@@ -1891,6 +1898,12 @@
   display: flex;
   align-items: flex-start;
   gap: 10px;
+}
+
+@media (max-width: 760px) {
+  .wanted-posts-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .academic-duplicate-warning p {

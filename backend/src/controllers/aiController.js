@@ -1,7 +1,13 @@
 const mongoose = require('mongoose');
-const { getListingSuggestions, estimateListingPrice } = require('../services/integration/ai.hook');
+const {
+  getListingSuggestions,
+  estimateListingPrice,
+  extractUploadedDocument,
+} = require('../services/integration/ai.hook');
 const Category = require('../models/Category');
 const Listing = require('../models/Listing');
+const { matchListingToWantedPosts } = require('../services/wantedPostMatchingService');
+const { findDocumentDuplicate } = require('../services/documentDuplicateService');
 
 const suggestListing = async (req, res, next) => {
   try {
@@ -102,4 +108,73 @@ const getPriceEstimate = async (req, res, next) => {
   }
 };
 
-module.exports = { suggestListing, getPriceEstimate };
+const checkStudyDocument = async (req, res, next) => {
+  try {
+    const { category: categoryId } = req.body;
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: { code: 400, message: 'Choose a PDF or image document to check' } });
+    }
+    if (!mongoose.Types.ObjectId.isValid(categoryId)) {
+      return res.status(400).json({ success: false, error: { code: 400, message: 'A valid category ID is required' } });
+    }
+    const category = await Category.findOne({ _id: categoryId, isActive: true });
+    if (!category) {
+      return res.status(400).json({ success: false, error: { code: 400, message: 'Category not found or inactive' } });
+    }
+
+    const extracted = await extractUploadedDocument({ file: req.file });
+    const result = await findDocumentDuplicate({
+      documentText: extracted.extracted_text,
+      categoryId: category._id,
+    });
+    res.json({
+      success: true,
+      data: {
+        ...extracted,
+        ...result,
+      },
+    });
+  } catch (error) {
+    if (error.response || error.code === 'ECONNABORTED' || error.code === 'ECONNREFUSED') {
+      return res.status(503).json({
+        success: false,
+        error: { code: 503, message: 'OCR is temporarily unavailable. Save a draft and try again before publishing.' },
+      });
+    }
+    next(error);
+  }
+};
+
+const evaluateListingWantedMatches = async (req, res, next) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, error: { code: 400, message: 'Invalid listing ID' } });
+    }
+    const listing = await Listing.findById(req.params.id).populate('category', 'name').lean();
+    if (!listing || listing.isDeleted) {
+      return res.status(404).json({ success: false, error: { code: 404, message: 'Listing not found' } });
+    }
+    const userId = (req.user._id || req.user.id).toString();
+    const ownerId = (listing.owner?._id || listing.owner).toString();
+    if (userId !== ownerId && !['admin', 'Admin', 'Administrator'].includes(req.user.role)) {
+      return res.status(403).json({ success: false, error: { code: 403, message: 'Only the listing owner can view its matches' } });
+    }
+    const result = await matchListingToWantedPosts(req.app, listing);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    if (error.response || error.code === 'ECONNABORTED' || error.code === 'ECONNREFUSED') {
+      return res.status(503).json({
+        success: false,
+        error: { code: 503, message: 'Wanted-post matching is temporarily unavailable' },
+      });
+    }
+    next(error);
+  }
+};
+
+module.exports = {
+  suggestListing,
+  getPriceEstimate,
+  checkStudyDocument,
+  evaluateListingWantedMatches,
+};

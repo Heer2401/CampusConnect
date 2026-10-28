@@ -86,6 +86,26 @@ export const listingsApi = {
     return res.data;
   },
 
+  checkStudyDocument: async (file, category) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('category', category);
+    const res = await apiClient('/listings/ocr-check', {
+      method: 'POST',
+      body: formData,
+      isFormData: true,
+    });
+    return res.data;
+  },
+
+  evaluateWantedMatches: async (listingId) => {
+    const res = await apiClient(`/listings/${listingId}/matches`, {
+      method: 'POST',
+      body: {},
+    });
+    return res.data;
+  },
+
   deleteImage: async (listingId, imageId) => {
     const res = await apiClient(`/listings/${listingId}/images/${imageId}`, {
       method: 'DELETE',

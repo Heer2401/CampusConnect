@@ -17,13 +17,21 @@ const {
   reorderImages
 } = require('../controllers/imageController');
 const upload = require('../middlewares/uploadMiddleware');
-const { suggestListing, getPriceEstimate } = require('../controllers/aiController');
+const {
+  suggestListing,
+  getPriceEstimate,
+  checkStudyDocument,
+  evaluateListingWantedMatches,
+} = require('../controllers/aiController');
+const documentUpload = require('../middlewares/documentUploadMiddleware');
 
 router.post('/ai-suggest', requireAuth, upload.single('image'), suggestListing);
 router.post('/price-estimate', requireAuth, getPriceEstimate);
+router.post('/ocr-check', requireAuth, documentUpload, checkStudyDocument);
 router.post('/', requireAuth, createListing);
 router.get('/', getListings);
 router.get('/mine', requireAuth, getMyListings);
+router.post('/:id/matches', requireAuth, evaluateListingWantedMatches);
 router.get('/:id', optionalAuth, getListingById);
 router.patch('/:id', requireAuth, updateListing);
 router.delete('/:id', requireAuth, deleteListing);

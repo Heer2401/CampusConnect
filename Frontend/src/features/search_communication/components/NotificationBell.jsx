@@ -85,7 +85,7 @@ export const NotificationBell = () => {
       navigate('/transactions');
     } else if (notif.type === 'rental') {
       navigate('/rentals');
-    } else if (['listing_approved', 'listing_rejected', 'price_alert'].includes(notif.type) && notif.relatedId) {
+    } else if (['listing_approved', 'listing_rejected', 'price_alert', 'match_found'].includes(notif.type) && notif.relatedId) {
       navigate(`/listings/${notif.relatedId}`);
     } else if (notif.type === 'rental_reminder') {
       navigate('/rentals');
