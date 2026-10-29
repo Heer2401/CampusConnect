@@ -290,13 +290,12 @@ body {
 }
 
 /* Chat view viewport optimization */
-.main-content:has(.chat-page-wrapper) {
-  padding-top: 1rem;
-  padding-bottom: 1rem;
+.main-content:has(.chat-page) {
+  padding: 0;
   overflow: hidden;
 }
 
-body:has(.chat-page-wrapper) {
+body:has(.chat-page) {
   overflow: hidden;
 }
 

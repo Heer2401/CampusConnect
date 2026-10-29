@@ -200,17 +200,7 @@ export const ChatPage = () => {
     scrollToBottom('smooth');
   }, [messages]);
 
-  // Lock document body overflow so whole page never scrolls, keeping scroll local to panels
-  useEffect(() => {
-    const prevBodyOverflow = document.body.style.overflow;
-    const prevHtmlOverflow = document.documentElement.style.overflow;
-    document.body.style.overflow = 'hidden';
-    document.documentElement.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prevBodyOverflow;
-      document.documentElement.style.overflow = prevHtmlOverflow;
-    };
-  }, []);
+  // Body overflow is locked via CSS :has(.chat-page) rule in index.css
 
   // Load threads on mount
   const fetchThreads = useCallback(async () => {
