@@ -9,6 +9,7 @@ import {
   Check,
   CheckCheck,
   CheckCircle2,
+  Clock,
   Image as ImageIcon,
   MessageSquare,
   Search,
@@ -173,7 +174,7 @@ export const ChatPage = () => {
       setRejectingRentalId(rentalId);
       await updateRentalStatus(rentalId, 'cancelled');
       if (activeThread?._id) {
-        chatApi.getMessages(activeThread._id).then(setMessages).catch(() => {});
+        chatApi.getMessages(activeThread._id).then(setMessages).catch(() => { });
       }
     } catch (err) {
       alert(err.message || 'Failed to decline rental request.');
@@ -307,7 +308,7 @@ export const ChatPage = () => {
           if (prev.some((m) => m._id === newMessage._id)) return prev;
           return [...prev, newMessage];
         });
-        chatApi.markThreadRead(activeThreadId).catch(() => {});
+        chatApi.markThreadRead(activeThreadId).catch(() => { });
       }
 
       setThreads((prev) => {
@@ -572,7 +573,7 @@ export const ChatPage = () => {
                   >
                     <div className="chat-listing-thumb">
                       {activeThread.listingId.images?.[0]?.thumbnailUrl ||
-                      activeThread.listingId.images?.[0]?.url ? (
+                        activeThread.listingId.images?.[0]?.url ? (
                         <img
                           src={
                             activeThread.listingId.images[0].thumbnailUrl ||
