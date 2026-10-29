@@ -9,6 +9,7 @@ const Rental = require('./Rental');
 const RentalReminder = require('./RentalReminder');
 const WantedPost = require('./WantedPost');
 const MatchEvent = require('./MatchEvent');
+const RentalRequestMatch = require('./RentalRequestMatch');
 const ChatThread = require('./ChatThread');
 const Message = require('./Message');
 const Notification = require('./Notification');
@@ -30,6 +31,7 @@ module.exports = {
   RentalReminder,
   WantedPost,
   MatchEvent,
+  RentalRequestMatch,
   ChatThread,
   Message,
   Notification,

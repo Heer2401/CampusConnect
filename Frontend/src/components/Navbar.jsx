@@ -16,7 +16,6 @@ import {
   BadgeCheck,
   Plus,
   ChevronDown,
-  Search,
 } from 'lucide-react';
 import { NotificationBell } from '../features/search_communication/components/NotificationBell';
 
@@ -99,14 +98,6 @@ export default function Navbar() {
                 >
                   <ClipboardList size={15} />
                   Requests
-                </NavLink>
-
-                <NavLink
-                  to="/wanted-posts"
-                  className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                >
-                  <Search size={15} />
-                  Wanted
                 </NavLink>
 
                 <NavLink

@@ -48,6 +48,11 @@ const createRentalRequest = async (req, res, next) => {
       status: 'open',
     });
 
+    const { matchExistingListingsToRequest } = require('../services/rentalRequestMatchingService');
+    matchExistingListingsToRequest(req.app, rentalRequest._id).catch((matchError) => {
+      console.error('[request matching] new-request trigger failed:', matchError.message);
+    });
+
     res.status(201).json({ message: 'Rental request posted successfully.', rentalRequest });
   } catch (error) {
     next(error);

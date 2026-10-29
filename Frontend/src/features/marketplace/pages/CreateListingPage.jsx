@@ -36,9 +36,9 @@ export const CreateListingPage = () => {
       let matchingResult = null;
       let matchingWarning = '';
       try {
-        matchingResult = await listingsApi.evaluateWantedMatches(newListing._id);
+        matchingResult = await listingsApi.evaluateRequestMatches(newListing._id);
       } catch (matchError) {
-        matchingWarning = matchError.message || 'Wanted-post matching could not run right now.';
+        matchingWarning = matchError.message || 'Request matching could not run right now.';
       }
 
       setSuccessData({
@@ -206,24 +206,24 @@ export const CreateListingPage = () => {
             )}
             {successData.matching?.deferred && (
               <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: 10, fontSize: 12, color: '#1e40af', marginBottom: 16, textAlign: 'left' }}>
-                Wanted-post matching will run after this listing is approved.
+                Request matching will run after this listing is approved.
               </div>
             )}
             {successData.matching && !successData.matching.deferred && (
               <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 10, fontSize: 12, color: '#166534', marginBottom: 16, textAlign: 'left' }}>
                 {successData.matching.matches?.length ? (
                   <>
-                    <strong>{successData.matching.matches.length} wanted-post match{successData.matching.matches.length === 1 ? '' : 'es'} found.</strong>
+                    <strong>{successData.matching.matches.length} request match{successData.matching.matches.length === 1 ? '' : 'es'} found.</strong>
                     <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
                       {successData.matching.matches.slice(0, 5).map((match) => (
-                        <li key={match.wanted_post_id}>{match.title} ({Math.round(match.similarity_score * 100)}% match)</li>
+                        <li key={match.rental_request_id}>{match.title} ({Math.round(match.similarity_score * 100)}% match)</li>
                       ))}
                     </ul>
                     <span>Matched students were notified.</span>
                   </>
-                ) : successData.matching.open_wanted_post_count === 0
-                  ? 'There are no open wanted posts to match against yet.'
-                  : 'Matching checked open wanted posts. No matches were found.'}
+                ) : successData.matching.open_request_count === 0
+                  ? 'There are no open requests to match against yet.'
+                  : 'Matching checked open requests. No matches were found.'}
               </div>
             )}
 

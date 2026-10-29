@@ -25,7 +25,6 @@ app.use('/api/sustainability', require('./routes/sustainabilityRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/v1/categories', require('./routes/categoryRoutes'));
 app.use('/api/v1/listings', require('./routes/listingRoutes'));
-app.use('/api/v1/wanted-posts', require('./routes/wantedPostRoutes'));
 app.use('/api/v1/search', require('./routes/searchRoutes'));
 app.use('/api/search', require('./routes/searchRoutes'));
 app.use('/api/v1/wishlist', require('./routes/wishlistRoutes'));

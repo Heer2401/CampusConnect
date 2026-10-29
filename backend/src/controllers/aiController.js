@@ -6,7 +6,7 @@ const {
 } = require('../services/integration/ai.hook');
 const Category = require('../models/Category');
 const Listing = require('../models/Listing');
-const { matchListingToWantedPosts } = require('../services/wantedPostMatchingService');
+const { matchListingToRequests } = require('../services/rentalRequestMatchingService');
 const { findDocumentDuplicate } = require('../services/documentDuplicateService');
 
 const suggestListing = async (req, res, next) => {
@@ -145,7 +145,7 @@ const checkStudyDocument = async (req, res, next) => {
   }
 };
 
-const evaluateListingWantedMatches = async (req, res, next) => {
+const evaluateListingRequestMatches = async (req, res, next) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ success: false, error: { code: 400, message: 'Invalid listing ID' } });
@@ -159,13 +159,13 @@ const evaluateListingWantedMatches = async (req, res, next) => {
     if (userId !== ownerId && !['admin', 'Admin', 'Administrator'].includes(req.user.role)) {
       return res.status(403).json({ success: false, error: { code: 403, message: 'Only the listing owner can view its matches' } });
     }
-    const result = await matchListingToWantedPosts(req.app, listing);
+    const result = await matchListingToRequests(req.app, listing);
     res.json({ success: true, data: result });
   } catch (error) {
     if (error.response || error.code === 'ECONNABORTED' || error.code === 'ECONNREFUSED') {
       return res.status(503).json({
         success: false,
-        error: { code: 503, message: 'Wanted-post matching is temporarily unavailable' },
+        error: { code: 503, message: 'Request matching is temporarily unavailable' },
       });
     }
     next(error);
@@ -176,5 +176,5 @@ module.exports = {
   suggestListing,
   getPriceEstimate,
   checkStudyDocument,
-  evaluateListingWantedMatches,
+  evaluateListingRequestMatches,
 };

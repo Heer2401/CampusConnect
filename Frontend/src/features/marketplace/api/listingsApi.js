@@ -98,7 +98,7 @@ export const listingsApi = {
     return res.data;
   },
 
-  evaluateWantedMatches: async (listingId) => {
+  evaluateRequestMatches: async (listingId) => {
     const res = await apiClient(`/listings/${listingId}/matches`, {
       method: 'POST',
       body: {},

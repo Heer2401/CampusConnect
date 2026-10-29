@@ -308,7 +308,7 @@ paths:
   /listings/{id}/matches:
     post:
       tags: [AI, Listings]
-      summary: Evaluate a live listing against open wanted posts (FR-3.3)
+      summary: Evaluate a live listing against open campus requests (FR-3.3)
       security: [{ bearerAuth: [] }]
       parameters:
         - name: id

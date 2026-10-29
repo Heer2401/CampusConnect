@@ -21,7 +21,7 @@ const {
   suggestListing,
   getPriceEstimate,
   checkStudyDocument,
-  evaluateListingWantedMatches,
+  evaluateListingRequestMatches,
 } = require('../controllers/aiController');
 const documentUpload = require('../middlewares/documentUploadMiddleware');
 
@@ -31,7 +31,7 @@ router.post('/ocr-check', requireAuth, documentUpload, checkStudyDocument);
 router.post('/', requireAuth, createListing);
 router.get('/', getListings);
 router.get('/mine', requireAuth, getMyListings);
-router.post('/:id/matches', requireAuth, evaluateListingWantedMatches);
+router.post('/:id/matches', requireAuth, evaluateListingRequestMatches);
 router.get('/:id', optionalAuth, getListingById);
 router.patch('/:id', requireAuth, updateListing);
 router.delete('/:id', requireAuth, deleteListing);
