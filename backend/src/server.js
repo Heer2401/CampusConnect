@@ -7,29 +7,45 @@ const { startRentalScheduler } = require('./services/rentalReminderService');
 
 const PORT = process.env.PORT || 5000;
 
-// Connect to Database
-connectDB();
-
-const server = http.createServer(app);
-
-// Initialize Socket.io
-const io = new Server(server, {
-  cors: {
-    origin: process.env.CLIENT_URL || '*',
-    methods: ['GET', 'POST']
+// Start Server
+const startServer = async () => {
+  try {
+    await connectDB();
+  } catch (err) {
+    console.error('Failed to connect to MongoDB on startup. Waiting for connection retry or server restart...');
   }
-});
 
-// Attach io instance to express app for controller access
-app.set('io', io);
+  const server = http.createServer(app);
 
-// Initialize authenticated Socket.io service for Chat & Notifications
-const { initSocketServer } = require('./services/socketService');
-initSocketServer(io);
+  // Initialize Socket.io
+  const io = new Server(server, {
+    cors: {
+      origin: process.env.CLIENT_URL || '*',
+      methods: ['GET', 'POST']
+    }
+  });
 
-// Charmi Bhayani — Start rental reminder scheduler
-startRentalScheduler(io);
+  // Attach io instance to express app for controller access
+  app.set('io', io);
 
-server.listen(PORT, () => {
-  console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
-});
+  // Initialize authenticated Socket.io service for Chat & Notifications
+  const { initSocketServer } = require('./services/socketService');
+  initSocketServer(io);
+
+  // Charmi Bhayani — Start rental reminder scheduler
+  startRentalScheduler(io);
+
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`❌ Port ${PORT} is already in use by another process. Please stop the existing process.`);
+    } else {
+      console.error('Server error:', err);
+    }
+  });
+
+  server.listen(PORT, () => {
+    console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+  });
+};
+
+startServer();

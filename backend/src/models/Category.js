@@ -22,7 +22,7 @@ const categorySchema = new mongoose.Schema({
   },
   requiresModeration: {
     type: Boolean,
-    default: true,
+    default: false,
   },
   icon: {
     type: String,

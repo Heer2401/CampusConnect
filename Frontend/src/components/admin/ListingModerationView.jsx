@@ -27,7 +27,7 @@ export default function ListingModerationView({ listings = [], categories = [], 
   const filtered = useMemo(() => {
     return listings.filter(l => {
       // 1. Queue type matching
-      const hasReports = (l.reports && l.reports.length > 0) || (l.moderationFlags && l.moderationFlags.some(f => f.type === 'reported'));
+      const hasReports = (l.reports && l.reports.length > 0) || (l.moderationFlags && l.moderationFlags.some(f => f.type === 'reported' || f.type === 'seller_reported'));
       const sellerRating = l.seller?.reputation?.rating ?? l.owner?.reputation?.rating ?? 0;
       const isLowRating = sellerRating > 0 && sellerRating < 3.0;
       const isPendingStatus = l.status === 'pending' || l.status === 'pending_approval';
@@ -35,8 +35,8 @@ export default function ListingModerationView({ listings = [], categories = [], 
       if (queueFilter === 'reported' && !hasReports) return false;
       if (queueFilter === 'low_rating' && !isLowRating) return false;
       if (queueFilter === 'pending_only' && !isPendingStatus) return false;
-      if (queueFilter === 'moderation_needed' && !hasReports && !isLowRating && !isPendingStatus) {
-        // In moderation_needed queue, hide listings that are active without any reports or warnings
+      if (queueFilter === 'moderation_needed' && !hasReports && !isPendingStatus) {
+        // In moderation_needed queue, hide listings that are active without any reports or disputes
         return false;
       }
 
@@ -154,7 +154,10 @@ export default function ListingModerationView({ listings = [], categories = [], 
                   const seller = item.seller || item.owner;
                   const rating = seller?.reputation?.rating ?? 0;
                   const reports = item.reports || [];
-                  const isReported = reports.length > 0;
+                  const itemReports = reports.filter(r => r.isItemReport !== false);
+                  const sellerReports = reports.filter(r => r.isSellerReport || r.isItemReport === false);
+                  const isItemReported = itemReports.length > 0 || (item.moderationFlags && item.moderationFlags.some(f => f.type === 'reported'));
+                  const isSellerReported = sellerReports.length > 0 || (item.moderationFlags && item.moderationFlags.some(f => f.type === 'seller_reported'));
                   const isLowRating = rating > 0 && rating < 3.0;
 
                   return (
@@ -170,9 +173,14 @@ export default function ListingModerationView({ listings = [], categories = [], 
                       </td>
                       <td>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                          {isReported && (
-                            <span className="adm-pill red" title={reports[0]?.description}>
-                              <ShieldAlert size={12} /> {reports.length} Student Report(s)
+                          {isItemReported && (
+                            <span className="adm-pill red" title={itemReports[0]?.description || 'Reported item'}>
+                              <ShieldAlert size={12} /> {itemReports.length || 1} Item Report(s)
+                            </span>
+                          )}
+                          {isSellerReported && (
+                            <span className="adm-pill amber" style={{ color: '#b91c1c', background: '#fee2e2', border: '1px solid #fca5a5' }} title="Seller reported in a dispute">
+                              <ShieldAlert size={12} /> Seller Reported ({sellerReports.length || 1})
                             </span>
                           )}
                           {isLowRating && (
@@ -181,10 +189,10 @@ export default function ListingModerationView({ listings = [], categories = [], 
                             </span>
                           )}
                           {item.status === 'pending' || item.status === 'pending_approval' ? (
-                            <span className="adm-pill blue">Pending Review</span>
+                            <span className="adm-pill blue">Under Moderation</span>
                           ) : null}
-                          {!isReported && !isLowRating && item.status === 'active' && (
-                            <span className="adm-pill green">Active / Standard</span>
+                          {!isItemReported && !isSellerReported && !isLowRating && (item.status === 'active' || item.status === 'approved') && (
+                            <span className="adm-pill green">Auto-Approved / Live</span>
                           )}
                           {item.status === 'rejected' && (
                             <span className="adm-pill red">Rejected</span>

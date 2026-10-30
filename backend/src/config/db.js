@@ -4,7 +4,7 @@ const connectDB = async () => {
   const uri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/campusconnect';
   try {
     const conn = await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 10000,
     });
     console.log(`MongoDB Connected: ${conn.connection.host}`);
 
@@ -25,8 +25,9 @@ const connectDB = async () => {
       console.log('Seeded default campus categories.');
     }
   } catch (error) {
-    console.error(`MongoDB Connection Error: ${error.message}`);
-    console.warn('Backend server running. Connect MongoDB/Atlas on MONGO_URI for live data persistence.');
+    console.error(`❌ MongoDB Connection Error: ${error.message}`);
+    console.error('Make sure your IP address is whitelisted in MongoDB Atlas (Network Access -> Add IP Address -> 0.0.0.0/0 or your current IP).');
+    throw error;
   }
 };
 

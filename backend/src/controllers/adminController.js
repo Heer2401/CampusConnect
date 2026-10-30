@@ -31,27 +31,67 @@ const getPendingListings = async (req, res, next) => {
   try {
     const { category, status, search, queueType = 'moderation_needed', page = 1, limit = 50 } = req.query;
 
-    // 1. Fetch all open reports/disputes referencing listings
+    // 1. Fetch all open reports/disputes referencing listings or reported sellers
     const openReports = await Dispute.find({
-      relatedListing: { $ne: null },
       status: { $in: ['pending', 'under_review'] }
-    }).populate('reporter', 'email profile');
+    })
+      .populate('reporter', 'email profile')
+      .populate('reportedUser', 'email profile');
 
     const reportsByListingId = {};
+    const directlyReportedListingIds = [];
+    const reportedUserDisputes = {};
+    const reportedUserIds = [];
+
     openReports.forEach(r => {
-      const lid = r.relatedListing.toString();
-      if (!reportsByListingId[lid]) reportsByListingId[lid] = [];
-      reportsByListingId[lid].push({
+      const baseReport = {
         _id: r._id,
         title: r.title,
         description: r.description,
         disputeType: r.disputeType,
         reporter: r.reporter?.profile?.name || r.reporter?.email || 'Student',
         createdAt: r.createdAt
-      });
+      };
+
+      if (r.relatedListing) {
+        const lid = r.relatedListing.toString();
+        if (!reportsByListingId[lid]) reportsByListingId[lid] = [];
+        reportsByListingId[lid].push({ ...baseReport, isItemReport: true });
+        directlyReportedListingIds.push(lid);
+      }
+
+      if (r.reportedUser) {
+        const uid = (r.reportedUser._id || r.reportedUser).toString();
+        if (!reportedUserDisputes[uid]) reportedUserDisputes[uid] = [];
+        reportedUserDisputes[uid].push({
+          ...baseReport,
+          isSellerReport: true,
+          sellerName: r.reportedUser?.profile?.name || r.reportedUser?.email || 'Seller'
+        });
+        reportedUserIds.push(uid);
+      }
     });
 
-    const reportedListingIds = Object.keys(reportsByListingId);
+    // Find all listings owned by reported users so moderation applies when the seller is reported
+    const sellerListingIds = [];
+    if (reportedUserIds.length > 0) {
+      const sellerListings = await Listing.find({
+        $or: [{ owner: { $in: reportedUserIds } }, { seller: { $in: reportedUserIds } }],
+        isDeleted: { $ne: true }
+      }).select('_id owner seller');
+
+      sellerListings.forEach(sl => {
+        const lid = sl._id.toString();
+        const sid = (sl.owner || sl.seller)?.toString();
+        sellerListingIds.push(lid);
+        if (sid && reportedUserDisputes[sid]) {
+          if (!reportsByListingId[lid]) reportsByListingId[lid] = [];
+          reportsByListingId[lid].push(...reportedUserDisputes[sid]);
+        }
+      });
+    }
+
+    const allModerationListingIds = Array.from(new Set([...directlyReportedListingIds, ...sellerListingIds]));
 
     // 2. Fetch users with low reputation rating (< 3.0)
     const lowRatedUsers = await User.find({
@@ -63,7 +103,7 @@ const getPendingListings = async (req, res, next) => {
     const query = { isDeleted: { $ne: true } };
 
     if (queueType === 'reported') {
-      query._id = { $in: reportedListingIds };
+      query._id = { $in: allModerationListingIds.length > 0 ? allModerationListingIds : [new mongoose.Types.ObjectId()] };
     } else if (queueType === 'low_rating') {
       query.$or = [{ owner: { $in: lowRatedUserIds } }, { seller: { $in: lowRatedUserIds } }];
     } else if (queueType === 'pending_only') {
@@ -71,13 +111,15 @@ const getPendingListings = async (req, res, next) => {
     } else if (queueType === 'all_listings') {
       // no restriction
     } else {
-      // Default: 'moderation_needed' -> Reported OR Low-Rated seller OR Pending approval
-      query.$or = [
-        { _id: { $in: reportedListingIds } },
-        { owner: { $in: lowRatedUserIds } },
-        { seller: { $in: lowRatedUserIds } },
-        { status: { $in: ['pending', 'pending_approval'] } }
-      ];
+      // Default: 'moderation_needed' -> Listing is reported, Seller is reported, or status is pending moderation
+      if (allModerationListingIds.length > 0) {
+        query.$or = [
+          { _id: { $in: allModerationListingIds } },
+          { status: { $in: ['pending', 'pending_approval'] } }
+        ];
+      } else {
+        query.status = { $in: ['pending', 'pending_approval'] };
+      }
     }
 
     if (status && status !== 'all') {
@@ -116,11 +158,23 @@ const getPendingListings = async (req, res, next) => {
       const flags = [];
 
       if (listingReports.length > 0) {
-        flags.push({
-          type: 'reported',
-          label: `${listingReports.length} student report(s)`,
-          details: listingReports
-        });
+        const itemReports = listingReports.filter(r => r.isItemReport);
+        const sellerReports = listingReports.filter(r => r.isSellerReport);
+
+        if (itemReports.length > 0) {
+          flags.push({
+            type: 'reported',
+            label: `${itemReports.length} student report(s) on item`,
+            details: itemReports
+          });
+        }
+        if (sellerReports.length > 0) {
+          flags.push({
+            type: 'seller_reported',
+            label: `Seller reported in ${sellerReports.length} dispute(s)`,
+            details: sellerReports
+          });
+        }
       }
 
       if (sellerRating > 0 && sellerRating < 3.0) {
@@ -134,7 +188,7 @@ const getPendingListings = async (req, res, next) => {
       if (l.status === 'pending' || l.status === 'pending_approval') {
         flags.push({
           type: 'pending',
-          label: 'Pending manual approval'
+          label: 'Pending moderation check'
         });
       }
 
@@ -151,7 +205,7 @@ const getPendingListings = async (req, res, next) => {
       total,
       data: enrichedListings,
       summary: {
-        totalFlagged: reportedListingIds.length,
+        totalFlagged: allModerationListingIds.length,
         lowRatedSellersCount: lowRatedUserIds.length
       }
     });
@@ -211,7 +265,7 @@ const approveListing = async (req, res, next) => {
           relatedModel: 'Listing'
         });
       }
-    } catch (e) {}
+    } catch (e) { }
 
     await logAdminAction(req, 'listing.approve', 'Listing', listing._id, { title: listing.title });
 
@@ -276,7 +330,7 @@ const rejectListing = async (req, res, next) => {
           relatedModel: 'Listing'
         });
       }
-    } catch (e) {}
+    } catch (e) { }
 
     await logAdminAction(req, 'listing.reject', 'Listing', listing._id, { title: listing.title, reason });
 
@@ -420,7 +474,7 @@ const updateUserStatus = async (req, res, next) => {
           relatedModel: 'User'
         });
       }
-    } catch (e) {}
+    } catch (e) { }
 
     await logAdminAction(req, status === 'Suspended' ? 'user.suspend' : 'user.status_update', 'User', user._id, {
       status: user.status,
@@ -589,6 +643,19 @@ const createDispute = async (req, res, next) => {
       status: 'pending'
     });
 
+    // When reported, send listing to admin moderation queue
+    if (relatedListing) {
+      await Listing.findByIdAndUpdate(relatedListing, { status: 'pending' });
+    }
+
+    // When seller is reported, send seller's active listings to moderation queue
+    if (reportedUser) {
+      await Listing.updateMany(
+        { $or: [{ owner: reportedUser }, { seller: reportedUser }], status: { $in: ['active', 'approved'] } },
+        { status: 'pending' }
+      );
+    }
+
     res.status(201).json({
       success: true,
       message: 'Dispute report submitted successfully',
@@ -681,12 +748,16 @@ const resolveDispute = async (req, res, next) => {
       resolvedAt: new Date()
     };
 
-    // If decision involves suspending reported user, update user status as well
+    // If decision involves suspending reported user, update user status as well and take down listings
     if (actionTaken === 'UserSuspended' && dispute.reportedUser) {
       await User.findByIdAndUpdate(dispute.reportedUser, {
         status: 'Suspended',
         suspensionReason: `Suspended due to dispute #${dispute._id}: ${notes || 'Terms violation'}`
       });
+      await Listing.updateMany(
+        { $or: [{ owner: dispute.reportedUser }, { seller: dispute.reportedUser }], status: { $ne: 'rejected' } },
+        { status: 'rejected', rejectionReason: `Seller suspended: ${notes || 'Terms violation'}` }
+      );
     }
 
     // If decision involves removing the listing, update listing status as well
@@ -697,6 +768,29 @@ const resolveDispute = async (req, res, next) => {
         moderatedBy: req.user._id,
         moderatedAt: new Date()
       });
+    }
+
+    // If dispute is dismissed or resolved without removing listing or suspending user, restore listing(s) to active
+    if (['resolved', 'dismissed'].includes(status) && actionTaken !== 'ListingRemoved' && actionTaken !== 'UserSuspended') {
+      if (dispute.relatedListing) {
+        await Listing.findByIdAndUpdate(dispute.relatedListing, {
+          status: 'active',
+          rejectionReason: null
+        });
+      }
+      if (dispute.reportedUser) {
+        const otherOpen = await Dispute.countDocuments({
+          _id: { $ne: dispute._id },
+          reportedUser: dispute.reportedUser,
+          status: { $in: ['pending', 'under_review'] }
+        });
+        if (otherOpen === 0) {
+          await Listing.updateMany(
+            { $or: [{ owner: dispute.reportedUser }, { seller: dispute.reportedUser }], status: 'pending' },
+            { status: 'active', rejectionReason: null }
+          );
+        }
+      }
     }
 
     await dispute.save();
@@ -723,7 +817,7 @@ const resolveDispute = async (req, res, next) => {
           relatedModel: 'Dispute'
         });
       }
-    } catch (e) {}
+    } catch (e) { }
 
     await logAdminAction(req, 'dispute.resolve', 'Dispute', dispute._id, { status, actionTaken, notes });
 
@@ -805,12 +899,45 @@ const getDashboardAnalytics = async (req, res, next) => {
       ])
     ]);
 
-    const weeklyVolume = [
-      { week: 'W1-2', count: Math.max(12, Math.round(totalListings * 0.2)) },
-      { week: 'W3-4', count: Math.max(24, Math.round(totalListings * 0.45)) },
-      { week: 'W5-6', count: Math.max(48, Math.round(totalListings * 0.7)) },
-      { week: 'W7-9', count: Math.max(65, totalListings) }
-    ];
+
+    const weeklyVolume = await Listing.aggregate([
+      {
+        $match: {
+          isDeleted: { $ne: true },
+          createdAt: { $exists: true, $ne: null }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $isoWeekYear: "$createdAt" },
+            week: { $isoWeek: "$createdAt" }
+          },
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $sort: {
+          "_id.year": 1,
+          "_id.week": 1
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          week: {
+            $concat: [
+              "W",
+              { $toString: "$_id.week" },
+              " ",
+              { $toString: "$_id.year" }
+            ]
+          },
+          count: 1
+        }
+      }
+    ]);
+
 
     res.json({
       success: true,

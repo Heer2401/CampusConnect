@@ -71,6 +71,7 @@ export const ListingDetailPage = () => {
   const [showExchangeModal, setShowExchangeModal] = useState(false);
   const [showGiveawayModal, setShowGiveawayModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [reportType, setReportType] = useState('item'); // 'item' | 'seller'
   const [reportReason, setReportReason] = useState('Inappropriate Content');
   const [reportDetails, setReportDetails] = useState('');
   const [submittingReport, setSubmittingReport] = useState(false);
@@ -404,31 +405,49 @@ export const ListingDetailPage = () => {
     }
   };
 
+  const openReportModal = (type) => {
+    if (!user) { showNotice('Please log in to submit a report', 'error'); return; }
+    setReportType(type);
+    setReportDetails('');
+    setReportReason('Inappropriate Content');
+    setShowReportModal(true);
+  };
+
   const handleReportListing = async (e) => {
     e?.preventDefault();
     if (!reportDetails.trim()) return;
     setSubmittingReport(true);
+    const sellerId = listing.owner?._id || listing.seller?._id;
     try {
       const token = localStorage.getItem('token') || localStorage.getItem('cc_token');
+      const payload = {
+        title: reportType === 'seller'
+          ? `Seller Report: ${sellerDisplayName} (${reportReason})`
+          : `Item Report: ${listing.title} (${reportReason})`,
+        disputeType: reportReason === 'Damaged / Counterfeit' ? 'ItemNotAsDescribed' : 'Other',
+        description: reportDetails.trim(),
+        priority: 'Medium'
+      };
+      if (reportType === 'seller') {
+        payload.reportedUser = sellerId;
+      } else {
+        payload.relatedListing = listing._id;
+        payload.reportedUser = sellerId;
+      }
       const res = await fetch('/api/admin/disputes', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          title: `Report: ${listing.title} (${reportReason})`,
-          disputeType: reportReason === 'Damaged / Counterfeit' ? 'ItemNotAsDescribed' : 'Other',
-          relatedListing: listing._id,
-          reportedUser: listing.owner?._id || listing.seller?._id,
-          description: reportDetails.trim(),
-          priority: 'Medium'
-        })
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload)
       });
       if (!res.ok) throw new Error('Failed to submit report');
       setShowReportModal(false);
       setReportDetails('');
-      showNotice('Listing reported to campus moderation. Thank you for keeping CampusConnect safe.', 'info');
+      showNotice(
+        reportType === 'seller'
+          ? 'Seller reported to campus moderation. Thank you for keeping CampusConnect safe.'
+          : 'Listing reported to campus moderation. Thank you for keeping CampusConnect safe.',
+        'info'
+      );
     } catch (err) {
       showNotice(err.message || 'Failed to submit report', 'error');
     } finally {
@@ -864,28 +883,7 @@ export const ListingDetailPage = () => {
               </div>
             )}
 
-            {!isOwner && (
-              <div style={{ marginTop: 10, textAlign: 'center' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowReportModal(true)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#94a3b8',
-                    fontSize: 12,
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 5,
-                    padding: '4px 8px'
-                  }}
-                  title="Report inappropriate content, counterfeit item, or policy violation"
-                >
-                  <Flag size={12} /> Report this listing to campus moderation
-                </button>
-              </div>
-            )}
+
           </div>
 
           {/* Views & Listed Date Row */}
@@ -952,6 +950,68 @@ export const ListingDetailPage = () => {
                 onClick={handleContactSeller}
               >
                 <MessageSquare size={16} /> Chat with Seller
+              </button>
+            </div>
+          )}
+
+          {/* ── Report Buttons for Non-Owners ── */}
+          {!isOwner && (
+            <div style={{
+              display: 'flex',
+              gap: 8,
+              marginTop: 12,
+              paddingTop: 12,
+              borderTop: '1px solid #f1f5f9'
+            }}>
+              <button
+                type="button"
+                onClick={() => openReportModal('item')}
+                style={{
+                  flex: 1,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  padding: '8px 12px',
+                  background: '#fff',
+                  border: '1px solid #fca5a5',
+                  borderRadius: 8,
+                  color: '#dc2626',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'background 0.15s'
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = '#fef2f2'}
+                onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+                title="Report this listing for policy violations or misrepresentation"
+              >
+                <Flag size={14} /> Report Item
+              </button>
+              <button
+                type="button"
+                onClick={() => openReportModal('seller')}
+                style={{
+                  flex: 1,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  padding: '8px 12px',
+                  background: '#fff',
+                  border: '1px solid #d97706',
+                  borderRadius: 8,
+                  color: '#92400e',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'background 0.15s'
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = '#fffbeb'}
+                onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+                title="Report seller for scam, misconduct or suspicious behaviour"
+              >
+                <Flag size={14} /> Report Seller
               </button>
             </div>
           )}
@@ -1571,8 +1631,9 @@ export const ListingDetailPage = () => {
         <div style={backdropStyle} onClick={() => setShowReportModal(false)}>
           <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 18, fontWeight: 700, color: '#b91c1c' }}>
-                <Flag size={20} /> Report Listing to Campus Moderation
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 18, fontWeight: 700, color: reportType === 'seller' ? '#92400e' : '#b91c1c' }}>
+                <Flag size={20} />
+                {reportType === 'seller' ? `Report Seller: ${sellerDisplayName}` : 'Report Item to Campus Moderation'}
               </div>
               <button
                 type="button"
@@ -1583,7 +1644,9 @@ export const ListingDetailPage = () => {
               </button>
             </div>
             <p className="muted" style={{ marginBottom: 16, fontSize: 13, lineHeight: 1.45 }}>
-              CampusConnect is a trusted student marketplace. Report listings that violate university rules, contain misleading pricing, or represent prohibited items.
+              {reportType === 'seller'
+                ? 'Report this seller for misconduct, scam behaviour, or repeated policy violations. Admins will review all active listings by this seller.'
+                : 'Report listings that violate university rules, contain misleading pricing, represent prohibited items, or are counterfeit.'}
             </p>
             <form onSubmit={handleReportListing}>
               <div style={{ marginBottom: 14 }}>

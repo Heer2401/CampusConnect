@@ -24,6 +24,9 @@ import {
   SlidersHorizontal,
   ChevronDown,
   Package,
+  FileText,
+  Download,
+  Building2,
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import {
@@ -209,6 +212,427 @@ function VerifyPinModal({ transaction, onSuccess, onClose }) {
   );
 }
 
+// ─── Invoice Modal ────────────────────────────────────────────────────────────
+function InvoiceModal({ transaction: t, currentUserId, onClose }) {
+  const isBuyer =
+    t.buyerId?._id === currentUserId ||
+    t.buyerId?.toString?.() === currentUserId;
+
+  const buyerName =
+    t.buyerId?.profile?.name ||
+    t.buyerId?.name ||
+    t.buyerId?.email?.split('@')[0] ||
+    'Buyer';
+  const sellerName =
+    t.sellerId?.profile?.name ||
+    t.sellerId?.name ||
+    t.sellerId?.email?.split('@')[0] ||
+    'Seller';
+  const buyerEmail  = t.buyerId?.email  || '—';
+  const sellerEmail = t.sellerId?.email || '—';
+
+  const itemTitle    = t.listingId?.title    || 'Campus Item';
+  const itemCategory = t.listingId?.category || '—';
+  const itemImage    =
+    t.listingId?.images?.[0]?.thumbnailUrl ||
+    t.listingId?.images?.[0]?.url ||
+    null;
+
+  const orderId    = t._id?.toString()?.slice(-10).toUpperCase() || 'N/A';
+  const typeLabel  = t.type === 'exchange' ? 'Exchange' : t.type === 'giveaway' ? 'Giveaway' : 'Sale';
+  const amount     = Number(t.amount || 0);
+  const platformFee = t.type === 'giveaway' ? 0 : 0; // 0 for now
+  const createdDate = t.createdAt
+    ? new Date(t.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })
+    : '—';
+  const completedDate = t.completedAt
+    ? new Date(t.completedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })
+    : '—';
+
+  const statusColor =
+    t.status === 'completed' ? '#16a34a' :
+    t.status === 'cancelled' ? '#dc2626' : '#d97706';
+  const statusLabel =
+    t.status === 'completed' ? 'Completed' :
+    t.status === 'cancelled' ? 'Cancelled' : 'In Progress';
+
+  const handleDownload = () => {
+    // Create a hidden iframe with the invoice HTML and print it
+    const invoiceEl = document.getElementById('cc-invoice-printable');
+    if (!invoiceEl) return;
+
+    const printWindow = window.open('', '_blank', 'width=850,height=1100');
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <title>CampusConnect Invoice #${orderId}</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { font-family: 'Segoe UI', Arial, sans-serif; color: #1e293b; background: #fff; }
+          .inv-wrap { max-width: 740px; margin: 0 auto; padding: 40px 48px; }
+
+          /* Header */
+          .inv-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 36px; }
+          .inv-logo-box { display: flex; align-items: center; gap: 10px; }
+          .inv-logo-icon { width: 44px; height: 44px; background: linear-gradient(135deg,#2563eb,#7c3aed); border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+          .inv-logo-icon svg { width: 24px; height: 24px; fill: none; stroke: #fff; stroke-width: 2; }
+          .inv-brand { font-size: 20px; font-weight: 800; color: #0f172a; }
+          .inv-brand span { color: #2563eb; }
+          .inv-tagline { font-size: 11px; color: #64748b; margin-top: 2px; }
+          .inv-header-right { text-align: right; }
+          .inv-title { font-size: 28px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px; }
+          .inv-number { font-size: 13px; color: #64748b; margin-top: 4px; }
+          .inv-number strong { color: #2563eb; }
+
+          /* Divider */
+          .inv-divider { height: 2px; background: linear-gradient(to right, #2563eb, #7c3aed, transparent); border: none; margin: 0 0 32px 0; }
+
+          /* Dates row */
+          .inv-dates { display: flex; gap: 32px; margin-bottom: 32px; }
+          .inv-date-block label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #94a3b8; display: block; margin-bottom: 4px; }
+          .inv-date-block span { font-size: 13px; font-weight: 600; color: #334155; }
+
+          /* Parties */
+          .inv-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 32px; }
+          .inv-party { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px 20px; }
+          .inv-party-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #94a3b8; margin-bottom: 10px; }
+          .inv-party-name { font-size: 15px; font-weight: 700; color: #0f172a; margin-bottom: 4px; }
+          .inv-party-email { font-size: 12px; color: #64748b; }
+          .inv-party-badge { display: inline-block; margin-top: 8px; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; background: #dbeafe; color: #1e40af; }
+
+          /* Item table */
+          .inv-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+          .inv-table thead tr { background: #0f172a; color: #fff; }
+          .inv-table thead th { padding: 12px 16px; font-size: 12px; font-weight: 600; text-align: left; }
+          .inv-table tbody tr { border-bottom: 1px solid #f1f5f9; }
+          .inv-table tbody tr:last-child { border-bottom: none; }
+          .inv-table tbody td { padding: 16px; font-size: 13px; color: #334155; }
+          .inv-table tfoot tr { background: #f8fafc; }
+          .inv-table tfoot td { padding: 12px 16px; font-size: 13px; font-weight: 700; color: #0f172a; }
+          .inv-table tfoot td:last-child { color: #2563eb; font-size: 15px; }
+
+          /* Status badge */
+          .inv-status { display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+          .inv-status.completed { background: #dcfce7; color: #16a34a; }
+          .inv-status.cancelled { background: #fee2e2; color: #dc2626; }
+          .inv-status.pending   { background: #fef3c7; color: #d97706; }
+
+          /* Footer */
+          .inv-footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+          .inv-footer-note { font-size: 11px; color: #94a3b8; max-width: 360px; line-height: 1.5; }
+          .inv-footer-brand { font-size: 12px; color: #64748b; text-align: right; }
+
+          /* Watermark for cancelled */
+          .inv-cancelled-watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%) rotate(-30deg); font-size: 80px; font-weight: 900; color: rgba(220,38,38,0.08); pointer-events: none; letter-spacing: 8px; }
+
+          @media print {
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            @page { margin: 0.4in; size: A4; }
+          }
+        </style>
+      </head>
+      <body>
+        ${t.status === 'cancelled' ? '<div class="inv-cancelled-watermark">CANCELLED</div>' : ''}
+        <div class="inv-wrap">
+          <div class="inv-header">
+            <div class="inv-logo-box">
+              <div class="inv-logo-icon">
+                <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/></svg>
+              </div>
+              <div>
+                <div class="inv-brand">Campus<span>Connect</span></div>
+                <div class="inv-tagline">Student Marketplace Platform</div>
+              </div>
+            </div>
+            <div class="inv-header-right">
+              <div class="inv-title">INVOICE</div>
+              <div class="inv-number">Order <strong>#${orderId}</strong></div>
+            </div>
+          </div>
+
+          <hr class="inv-divider" />
+
+          <div class="inv-dates">
+            <div class="inv-date-block"><label>Issue Date</label><span>${createdDate}</span></div>
+            <div class="inv-date-block"><label>Completion Date</label><span>${t.status === 'completed' ? completedDate : '—'}</span></div>
+            <div class="inv-date-block"><label>Transaction Type</label><span>${typeLabel}</span></div>
+            <div class="inv-date-block">
+              <label>Status</label>
+              <span class="inv-status ${t.status === 'completed' ? 'completed' : t.status === 'cancelled' ? 'cancelled' : 'pending'}">
+                ${statusLabel}
+              </span>
+            </div>
+          </div>
+
+          <div class="inv-parties">
+            <div class="inv-party">
+              <div class="inv-party-label">Seller (From)</div>
+              <div class="inv-party-name">${sellerName}</div>
+              <div class="inv-party-email">${sellerEmail}</div>
+              <span class="inv-party-badge">SELLER</span>
+            </div>
+            <div class="inv-party">
+              <div class="inv-party-label">Buyer (To)</div>
+              <div class="inv-party-name">${buyerName}</div>
+              <div class="inv-party-email">${buyerEmail}</div>
+              <span class="inv-party-badge" style="background:#f3e8ff;color:#7e22ce;">BUYER</span>
+            </div>
+          </div>
+
+          <table class="inv-table">
+            <thead>
+              <tr>
+                <th style="width:40%">Item Description</th>
+                <th>Category</th>
+                <th>Type</th>
+                <th style="text-align:right">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>${itemTitle}</strong></td>
+                <td>${itemCategory}</td>
+                <td>${typeLabel}</td>
+                <td style="text-align:right;font-weight:700">${t.type === 'giveaway' ? 'FREE' : '\u20B9' + amount.toLocaleString('en-IN')}</td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="3" style="text-align:right">Platform Fee</td>
+                <td style="text-align:right;color:#64748b">\u20B90.00</td>
+              </tr>
+              <tr>
+                <td colspan="3" style="text-align:right">Total Amount</td>
+                <td style="text-align:right">${t.type === 'giveaway' ? 'FREE' : '\u20B9' + amount.toLocaleString('en-IN')}</td>
+              </tr>
+            </tfoot>
+          </table>
+
+          <div class="inv-footer">
+            <div class="inv-footer-note">
+              This invoice is auto-generated by CampusConnect for record-keeping purposes.
+              Transactions are peer-to-peer and subject to CampusConnect&apos;s community guidelines.
+              For disputes, contact support@campusconnect.in.
+            </div>
+            <div class="inv-footer-brand">
+              <strong>CampusConnect</strong><br/>
+              campusconnect.in<br/>
+              Generated: ${new Date().toLocaleDateString('en-IN')}
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+    }, 400);
+  };
+
+  return (
+    <div className="rd-modal-backdrop" onClick={onClose}>
+      <div
+        className="rd-modal"
+        style={{ maxWidth: 740, padding: 0, overflow: 'hidden' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* ── Modal Header ── */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '20px 28px', borderBottom: '1px solid #e2e8f0',
+          background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{
+              width: 40, height: 40, borderRadius: 10,
+              background: 'linear-gradient(135deg,#2563eb,#7c3aed)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <FileText size={20} color="#fff" />
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 17, color: '#fff' }}>Transaction Invoice</div>
+              <div style={{ fontSize: 12, color: '#94a3b8' }}>Order #{orderId}</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={handleDownload}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                background: 'linear-gradient(135deg,#2563eb,#7c3aed)',
+                color: '#fff', border: 'none', borderRadius: 8,
+                padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                transition: 'opacity 0.15s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+              onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+            >
+              <Download size={14} /> Download PDF
+            </button>
+            <button className="rd-modal-close" onClick={onClose} style={{ position: 'relative', top: 'unset', right: 'unset', margin: 0 }}>
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+
+        {/* ── Invoice Preview ── */}
+        <div id="cc-invoice-printable" style={{ padding: '32px 36px', overflowY: 'auto', maxHeight: '70vh' }}>
+
+          {/* Brand + Title */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{
+                width: 42, height: 42, borderRadius: 10,
+                background: 'linear-gradient(135deg,#2563eb,#7c3aed)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Building2 size={22} color="#fff" />
+              </div>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 18, color: '#0f172a' }}>
+                  Campus<span style={{ color: '#2563eb' }}>Connect</span>
+                </div>
+                <div style={{ fontSize: 11, color: '#94a3b8' }}>Student Marketplace Platform</div>
+              </div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: 26, fontWeight: 900, color: '#0f172a', letterSpacing: -0.5 }}>INVOICE</div>
+              <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                Order <strong style={{ color: '#2563eb' }}>#{orderId}</strong>
+              </div>
+            </div>
+          </div>
+
+          {/* Gradient divider */}
+          <div style={{
+            height: 3, borderRadius: 99,
+            background: 'linear-gradient(to right,#2563eb,#7c3aed,transparent)',
+            marginBottom: 28,
+          }} />
+
+          {/* Dates row */}
+          <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', marginBottom: 28 }}>
+            {[
+              { label: 'Issue Date', value: createdDate },
+              { label: 'Completion Date', value: t.status === 'completed' ? completedDate : '—' },
+              { label: 'Transaction Type', value: typeLabel },
+              {
+                label: 'Status',
+                value: (
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    background: t.status === 'completed' ? '#dcfce7' : t.status === 'cancelled' ? '#fee2e2' : '#fef3c7',
+                    color: statusColor,
+                    borderRadius: 20, padding: '3px 10px', fontSize: 11, fontWeight: 700,
+                  }}>
+                    {statusLabel}
+                  </span>
+                ),
+              },
+            ].map(({ label, value }) => (
+              <div key={label}>
+                <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#94a3b8', marginBottom: 4 }}>{label}</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#334155' }}>{value}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Parties */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 28 }}>
+            {[
+              { role: 'SELLER', name: sellerName, email: sellerEmail, badgeBg: '#dbeafe', badgeColor: '#1e40af' },
+              { role: 'BUYER',  name: buyerName,  email: buyerEmail,  badgeBg: '#f3e8ff', badgeColor: '#7e22ce' },
+            ].map(({ role, name, email, badgeBg, badgeColor }) => (
+              <div key={role} style={{
+                background: '#f8fafc', border: '1px solid #e2e8f0',
+                borderRadius: 12, padding: '16px 18px',
+              }}>
+                <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#94a3b8', marginBottom: 8 }}>
+                  {role === 'SELLER' ? 'Seller (From)' : 'Buyer (To)'}
+                </div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', marginBottom: 3 }}>{name}</div>
+                <div style={{ fontSize: 12, color: '#64748b', marginBottom: 8 }}>{email}</div>
+                <span style={{ display: 'inline-block', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: badgeBg, color: badgeColor }}>
+                  {role}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Item row */}
+          <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #e2e8f0', marginBottom: 20 }}>
+            <div style={{
+              display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr',
+              background: '#0f172a', color: '#fff',
+              padding: '11px 18px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px',
+            }}>
+              <span>Item Description</span>
+              <span>Category</span>
+              <span>Type</span>
+              <span style={{ textAlign: 'right' }}>Amount</span>
+            </div>
+            <div style={{
+              display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr',
+              padding: '16px 18px', alignItems: 'center',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                {itemImage ? (
+                  <img src={itemImage} alt={itemTitle} style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover' }} />
+                ) : (
+                  <div style={{ width: 44, height: 44, borderRadius: 8, background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Package size={20} color="#94a3b8" />
+                  </div>
+                )}
+                <span style={{ fontWeight: 700, color: '#0f172a', fontSize: 14 }}>{itemTitle}</span>
+              </div>
+              <span style={{ color: '#64748b', fontSize: 13 }}>{itemCategory}</span>
+              <span style={{ color: '#64748b', fontSize: 13 }}>{typeLabel}</span>
+              <span style={{ textAlign: 'right', fontWeight: 800, color: '#0f172a', fontSize: 15 }}>
+                {t.type === 'giveaway' ? 'FREE' : `₹${amount.toLocaleString('en-IN')}`}
+              </span>
+            </div>
+            <div style={{ borderTop: '1px solid #f1f5f9' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 40, padding: '12px 18px', background: '#f8fafc', fontSize: 13 }}>
+                <span style={{ color: '#64748b' }}>Platform Fee</span>
+                <span style={{ fontWeight: 600, color: '#64748b' }}>₹0.00</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 40, padding: '12px 18px 14px', background: '#f8fafc', fontSize: 15, borderTop: '1px solid #e2e8f0' }}>
+                <span style={{ fontWeight: 700, color: '#0f172a' }}>Total</span>
+                <span style={{ fontWeight: 900, color: '#2563eb' }}>
+                  {t.type === 'giveaway' ? 'FREE' : `₹${amount.toLocaleString('en-IN')}`}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer note */}
+          <div style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
+            paddingTop: 18, borderTop: '1px solid #e2e8f0', flexWrap: 'wrap', gap: 12,
+          }}>
+            <p style={{ fontSize: 11, color: '#94a3b8', maxWidth: 380, lineHeight: 1.6 }}>
+              This invoice is auto-generated by CampusConnect for record-keeping purposes.
+              Transactions are peer-to-peer and governed by our community guidelines.
+              For disputes, contact{' '}
+              <strong style={{ color: '#64748b' }}>support@campusconnect.in</strong>.
+            </p>
+            <div style={{ textAlign: 'right', fontSize: 12, color: '#94a3b8' }}>
+              <strong style={{ color: '#64748b' }}>CampusConnect</strong><br />
+              campusconnect.in<br />
+              Generated: {new Date().toLocaleDateString('en-IN')}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Transactions Page ───────────────────────────────────────────────────
 export default function TransactionsPage() {
   const { user } = useAuth();
@@ -224,6 +648,7 @@ export default function TransactionsPage() {
   const [toast, setToast] = useState({ message: '', type: 'success' });
   const [showPinFor, setShowPinFor] = useState(null);
   const [verifyPinFor, setVerifyPinFor] = useState(null);
+  const [invoiceFor,   setInvoiceFor]   = useState(null);
 
   const showToast = (message, type = 'success') => setToast({ message, type });
 
@@ -603,6 +1028,14 @@ export default function TransactionsPage() {
                       )}
                       <button
                         type="button"
+                        className="txn-btn-invoice"
+                        onClick={() => setInvoiceFor(t)}
+                        title="View & Download Invoice"
+                      >
+                        <FileText size={12} /> Invoice
+                      </button>
+                      <button
+                        type="button"
                         className="txn-btn-chat"
                         onClick={() => navigate('/chat')}
                         title="Chat with participant"
@@ -698,6 +1131,13 @@ export default function TransactionsPage() {
           transaction={verifyPinFor}
           onSuccess={(msg) => { showToast(msg); loadData(); }}
           onClose={() => { setVerifyPinFor(null); loadData(); }}
+        />
+      )}
+      {invoiceFor && (
+        <InvoiceModal
+          transaction={invoiceFor}
+          currentUserId={userId}
+          onClose={() => setInvoiceFor(null)}
         />
       )}
     </div>

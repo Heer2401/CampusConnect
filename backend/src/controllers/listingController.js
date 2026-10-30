@@ -101,7 +101,7 @@ const createListing = async (req, res, next) => {
     }
 
     if (data.status !== 'draft') {
-      data.status = category.requiresModeration ? 'pending' : 'active';
+      data.status = 'active';
     }
 
     if (data.listingType === 'giveaway') {
