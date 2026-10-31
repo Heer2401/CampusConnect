@@ -82,27 +82,29 @@ export const WishlistPage = () => {
 
   if (loading) {
     return (
-      <div className="wishlist-page">
-        <div className="wishlist-header">
-          <div>
-            <h1 className="wishlist-title">My Wishlist</h1>
-            <p className="wishlist-subtitle">Saved items across campus</p>
+      <div className="wishlist-page-wrapper">
+        <div className="wishlist-page-container">
+          <div className="wishlist-header">
+            <div>
+              <h1 className="wishlist-title">My Wishlist</h1>
+              <p className="wishlist-subtitle">Saved items across campus</p>
+            </div>
           </div>
-        </div>
-        <div className="wishlist-grid">
-          {[1, 2, 3].map(n => (
-            <div key={n} className="wishlist-card" style={{ height: 320 }}>
-              <div className="wishlist-skeleton-img" />
-              <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <div className="wishlist-skeleton-line" style={{ width: '70%', height: 16 }} />
-                <div className="wishlist-skeleton-line" style={{ width: '45%', height: 12 }} />
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 14 }}>
-                  <div className="wishlist-skeleton-line" style={{ width: '30%', height: 18 }} />
-                  <div className="wishlist-skeleton-line" style={{ width: '20%', height: 18, borderRadius: 12 }} />
+          <div className="wishlist-grid">
+            {[1, 2, 3].map(n => (
+              <div key={n} className="wishlist-card" style={{ height: 320 }}>
+                <div className="wishlist-skeleton-img" />
+                <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div className="wishlist-skeleton-line" style={{ width: '70%', height: 16 }} />
+                  <div className="wishlist-skeleton-line" style={{ width: '45%', height: 12 }} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 14 }}>
+                    <div className="wishlist-skeleton-line" style={{ width: '30%', height: 18 }} />
+                    <div className="wishlist-skeleton-line" style={{ width: '20%', height: 18, borderRadius: 12 }} />
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -110,28 +112,31 @@ export const WishlistPage = () => {
 
   if (error) {
     return (
-      <div className="wishlist-page">
-        <div className="wishlist-empty-state">
-          <p style={{ color: '#dc2626', marginBottom: 16 }}>{error}</p>
-          <button type="button" className="btn btn-secondary" onClick={fetchWishlist}>
-            Try Again
-          </button>
+      <div className="wishlist-page-wrapper">
+        <div className="wishlist-page-container">
+          <div className="wishlist-empty-state">
+            <p style={{ color: '#dc2626', marginBottom: 16 }}>{error}</p>
+            <button type="button" className="btn btn-secondary" onClick={fetchWishlist}>
+              Try Again
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="wishlist-page">
-      <div className="wishlist-header">
-        <div>
-          <h1 className="wishlist-title">My Wishlist ({items.length})</h1>
-          <p className="wishlist-subtitle">Saved items across campus</p>
+    <div className="wishlist-page-wrapper">
+      <div className="wishlist-page-container">
+        <div className="wishlist-header">
+          <div>
+            <h1 className="wishlist-title">My Wishlist ({items.length})</h1>
+            <p className="wishlist-subtitle">Saved items across campus</p>
+          </div>
+          <Link to="/marketplace" className="wishlist-browse-btn">
+            <ArrowLeft size={15} /> Browse more listings
+          </Link>
         </div>
-        <Link to="/marketplace" className="wishlist-browse-btn">
-          <ArrowLeft size={15} /> Browse more listings
-        </Link>
-      </div>
 
       {items.length === 0 ? (
         <div className="wishlist-empty-state">
@@ -245,6 +250,7 @@ export const WishlistPage = () => {
           })}
         </div>
       )}
+      </div>
     </div>
   );
 };

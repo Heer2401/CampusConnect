@@ -400,24 +400,12 @@ export const ChatPage = () => {
   });
 
   return (
-    <div className="chat-page">
-      {/* ── Top Header ──────────────────────────────────────────────────────── */}
-      <div className="chat-header">
-        <div>
-          <h1 className="chat-title">Messages</h1>
-          <p className="chat-subtitle">Chat with buyers and sellers about campus listings.</p>
-        </div>
+    <div className="chat-page-wrapper">
+      <div className="chat-page-container">
+        {/* ── Top Header ──────────────────────────────────────────────────────── */}
+        <div className="chat-header">
 
-        <div className="chat-status-badge">
-          <span
-            className="chat-status-dot"
-            style={{ background: isConnected ? '#10b981' : '#f59e0b' }}
-          />
-          <span style={{ color: isConnected ? '#10b981' : '#d97706' }}>
-            {isConnected ? 'Connected' : 'Connecting...'}
-          </span>
         </div>
-      </div>
 
       {error && (
         <div
@@ -534,7 +522,10 @@ export const ChatPage = () => {
 
                       <div className="chat-thread-preview-row">
                         <div className="chat-thread-preview">
-                          {thread.lastMessagePreview || 'Conversation started'}
+                          <MessageSquare size={13} style={{ flexShrink: 0, color: isSelected ? '#10b981' : '#94a3b8' }} />
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {thread.lastMessagePreview || 'Conversation started'}
+                          </span>
                         </div>
                         {thread.unreadCount > 0 && (
                           <span className="chat-unread-badge">{thread.unreadCount}</span>
@@ -642,23 +633,11 @@ export const ChatPage = () => {
                   </div>
                 ) : messages.length === 0 ? (
                   <div style={{ margin: 'auto', textAlign: 'center', color: '#64748b' }}>
-                    <div
-                      style={{
-                        width: 44,
-                        height: 44,
-                        borderRadius: '50%',
-                        background: '#ecfdf5',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        margin: '0 auto 8px',
-                        color: '#10b981',
-                      }}
-                    >
-                      <MessageSquare size={22} />
+                    <div className="chat-empty-icon-circle">
+                      <MessageSquare size={26} strokeWidth={2.2} />
                     </div>
-                    <div style={{ fontWeight: 700, color: '#0f172a' }}>Start the conversation!</div>
-                    <p style={{ fontSize: 12, marginTop: 4, color: '#64748b' }}>
+                    <div className="chat-empty-title">Start the conversation!</div>
+                    <p className="chat-empty-desc">
                       Coordinate campus meetup spots, ask about condition, or confirm timing.
                     </p>
                   </div>
@@ -845,7 +824,8 @@ export const ChatPage = () => {
                     className="chat-quick-chip"
                     onClick={() => setMessageInput(reply)}
                   >
-                    {reply}
+                    <MessageSquare size={13} color="#0d9488" />
+                    <span>{reply}</span>
                   </button>
                 ))}
               </div>
@@ -908,6 +888,7 @@ export const ChatPage = () => {
             </div>
           )}
         </div>
+      </div>
       </div>
     </div>
   );
