@@ -35,6 +35,7 @@ import { StatusBadge } from '../components/StatusBadge';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import '../marketplace.css';
 import { WishlistButton } from '../../search_communication/components/WishlistButton';
+import { chatApi } from '../../search_communication/api/chatApi';
 import { createTransaction, createRental, getListingReservedDates } from '../../rental/api/rentalApi';
 
 function formatTimeAgo(date) {
@@ -158,8 +159,18 @@ export const ListingDetailPage = () => {
         return;
       }
       const sellerId = listing.owner?._id || listing.owner?.id || listing.owner;
+      const sellerName = listing.owner?.profile?.name || listing.owner?.name || 'Seller';
       const res = await chatApi.createOrGetThread(listing._id, sellerId);
-      if (res.data?._id) navigate(`/chat?thread=${res.data._id}`);
+      const threadId = res?.data?._id;
+      navigate(threadId ? `/chat?thread=${threadId}` : '/chat', {
+        state: {
+          threadId,
+          recipientId: sellerId,
+          recipientName: sellerName,
+          itemName: listing.title,
+          initialDraft: `Hi! Reaching out about "${listing.title}". Is this still available?`,
+        },
+      });
     } catch (err) {
       showNotice(err.message || 'Could not initiate chat with seller', 'error');
     }

@@ -15,7 +15,6 @@ import {
   CheckCircle2,
   XCircle,
   KeyRound,
-  MessageSquare,
   ShieldCheck,
   X,
   Check,
@@ -721,7 +720,8 @@ export default function TransactionsPage() {
   };
 
   return (
-    <div className="rd-page">
+    <div className="transactions-page-wrapper">
+      <div className="transactions-page-container">
       {toast.message && (
         <Toast message={toast.message} type={toast.type} onClose={() => setToast({ message: '' })} />
       )}
@@ -748,10 +748,10 @@ export default function TransactionsPage() {
       {/* ── Stat Cards ────────────────────────────────────────────── */}
       <div className="rentals-stat-row">
         <div
-          className={`rentals-stat-card ${filter === 'all' ? 'txn-stat-card-active-all' : ''}`}
+          className={`rentals-stat-card card-mint ${filter === 'all' ? 'active-card txn-stat-card-active-all' : ''}`}
           onClick={() => setFilter('all')}
         >
-          <div className="rentals-stat-icon-box box-borrowing">
+          <div className="rentals-stat-icon-box box-mint">
             <ReceiptText size={18} strokeWidth={2.2} />
           </div>
           <div className="rentals-stat-num">{transactions.length}</div>
@@ -759,10 +759,10 @@ export default function TransactionsPage() {
         </div>
 
         <div
-          className={`rentals-stat-card ${filter === 'pending' ? 'txn-stat-card-active-pending' : ''}`}
+          className={`rentals-stat-card card-blue ${filter === 'pending' ? 'active-card txn-stat-card-active-pending' : ''}`}
           onClick={() => setFilter('pending')}
         >
-          <div className="rentals-stat-icon-box box-lending">
+          <div className="rentals-stat-icon-box box-blue">
             <Clock size={18} strokeWidth={2.2} />
           </div>
           <div className="rentals-stat-num">{pendingCount}</div>
@@ -770,10 +770,10 @@ export default function TransactionsPage() {
         </div>
 
         <div
-          className={`rentals-stat-card ${filter === 'completed' ? 'txn-stat-card-active-completed' : ''}`}
+          className={`rentals-stat-card card-completed ${filter === 'completed' ? 'active-card txn-stat-card-active-completed' : ''}`}
           onClick={() => setFilter('completed')}
         >
-          <div className="rentals-stat-icon-box" style={{ background: '#dcfce7', color: '#16a34a' }}>
+          <div className="rentals-stat-icon-box box-completed">
             <Check size={18} strokeWidth={2.5} />
           </div>
           <div className="rentals-stat-num">{completedCount}</div>
@@ -781,10 +781,10 @@ export default function TransactionsPage() {
         </div>
 
         <div
-          className={`rentals-stat-card ${filter === 'cancelled' ? 'txn-stat-card-active-cancelled' : ''}`}
+          className={`rentals-stat-card card-cancelled ${filter === 'cancelled' ? 'active-card txn-stat-card-active-cancelled' : ''}`}
           onClick={() => setFilter('cancelled')}
         >
-          <div className="rentals-stat-icon-box" style={{ background: '#fee2e2', color: '#dc2626' }}>
+          <div className="rentals-stat-icon-box box-cancelled">
             <X size={18} strokeWidth={2.5} />
           </div>
           <div className="rentals-stat-num">{cancelledCount}</div>
@@ -968,19 +968,53 @@ export default function TransactionsPage() {
                   null;
                 const ongoing = isOngoing(t);
 
+                const targetListingId =
+                  t.listingId?._id ||
+                  t.listingId?.id ||
+                  (typeof t.listingId === 'string' ? t.listingId : null);
+
+                const handleOpenListingDetails = () => {
+                  if (targetListingId) {
+                    navigate(`/marketplace/${targetListingId}`);
+                  } else {
+                    showToast('Listing details not found.', 'error');
+                  }
+                };
+
                 return (
                   <div key={t._id} className="txn-table-row">
                     {/* Item */}
                     <div className="txn-item-cell">
                       {itemImage ? (
-                        <img src={itemImage} alt={itemTitle} className="txn-thumb" />
+                        <img
+                          src={itemImage}
+                          alt={itemTitle}
+                          className="txn-thumb txn-thumb-clickable"
+                          onClick={handleOpenListingDetails}
+                          title={`View details for ${itemTitle}`}
+                        />
                       ) : (
-                        <div className="txn-thumb-placeholder">
+                        <div
+                          className="txn-thumb-placeholder txn-thumb-clickable"
+                          onClick={handleOpenListingDetails}
+                          title={`View details for ${itemTitle}`}
+                        >
                           <Package size={20} />
                         </div>
                       )}
                       <div className="txn-item-info">
-                        <div className="txn-item-name" title={itemTitle}>{itemTitle}</div>
+                        <div
+                          className="txn-item-name txn-item-name-clickable"
+                          title={`View details for ${itemTitle}`}
+                          onClick={handleOpenListingDetails}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') handleOpenListingDetails();
+                          }}
+                        >
+                          {itemTitle}
+                        </div>
                         <div className="txn-item-type">{myRole} · {typeLabel}</div>
                       </div>
                     </div>
@@ -1002,59 +1036,40 @@ export default function TransactionsPage() {
                     </div>
 
                     {/* Status */}
-                    <div>
+                    <div className="txn-status-cell">
                       <StatusPill status={t.status} />
                     </div>
 
-                    {/* Actions */}
+                    {/* Actions: Strictly 1 action button */}
                     <div className="txn-actions-cell">
-                      {ongoing && !isBuyer && (
+                      {ongoing ? (
+                        isBuyer ? (
+                          <button
+                            type="button"
+                            className="txn-btn-pin-action"
+                            onClick={() => setVerifyPinFor(t)}
+                          >
+                            <KeyRound size={12} /> Enter PIN
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="txn-btn-pin-action"
+                            onClick={() => setShowPinFor(t)}
+                          >
+                            <KeyRound size={12} /> Show PIN
+                          </button>
+                        )
+                      ) : (
                         <button
                           type="button"
-                          className="txn-btn-pin-action"
-                          onClick={() => setShowPinFor(t)}
+                          className="txn-btn-invoice"
+                          onClick={() => setInvoiceFor(t)}
+                          title="View & Download Invoice"
                         >
-                          <KeyRound size={12} /> Show PIN
+                          <FileText size={12} /> Invoice
                         </button>
                       )}
-                      {ongoing && isBuyer && (
-                        <button
-                          type="button"
-                          className="txn-btn-pin-action"
-                          onClick={() => setVerifyPinFor(t)}
-                        >
-                          <KeyRound size={12} /> Enter PIN
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        className="txn-btn-invoice"
-                        onClick={() => setInvoiceFor(t)}
-                        title="View & Download Invoice"
-                      >
-                        <FileText size={12} /> Invoice
-                      </button>
-                      <button
-                        type="button"
-                        className="txn-btn-chat"
-                        onClick={() => navigate('/chat')}
-                        title="Chat with participant"
-                      >
-                        <MessageSquare size={13} /> Chat
-                      </button>
-                      <button
-                        type="button"
-                        className="txn-btn-details"
-                        onClick={() => {
-                          if (t.listingId?._id) {
-                            navigate(`/marketplace/${t.listingId._id}`);
-                          } else {
-                            showToast('Listing details not found.');
-                          }
-                        }}
-                      >
-                        View details →
-                      </button>
                     </div>
                   </div>
                 );
@@ -1140,6 +1155,7 @@ export default function TransactionsPage() {
           onClose={() => setInvoiceFor(null)}
         />
       )}
+      </div>
     </div>
   );
 }
