@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SocketProvider } from './features/search_communication/context/SocketContext';
 import { WishlistProvider } from './features/search_communication/context/WishlistContext';
@@ -37,17 +37,16 @@ function RootRedirect() {
   return isAdmin ? <Navigate to="/admin" replace /> : <Navigate to="/marketplace" replace />;
 }
 
-export default function App() {
+function AppLayout() {
+  const location = useLocation();
+  const currentPath = (location.pathname || '').toLowerCase().replace(/\/+$/, '');
+  const isMarketplace = currentPath === '' || currentPath === '/marketplace' || currentPath === '/browse';
+
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <SocketProvider>
-          <WishlistProvider>
-            <NotificationProvider>
-              <div className="app-container">
-                <Navbar />
-                <main className="main-content">
-                  <Routes>
+    <div className="app-container">
+      <Navbar />
+      <main className={`main-content ${isMarketplace ? 'main-content--full-width' : ''}`}>
+        <Routes>
                     <Route path="/" element={<RootRedirect />} />
                     <Route path="/login" element={<AuthPage />} />
 
@@ -220,8 +219,19 @@ export default function App() {
 
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
-                </main>
-              </div>
+      </main>
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <SocketProvider>
+          <WishlistProvider>
+            <NotificationProvider>
+              <AppLayout />
             </NotificationProvider>
           </WishlistProvider>
         </SocketProvider>

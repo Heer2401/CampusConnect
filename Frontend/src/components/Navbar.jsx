@@ -14,8 +14,8 @@ import {
   Leaf,
   LogOut,
   BadgeCheck,
-  Plus,
   ChevronDown,
+  Plus,
 } from 'lucide-react';
 import { NotificationBell } from '../features/search_communication/components/NotificationBell';
 
@@ -64,10 +64,19 @@ export default function Navbar() {
       <div className="nav-inner">
         {/* ── Brand Logo (Left) ──────────────────────────────────────── */}
         <NavLink to={isAdmin ? '/admin' : '/marketplace'} className="brand-wrapper">
-          <div className="brand-logo-icon">CC</div>
+          <div className="brand-logo-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M19 8.5C17.8 5.8 15.1 4 12 4C7.58 4 4 7.58 4 12C4 16.42 7.58 20 12 20C15.5 20 18.5 17.8 19.5 14.6"
+                stroke="white"
+                strokeWidth="3.2"
+                strokeLinecap="round"
+              />
+              <circle cx="19" cy="8.5" r="2.2" fill="white" />
+            </svg>
+          </div>
           <div className="brand-text-col">
             <div className="brand-name">CampusConnect</div>
-            <div className="brand-subtitle">Smart Campus Exchange</div>
           </div>
         </NavLink>
 
@@ -79,7 +88,7 @@ export default function Navbar() {
                 to="/admin"
                 className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
               >
-                <ShieldCheck size={15} />
+                <ShieldCheck size={16} />
                 Admin Console
               </NavLink>
             ) : (
@@ -88,7 +97,6 @@ export default function Navbar() {
                   to="/marketplace"
                   className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
                 >
-                  <ShoppingBag size={15} />
                   Marketplace
                 </NavLink>
 
@@ -96,7 +104,6 @@ export default function Navbar() {
                   to="/requests"
                   className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
                 >
-                  <ClipboardList size={15} />
                   Requests
                 </NavLink>
 
@@ -104,7 +111,6 @@ export default function Navbar() {
                   to="/rentals"
                   className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
                 >
-                  <Package size={15} />
                   Rentals
                 </NavLink>
 
@@ -112,16 +118,7 @@ export default function Navbar() {
                   to="/transactions"
                   className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
                 >
-                  <CreditCard size={15} />
                   Transactions
-                </NavLink>
-
-                <NavLink
-                  to="/chat"
-                  className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                >
-                  <MessageSquare size={15} />
-                  Chat
                 </NavLink>
               </>
             )}
@@ -133,6 +130,30 @@ export default function Navbar() {
           <div className="nav-actions">
             {!isAdmin && (
               <>
+                {/* Sell Button (+ Sell) for creating a new listing */}
+                <NavLink
+                  to="/marketplace/create"
+                  className="nav-sell-btn"
+                  title="Create listing"
+                >
+                  <Plus size={16} />
+                  <span>Sell</span>
+                </NavLink>
+
+                {/* Chat Messages */}
+                <NavLink
+                  to="/chat"
+                  className={({ isActive }) =>
+                    `nav-icon-btn ${isActive ? 'nav-icon-btn--active' : ''}`
+                  }
+                  title="Messages"
+                >
+                  <MessageSquare size={18} />
+                </NavLink>
+
+                {/* Notification Bell */}
+                <NotificationBell />
+
                 {/* Wishlist Heart Icon */}
                 <NavLink
                   to="/wishlist"
@@ -143,9 +164,6 @@ export default function Navbar() {
                 >
                   <Heart size={18} />
                 </NavLink>
-
-                {/* Notification Bell */}
-                <NotificationBell />
               </>
             )}
 
@@ -159,6 +177,7 @@ export default function Navbar() {
                 title="Account"
               >
                 <span className="nav-avatar">{initials}</span>
+                <ChevronDown size={14} className="nav-avatar-chevron" />
               </button>
 
               {profileOpen && (
