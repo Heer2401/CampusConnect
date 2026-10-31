@@ -44,11 +44,16 @@ function AppLayout() {
     currentPath === '' ||
     currentPath === '/marketplace' ||
     currentPath === '/browse' ||
-    currentPath.startsWith('/requests');
+    currentPath.startsWith('/requests') ||
+    currentPath.startsWith('/rentals') ||
+    currentPath.startsWith('/transactions') ||
+    currentPath.startsWith('/chat') ||
+    currentPath.startsWith('/wishlist') ||
+    currentPath === '/login';
 
   return (
     <div className="app-container">
-      <Navbar />
+      {currentPath !== '/login' && <Navbar />}
       <main className={`main-content ${isFullWidth ? 'main-content--full-width' : ''}`}>
         <Routes>
                     <Route path="/" element={<RootRedirect />} />

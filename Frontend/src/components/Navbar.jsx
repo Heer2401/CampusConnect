@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   ShoppingBag,
@@ -33,8 +33,20 @@ function getInitials(user) {
 export default function Navbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [profileOpen, setProfileOpen] = useState(false);
   const dropdownRef = useRef(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setProfileOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   const isAdmin = user && (user.role === 'Admin' || user.role === 'Administrator');
   const initials = user ? getInitials(user) : '';
@@ -47,17 +59,6 @@ export default function Navbar() {
     logout();
     navigate('/login');
   };
-
-  // Close dropdown on outside click
-  useEffect(() => {
-    const handler = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setProfileOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
 
   return (
     <header className="navbar">
