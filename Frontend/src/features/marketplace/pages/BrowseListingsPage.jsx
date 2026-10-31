@@ -134,20 +134,29 @@ export const BrowseListingsPage = () => {
     }
   };
 
-  // Merge backend categories with fallback metadata to ensure all 14 categories are always listed
+  // Merge backend categories with fallback metadata and sort by item count (categories with items first, zeroes at the end)
   const displayCategories = React.useMemo(() => {
-    if (categories && categories.length > 0) {
-      return categories.map((cat) => {
-        const fb = BACKEND_CATEGORIES_FALLBACK.find(
-          (f) => f.slug === cat.slug || f.name.toLowerCase() === cat.name.toLowerCase()
-        );
-        return {
-          ...cat,
-          listingCount: cat.listingCount ?? fb?.listingCount ?? 0,
-        };
-      });
-    }
-    return BACKEND_CATEGORIES_FALLBACK;
+    const list = categories && categories.length > 0
+      ? categories.map((cat) => {
+          const fb = BACKEND_CATEGORIES_FALLBACK.find(
+            (f) => f.slug === cat.slug || f.name.toLowerCase() === cat.name.toLowerCase()
+          );
+          return {
+            ...cat,
+            listingCount: cat.listingCount ?? fb?.listingCount ?? 0,
+          };
+        })
+      : BACKEND_CATEGORIES_FALLBACK;
+
+    // Sort categories: highest count first, with 0-item categories at the end
+    return [...list].sort((a, b) => {
+      const countA = a.listingCount ?? 0;
+      const countB = b.listingCount ?? 0;
+      if (countB !== countA) {
+        return countB - countA;
+      }
+      return (a.name || '').localeCompare(b.name || '');
+    });
   }, [categories]);
 
   // Compute total items for "All"

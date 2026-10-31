@@ -458,7 +458,7 @@ export const ListingDetailPage = () => {
   // ── Render ──────────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="marketplace-page page">
+      <div className="marketplace-page listing-detail-page">
         <div className="card" style={{ padding: 48, textAlign: 'center' }}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8, color: '#64748b' }}>
             <Clock size={32} />
@@ -471,7 +471,7 @@ export const ListingDetailPage = () => {
 
   if (error || !listing) {
     return (
-      <div className="marketplace-page page">
+      <div className="marketplace-page listing-detail-page">
         <div className="card" style={{ padding: 48, textAlign: 'center', maxWidth: 480, margin: '40px auto' }}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12, color: '#dc2626' }}>
             <AlertTriangle size={36} />
@@ -578,7 +578,7 @@ export const ListingDetailPage = () => {
   };
 
   return (
-    <div className="marketplace-page page">
+    <div className="marketplace-page listing-detail-page">
       {/* Notice Banner */}
       {actionNotice && (
         <div
@@ -596,8 +596,8 @@ export const ListingDetailPage = () => {
       )}
 
       {/* Navigation Breadcrumb */}
-      <div style={{ marginBottom: 16 }}>
-        <Link to="/marketplace" className="muted" style={{ textDecoration: 'none', fontSize: 13, fontWeight: 500 }}>
+      <div style={{ marginBottom: 18 }}>
+        <Link to="/marketplace" className="listing-back-link">
           ← Back to Marketplace
         </Link>
       </div>
@@ -757,6 +757,7 @@ export const ListingDetailPage = () => {
           <div className="listing-detail-header-row">
             <div className="listing-badges-left">
               <span className="listing-category-pill">
+                <Shield size={13} style={{ display: 'inline', marginRight: 4, verticalAlign: -1 }} />
                 {listing.category?.name || 'Campus Item'}
               </span>
               <span className="listing-type-pill">
@@ -764,11 +765,8 @@ export const ListingDetailPage = () => {
               </span>
             </div>
             <div className="listing-header-right">
-              <div className="listing-heart-btn-circle">
-                <WishlistButton listingId={listing._id} showLabel={false} />
-              </div>
               <span className="listing-status-active-pill">
-                Active
+                <span className="status-dot-green" /> Active
               </span>
             </div>
           </div>
@@ -956,59 +954,19 @@ export const ListingDetailPage = () => {
 
           {/* ── Report Buttons for Non-Owners ── */}
           {!isOwner && (
-            <div style={{
-              display: 'flex',
-              gap: 8,
-              marginTop: 12,
-              paddingTop: 12,
-              borderTop: '1px solid #f1f5f9'
-            }}>
+            <div className="listing-report-row">
               <button
                 type="button"
+                className="listing-report-btn"
                 onClick={() => openReportModal('item')}
-                style={{
-                  flex: 1,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6,
-                  padding: '8px 12px',
-                  background: '#fff',
-                  border: '1px solid #fca5a5',
-                  borderRadius: 8,
-                  color: '#dc2626',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'background 0.15s'
-                }}
-                onMouseEnter={e => e.currentTarget.style.background = '#fef2f2'}
-                onMouseLeave={e => e.currentTarget.style.background = '#fff'}
                 title="Report this listing for policy violations or misrepresentation"
               >
                 <Flag size={14} /> Report Item
               </button>
               <button
                 type="button"
+                className="listing-report-btn seller"
                 onClick={() => openReportModal('seller')}
-                style={{
-                  flex: 1,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6,
-                  padding: '8px 12px',
-                  background: '#fff',
-                  border: '1px solid #d97706',
-                  borderRadius: 8,
-                  color: '#92400e',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'background 0.15s'
-                }}
-                onMouseEnter={e => e.currentTarget.style.background = '#fffbeb'}
-                onMouseLeave={e => e.currentTarget.style.background = '#fff'}
                 title="Report seller for scam, misconduct or suspicious behaviour"
               >
                 <Flag size={14} /> Report Seller
