@@ -65,25 +65,30 @@ const createOrGetThread = async (req, res, next) => {
     const currentUserId = req.user._id || req.user.id;
     const { listingId, recipientId } = req.body;
 
-    if (!listingId || !mongoose.Types.ObjectId.isValid(listingId)) {
-      return res.status(400).json({
-        success: false,
-        error: { code: 400, message: 'A valid listingId is required' }
-      });
+    let targetRecipientId = recipientId;
+    let listing = null;
+
+    if (listingId) {
+      if (!mongoose.Types.ObjectId.isValid(listingId)) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 400, message: 'A valid listingId is required' }
+        });
+      }
+
+      listing = await Listing.findById(listingId);
+      if (!listing || listing.isDeleted) {
+        return res.status(404).json({
+          success: false,
+          error: { code: 404, message: 'Listing not found or has been removed' }
+        });
+      }
+
+      // Determine target recipient (default to listing owner if not provided)
+      targetRecipientId = recipientId || listing.owner.toString();
     }
 
-    const listing = await Listing.findById(listingId);
-    if (!listing || listing.isDeleted) {
-      return res.status(404).json({
-        success: false,
-        error: { code: 404, message: 'Listing not found or has been removed' }
-      });
-    }
-
-    // Determine target recipient (default to listing owner if not provided)
-    const targetRecipientId = recipientId || listing.owner.toString();
-
-    if (!mongoose.Types.ObjectId.isValid(targetRecipientId)) {
+    if (!targetRecipientId || !mongoose.Types.ObjectId.isValid(targetRecipientId)) {
       return res.status(400).json({
         success: false,
         error: { code: 400, message: 'A valid recipientId is required' }
@@ -99,10 +104,14 @@ const createOrGetThread = async (req, res, next) => {
     }
 
     // Check for existing conversation with the same listing and participants
-    let thread = await ChatThread.findOne({
-      listingId,
+    const query = {
       participants: { $all: [currentUserId, targetRecipientId] }
-    })
+    };
+    if (listingId) {
+      query.listingId = listingId;
+    }
+
+    let thread = await ChatThread.findOne(query)
       .populate('participants', 'name email profile avatar')
       .populate({
         path: 'listingId',
@@ -121,7 +130,7 @@ const createOrGetThread = async (req, res, next) => {
     // Create new conversation
     thread = new ChatThread({
       participants: [currentUserId, targetRecipientId],
-      listingId,
+      listingId: listingId || null,
       lastMessageAt: new Date(),
       lastMessagePreview: ''
     });

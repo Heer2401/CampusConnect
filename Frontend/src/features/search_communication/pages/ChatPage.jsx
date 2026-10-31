@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useSearchParams, Link, useNavigate } from 'react-router-dom';
+import { useSearchParams, useLocation, Link, useNavigate } from 'react-router-dom';
 import { chatApi } from '../api/chatApi';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../../../context/AuthContext';
@@ -129,6 +129,7 @@ const QUICK_REPLIES = [
 
 export const ChatPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
   const activeThreadIdFromUrl = searchParams.get('thread');
 
   const { user } = useAuth();
@@ -137,14 +138,18 @@ export const ChatPage = () => {
   const { socket, isConnected } = useSocket();
 
   const [threads, setThreads] = useState([]);
-  const [activeThreadId, setActiveThreadId] = useState(activeThreadIdFromUrl || null);
+  const [activeThreadId, setActiveThreadId] = useState(
+    activeThreadIdFromUrl || location.state?.threadId || null
+  );
   const [activeThread, setActiveThread] = useState(null);
   const [messages, setMessages] = useState([]);
 
   const [loadingThreads, setLoadingThreads] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
-  const [messageInput, setMessageInput] = useState('');
+  const [messageInput, setMessageInput] = useState(
+    location.state?.initialDraft || ''
+  );
   const [searchQuery, setSearchQuery] = useState('');
   const [approvingRentalId, setApprovingRentalId] = useState(null);
   const [rejectingRentalId, setRejectingRentalId] = useState(null);
@@ -227,12 +232,20 @@ export const ChatPage = () => {
     fetchThreads();
   }, [fetchThreads]);
 
-  // When activeThreadIdFromUrl changes
+  // When activeThreadIdFromUrl or location.state changes
   useEffect(() => {
-    if (activeThreadIdFromUrl && activeThreadIdFromUrl !== activeThreadId) {
-      setActiveThreadId(activeThreadIdFromUrl);
+    const targetThreadId = activeThreadIdFromUrl || location.state?.threadId;
+    if (targetThreadId && targetThreadId !== activeThreadId) {
+      setActiveThreadId(targetThreadId);
     }
-  }, [activeThreadIdFromUrl]);
+  }, [activeThreadIdFromUrl, location.state?.threadId]);
+
+  // Sync draft message from location state if provided
+  useEffect(() => {
+    if (location.state?.initialDraft) {
+      setMessageInput(location.state.initialDraft);
+    }
+  }, [location.state?.initialDraft]);
 
   // Load messages whenever activeThreadId changes
   useEffect(() => {
@@ -511,9 +524,13 @@ export const ChatPage = () => {
                         {timeStr && <span className="chat-thread-time">{timeStr}</span>}
                       </div>
 
-                      {listing && (
+                      {listing ? (
                         <div className="chat-thread-item-title">{listing.title}</div>
-                      )}
+                      ) : isSelected && location.state?.itemName ? (
+                        <div className="chat-thread-item-title" style={{ color: '#0284c7' }}>
+                          Request: {location.state.itemName}
+                        </div>
+                      ) : null}
 
                       <div className="chat-thread-preview-row">
                         <div className="chat-thread-preview">
@@ -555,8 +572,8 @@ export const ChatPage = () => {
                   );
                 })()}
 
-                {/* Listing Context Pill */}
-                {activeThread.listingId && (
+                {/* Context Pill (Listing or Request) */}
+                {activeThread.listingId ? (
                   <Link
                     to={`/marketplace/${activeThread.listingId._id}`}
                     className="chat-listing-pill"
@@ -592,7 +609,29 @@ export const ChatPage = () => {
                       </div>
                     </div>
                   </Link>
-                )}
+                ) : location.state?.itemName ? (
+                  <div className="chat-listing-pill" style={{ pointerEvents: 'none' }}>
+                    <div
+                      className="chat-listing-thumb"
+                      style={{
+                        background: '#e0f2fe',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <MessageSquare size={16} color="#0284c7" />
+                    </div>
+                    <div>
+                      <div className="chat-listing-pill-title">
+                        {location.state.itemName}
+                      </div>
+                      <div className="chat-listing-pill-link" style={{ color: '#0284c7', fontWeight: 600 }}>
+                        Campus Request · Active
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
               </div>
 
               {/* Messages Container with auto-scroll */}
