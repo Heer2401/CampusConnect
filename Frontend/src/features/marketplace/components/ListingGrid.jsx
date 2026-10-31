@@ -14,19 +14,21 @@ export const ListingGrid = ({
     display: 'grid',
     gridTemplateColumns: isGrid3
       ? 'repeat(auto-fill, minmax(280px, 1fr))'
-      : 'repeat(auto-fill, minmax(240px, 1fr))',
-    gap: '20px',
+      : 'repeat(auto-fill, minmax(260px, 1fr))',
+    gap: '22px',
+    alignItems: 'stretch',
   };
 
   if (loading) {
     return (
       <div className={gridClass} style={gridStyle}>
         {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
-          <div key={n} className="card" style={{ height: 280, opacity: 0.6, padding: 0, borderRadius: 12 }}>
-            <div className="listing-img" style={{ height: 160, animation: 'pulse 1.5s infinite' }}>Loading...</div>
+          <div key={n} className="card" style={{ height: 320, opacity: 0.6, padding: 0, borderRadius: 14 }}>
+            <div className="listing-img" style={{ height: 180, animation: 'pulse 1.5s infinite', background: '#f1f5f9' }} />
             <div style={{ padding: '14px 16px' }}>
               <div style={{ height: 16, background: '#e2e8f0', borderRadius: 4 }} />
-              <div style={{ height: 12, background: '#e2e8f0', marginTop: 8, width: '60%', borderRadius: 4 }} />
+              <div style={{ height: 14, background: '#e2e8f0', marginTop: 10, width: '40%', borderRadius: 4 }} />
+              <div style={{ height: 12, background: '#e2e8f0', marginTop: 12, width: '70%', borderRadius: 4 }} />
             </div>
           </div>
         ))}
@@ -67,3 +69,5 @@ export const ListingGrid = ({
     </div>
   );
 };
+
+export default ListingGrid;

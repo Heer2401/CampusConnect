@@ -1,14 +1,22 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { WishlistButton } from '../../search_communication/components/WishlistButton';
-import { Image as ImageIcon, Star } from 'lucide-react';
+import {
+  ShoppingBag,
+  Calendar,
+  Repeat,
+  Gift,
+  Star,
+  CheckCircle2,
+  Image as ImageIcon,
+} from 'lucide-react';
 
 const conditionMap = {
   new: 'New',
   like_new: 'Like new',
-  good: 'Good condition',
-  fair: 'Fair condition',
-  poor: 'Poor condition',
+  good: 'Good',
+  fair: 'Fair',
+  poor: 'Poor',
 };
 
 function formatTimeAgo(dateString) {
@@ -32,6 +40,8 @@ function formatTimeAgo(dateString) {
 const AVATAR_COLORS = ['#818cf8', '#60a5fa', '#34d399', '#f472b6', '#a78bfa', '#38bdf8'];
 
 export const ListingCard = ({ listing }) => {
+  const [imgError, setImgError] = useState(false);
+
   const {
     _id,
     title,
@@ -49,271 +59,165 @@ export const ListingCard = ({ listing }) => {
   const primaryImage = images?.find((img) => img.isPrimary) || images?.[0];
   const imageUrl = primaryImage?.thumbnailUrl || primaryImage?.url;
 
+  // Rating & Reviews
   const rawRating = owner?.reputation?.rating ?? listing.rating;
-  const rating = typeof rawRating === 'number' && rawRating > 0 ? rawRating : 4.5;
-  const reviewsCount = owner?.reputation?.reviewsCount ?? listing.reviewsCount ?? 8;
+  const reviewsCount = owner?.reputation?.reviewsCount ?? listing.reviewsCount ?? 0;
+  const isNewSeller = !rawRating || reviewsCount === 0;
+  const rating = typeof rawRating === 'number' && rawRating > 0 ? rawRating : 4.8;
 
-  const sellerName = owner?.profile?.name || owner?.name || 'Dev';
-  const sellerInitial = (sellerName[0] || 'D').toUpperCase();
+  // Seller Info
+  const sellerName = owner?.profile?.name || owner?.name || 'Aarav';
+  const sellerFirstName = sellerName.trim().split(' ')[0];
+  const sellerInitial = (sellerFirstName[0] || 'A').toUpperCase();
+  const sellerAvatar = owner?.avatar || owner?.profile?.avatar;
   const avatarColor = AVATAR_COLORS[(sellerName.charCodeAt(0) || 0) % AVATAR_COLORS.length];
 
   const categoryName = category?.name || 'General';
-  const conditionLabel = conditionMap[condition] || condition || 'Good';
+  const conditionLabel = conditionMap[condition] || 'Good';
   const timeAgo = formatTimeAgo(createdAt);
 
-  const renderPriceAndBadge = () => {
+  // Render Top-Left Overlay Badge matching Image 2
+  const renderTypeBadge = () => {
     switch (listingType) {
-      case 'sell':
+      case 'rent':
         return (
-          <>
-            <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
-              ₹{Number(price ?? 0).toLocaleString('en-IN')}
-            </div>
-            <span
-              style={{
-                background: '#eff6ff',
-                color: '#2563eb',
-                padding: '3px 12px',
-                borderRadius: '999px',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-              }}
-            >
-              Sell
-            </span>
-          </>
-        );
-      case 'rent': {
-        const rate = rentalRate || price || 0;
-        const period = rentalPeriod || 'week';
-        return (
-          <>
-            <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
-              ₹{Number(rate).toLocaleString('en-IN')}
-              <span style={{ fontSize: '0.75rem', fontWeight: 500, color: '#64748b' }}>
-                /{period}
-              </span>
-            </div>
-            <span
-              style={{
-                background: '#ecfdf5',
-                color: '#059669',
-                padding: '3px 12px',
-                borderRadius: '999px',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-              }}
-            >
-              Rent
-            </span>
-          </>
-        );
-      }
-      case 'giveaway':
-        return (
-          <>
-            <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#166534' }}>
-              Free
-            </div>
-            <span
-              style={{
-                background: '#fef3c7',
-                color: '#92400e',
-                padding: '3px 12px',
-                borderRadius: '999px',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-              }}
-            >
-              Giveaway
-            </span>
-          </>
+          <span className="card-type-overlay-badge badge-type-rent">
+            <Calendar size={12} strokeWidth={2.5} />
+            <span>Rent</span>
+          </span>
         );
       case 'exchange':
         return (
-          <>
-            <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#6b21a8' }}>
-              Swap
-            </div>
-            <span
-              style={{
-                background: '#f3e8ff',
-                color: '#7c3aed',
-                padding: '3px 12px',
-                borderRadius: '999px',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-              }}
-            >
-              Exchange
-            </span>
-          </>
+          <span className="card-type-overlay-badge badge-type-swap">
+            <Repeat size={12} strokeWidth={2.5} />
+            <span>Swap</span>
+          </span>
         );
+      case 'giveaway':
+        return (
+          <span className="card-type-overlay-badge badge-type-free">
+            <Gift size={12} strokeWidth={2.5} />
+            <span>Free</span>
+          </span>
+        );
+      case 'sell':
       default:
         return (
-          <>
-            <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>
-              ₹{Number(price || 0).toLocaleString('en-IN')}
-            </div>
-            <span
-              style={{
-                background: '#eff6ff',
-                color: '#2563eb',
-                padding: '3px 12px',
-                borderRadius: '999px',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-              }}
-            >
-              {listingType}
-            </span>
-          </>
+          <span className="card-type-overlay-badge badge-type-buy">
+            <ShoppingBag size={12} strokeWidth={2.5} />
+            <span>Buy</span>
+          </span>
+        );
+    }
+  };
+
+  // Render Price matching Image 2
+  const renderPrice = () => {
+    switch (listingType) {
+      case 'rent': {
+        const rate = rentalRate || price || 250;
+        const period = rentalPeriod || 'day';
+        return (
+          <div className="card-item-price price-rent">
+            ₹{Number(rate).toLocaleString('en-IN')}/{period}
+          </div>
+        );
+      }
+      case 'exchange':
+        return <div className="card-item-price price-swap">Swap</div>;
+      case 'giveaway':
+        return <div className="card-item-price price-free">Free</div>;
+      case 'sell':
+      default:
+        return (
+          <div className="card-item-price price-sell">
+            ₹{Number(price ?? 350).toLocaleString('en-IN')}
+          </div>
         );
     }
   };
 
   return (
-    <Link to={`/marketplace/${_id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-      <div
-        className="card listing-item-card"
-        style={{
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          padding: 0,
-          borderRadius: '12px',
-          border: '1px solid #e2e8f0',
-          background: '#ffffff',
-          overflow: 'hidden',
-          transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-          boxSizing: 'border-box',
-        }}
-      >
-        {/* Card Image with Wishlist Button */}
-        <div
-          style={{
-            height: '175px',
-            background: '#f8fafc',
-            position: 'relative',
-            overflow: 'hidden',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <div style={{ position: 'absolute', top: 10, right: 10, zIndex: 2 }}>
-            <WishlistButton listingId={_id} />
+    <Link to={`/marketplace/${_id}`} className="marketplace-item-card-link">
+      <div className="marketplace-item-card">
+        {/* ── Top Media Container ────────────────────────────────────────── */}
+        <div className="card-media-wrapper">
+          {/* Top-Left Category Badge */}
+          {renderTypeBadge()}
+
+          {/* Top-Right Wishlist Button */}
+          <div className="card-wishlist-overlay">
+            <WishlistButton listingId={_id} size={15} />
           </div>
 
-          {imageUrl ? (
+          {/* Listing Image with error fallback */}
+          {imageUrl && !imgError ? (
             <img
               src={imageUrl}
               alt={title}
               loading="lazy"
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              className="card-media-img"
+              onError={() => setImgError(true)}
             />
           ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#94a3b8', fontSize: '0.8rem' }}>
-              <ImageIcon size={20} />
-              <span>Photo</span>
+            <div className="card-media-placeholder">
+              <ImageIcon size={26} className="placeholder-icon" />
+              <span className="placeholder-text">Campus Item</span>
             </div>
           )}
         </div>
 
-        {/* Card Body */}
-        <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', flex: 1 }}>
-          <h2
-            style={{
-              margin: '0 0 4px 0',
-              fontSize: '0.95rem',
-              lineHeight: 1.35,
-              fontWeight: 700,
-              color: '#0f172a',
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-              minHeight: '2.7em',
-            }}
-            title={title}
-          >
+        {/* ── Card Body Content (Constant Heights & Spacing) ──────────────── */}
+        <div className="card-body-content">
+          {/* Title - Fixed 2-line clamp */}
+          <h2 className="card-item-title" title={title}>
             {title}
           </h2>
 
-          <p style={{ margin: '0 0 8px 0', fontSize: '0.78rem', color: '#64748b' }}>
-            {conditionLabel} · {categoryName}
-          </p>
+          {/* Price */}
+          {renderPrice()}
 
-          {/* Rating Pill Badge */}
-          <div style={{ marginBottom: '8px' }}>
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '3px',
-                background: '#fef3c7',
-                color: '#b45309',
-                padding: '2px 7px',
-                borderRadius: '4px',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-              }}
-            >
-              <Star size={11} fill="#f59e0b" color="#f59e0b" />
-              <span>{rating.toFixed(1)}</span>
-              <span style={{ fontWeight: 500, color: '#92400e' }}>({reviewsCount})</span>
+          {/* Tags Row: Condition Pill + Category Pill */}
+          <div className="card-tags-row">
+            <span className="card-condition-pill">{conditionLabel}</span>
+            <span className="card-category-pill" title={categoryName}>
+              {categoryName}
             </span>
           </div>
 
-          {/* Seller Avatar & Posted Time Row */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              fontSize: '0.75rem',
-              color: '#64748b',
-              marginBottom: '12px',
-              marginTop: 'auto',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span
-                style={{
-                  width: '20px',
-                  height: '20px',
-                  borderRadius: '50%',
-                  background: avatarColor,
-                  color: '#ffffff',
-                  fontSize: '0.65rem',
-                  fontWeight: 700,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                {sellerInitial}
-              </span>
-              <span style={{ fontWeight: 500, color: '#334155' }}>{sellerName.split(' ')[0]}</span>
+          {/* Bottom Seller Row: Avatar + Name + Rating/New seller + Time ago */}
+          <div className="card-seller-row">
+            <div className="card-seller-left">
+              {sellerAvatar ? (
+                <img src={sellerAvatar} alt={sellerFirstName} className="card-seller-avatar" />
+              ) : (
+                <span className="card-seller-avatar" style={{ background: avatarColor }}>
+                  {sellerInitial}
+                </span>
+              )}
+              <span className="card-seller-name">{sellerFirstName}</span>
             </div>
 
-            <span>Posted {timeAgo}</span>
-          </div>
+            {/* Seller Reputation or New seller badge */}
+            {isNewSeller ? (
+              <span className="card-seller-new">
+                <CheckCircle2 size={11} fill="#0284c7" color="#ffffff" />
+                <span>New seller</span>
+              </span>
+            ) : (
+              <span className="card-seller-rating">
+                <Star size={12} fill="#eab308" color="#eab308" />
+                <span>{rating.toFixed(1)}</span>
+              </span>
+            )}
 
-          {/* Price & Action Badge Row */}
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              borderTop: '1px solid #f8fafc',
-              paddingTop: '10px',
-            }}
-          >
-            {renderPriceAndBadge()}
+            {/* Posted Time */}
+            <span className="card-posted-time">{timeAgo}</span>
           </div>
         </div>
       </div>
     </Link>
   );
 };
+
+export default ListingCard;
