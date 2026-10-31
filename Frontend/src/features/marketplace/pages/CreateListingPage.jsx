@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Sparkles, AlertTriangle, Clock, CheckCircle2, Info } from 'lucide-react';
+import { Sparkles, AlertTriangle, Clock, CheckCircle2, Info, ArrowLeft } from 'lucide-react';
 import { listingsApi } from '../api/listingsApi';
 import { ListingForm } from '../components/ListingForm';
 import '../marketplace.css';
+import '../CreateListing.css';
 
 export const CreateListingPage = () => {
   const navigate = useNavigate();
@@ -55,62 +56,68 @@ export const CreateListingPage = () => {
   };
 
   return (
-    <div className="marketplace-page page">
-      <div style={{ marginBottom: 20 }}>
-        <h1 style={{ fontSize: 26, margin: '0 0 6px 0', color: '#0f172a' }}>
-          Create a New Listing
-        </h1>
-        <p className="muted" style={{ margin: 0, fontSize: 14 }}>
-          Post items to buy, sell, rent, exchange, or giveaway with fellow campus peers.
-        </p>
-      </div>
-
-      {fromRentalRequest && (
-        <div
-          style={{
-            background: 'rgba(99, 102, 241, 0.1)',
-            border: '1px solid rgba(99, 102, 241, 0.3)',
-            borderRadius: 10,
-            padding: '12px 16px',
-            marginBottom: 20,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-          }}
-        >
-          <Sparkles size={20} style={{ color: '#4f46e5', flexShrink: 0 }} />
-          <p style={{ margin: 0, color: '#3730a3', fontSize: 14 }}>
-            <strong>Fulfilling Rental Request:</strong> Pre-filled for{' '}
-            <strong>"{initialValues.title}"</strong>. The requesting peer will be notified once published!
-          </p>
+    <div className="marketplace-page create-listing-page">
+      <div className="create-listing-container">
+        {/* ── Top Header ─────────────────────────────────────────────────── */}
+        <div className="create-listing-header">
+          <div className="create-listing-header-left">
+            <span className="create-listing-eyebrow">NEW LISTING</span>
+            <h1 className="create-listing-title">Share something with campus</h1>
+            <p className="create-listing-subtitle">
+              Four quick steps — photos, details, terms, publish. Takes about two minutes.
+            </p>
+          </div>
+          <Link to="/marketplace" className="btn-back-marketplace">
+            <ArrowLeft size={16} /> Marketplace
+          </Link>
         </div>
-      )}
 
-      {errorMessage && (
-        <div
-          className="card"
-          style={{
-            background: '#fef2f2',
-            border: '1px solid #fecaca',
-            borderLeft: '4px solid #dc2626',
-            marginBottom: 20,
-            padding: '14px 18px',
-          }}
-        >
-          <p style={{ color: '#b91c1c', margin: 0, fontWeight: 600, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <AlertTriangle size={16} /> {errorMessage}
-          </p>
-          <p className="muted" style={{ margin: '4px 0 0 0', fontSize: 12 }}>
-            Your entered data has been preserved below. Please correct the highlighted errors and try again.
-          </p>
-        </div>
-      )}
+        {fromRentalRequest && (
+          <div
+            style={{
+              background: 'rgba(99, 102, 241, 0.1)',
+              border: '1px solid rgba(99, 102, 241, 0.3)',
+              borderRadius: 12,
+              padding: '12px 18px',
+              marginBottom: 20,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+            }}
+          >
+            <Sparkles size={20} style={{ color: '#4f46e5', flexShrink: 0 }} />
+            <p style={{ margin: 0, color: '#3730a3', fontSize: 14 }}>
+              <strong>Fulfilling Rental Request:</strong> Pre-filled for{' '}
+              <strong>"{initialValues.title}"</strong>. The requesting peer will be notified once published!
+            </p>
+          </div>
+        )}
 
-      <ListingForm
-        initialValues={initialValues}
-        onSubmit={handleCreate}
-        isSubmitting={isSubmitting}
-      />
+        {errorMessage && (
+          <div
+            style={{
+              background: '#fef2f2',
+              border: '1px solid #fecaca',
+              borderLeft: '4px solid #dc2626',
+              borderRadius: 12,
+              marginBottom: 20,
+              padding: '14px 18px',
+            }}
+          >
+            <p style={{ color: '#b91c1c', margin: 0, fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <AlertTriangle size={16} /> {errorMessage}
+            </p>
+            <p className="muted" style={{ margin: '4px 0 0 0', fontSize: 12 }}>
+              Your entered data has been preserved below. Please correct the highlighted errors and try again.
+            </p>
+          </div>
+        )}
+
+        <ListingForm
+          initialValues={initialValues}
+          onSubmit={handleCreate}
+          isSubmitting={isSubmitting}
+        />
 
       {/* ── Submission Confirmation Modal ────────────────────────────────────── */}
       {successData && (
@@ -261,6 +268,7 @@ export const CreateListingPage = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };
