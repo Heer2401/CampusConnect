@@ -142,29 +142,71 @@ const getListings = async (req, res, next) => {
     if (req.query.listingType) filter.listingType = req.query.listingType;
     if (req.query.condition) filter.condition = req.query.condition;
 
-    if (req.query.minPrice !== undefined || req.query.maxPrice !== undefined) {
-      filter.price = {};
-      if (req.query.minPrice !== undefined && req.query.minPrice !== '') {
-        filter.price.$gte = Number(req.query.minPrice);
+    const minPrice = req.query.minPrice !== undefined && req.query.minPrice !== '' ? Number(req.query.minPrice) : null;
+    const maxPrice = req.query.maxPrice !== undefined && req.query.maxPrice !== '' ? Number(req.query.maxPrice) : null;
+
+    if (minPrice !== null || maxPrice !== null) {
+      const sellPriceCond = {};
+      const rentRateCond = {};
+
+      if (minPrice !== null && !isNaN(minPrice)) {
+        sellPriceCond.$gte = minPrice;
+        rentRateCond.$gte = minPrice;
       }
-      if (req.query.maxPrice !== undefined && req.query.maxPrice !== '') {
-        filter.price.$lte = Number(req.query.maxPrice);
+      if (maxPrice !== null && !isNaN(maxPrice)) {
+        sellPriceCond.$lte = maxPrice;
+        rentRateCond.$lte = maxPrice;
+      }
+
+      if (req.query.listingType === 'rent') {
+        filter.rentalRate = rentRateCond;
+      } else if (req.query.listingType === 'sell') {
+        filter.price = sellPriceCond;
+      } else if (req.query.listingType === 'giveaway') {
+        if (minPrice !== null && minPrice > 0) {
+          filter.price = -1;
+        }
+      } else {
+        // "All" types or type not specified: match if sell price OR rentalRate falls within range
+        const priceOrRentConditions = [
+          { price: sellPriceCond },
+          { rentalRate: rentRateCond }
+        ];
+        if (minPrice === 0 || minPrice === null) {
+          priceOrRentConditions.push({ listingType: 'giveaway' });
+        }
+        filter.$and = filter.$and || [];
+        filter.$and.push({ $or: priceOrRentConditions });
       }
     }
 
     if (req.query.q) {
       const q = req.query.q.trim();
-      filter.$or = [
+      const qConditions = [
         { title: { $regex: q, $options: 'i' } },
         { description: { $regex: q, $options: 'i' } },
         { tags: { $in: [new RegExp(q, 'i')] } }
       ];
+      filter.$and = filter.$and || [];
+      filter.$and.push({ $or: qConditions });
     }
 
     let sort = { createdAt: -1 };
-    if (req.query.sort === 'oldest') sort = { createdAt: 1 };
-    if (req.query.sort === 'price_asc') sort = { price: 1 };
-    if (req.query.sort === 'price_desc') sort = { price: -1 };
+    switch (req.query.sort) {
+      case 'oldest':
+        sort = { createdAt: 1 };
+        break;
+      case 'price_asc':
+        sort = { price: 1, rentalRate: 1 };
+        break;
+      case 'price_desc':
+        sort = { price: -1, rentalRate: -1 };
+        break;
+      case 'newest':
+      default:
+        sort = { createdAt: -1 };
+        break;
+    }
 
     const total = await Listing.countDocuments(filter);
     const listings = await Listing.find(filter)
