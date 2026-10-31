@@ -40,12 +40,16 @@ function RootRedirect() {
 function AppLayout() {
   const location = useLocation();
   const currentPath = (location.pathname || '').toLowerCase().replace(/\/+$/, '');
-  const isMarketplace = currentPath === '' || currentPath === '/marketplace' || currentPath === '/browse';
+  const isFullWidth =
+    currentPath === '' ||
+    currentPath === '/marketplace' ||
+    currentPath === '/browse' ||
+    currentPath.startsWith('/requests');
 
   return (
     <div className="app-container">
       <Navbar />
-      <main className={`main-content ${isMarketplace ? 'main-content--full-width' : ''}`}>
+      <main className={`main-content ${isFullWidth ? 'main-content--full-width' : ''}`}>
         <Routes>
                     <Route path="/" element={<RootRedirect />} />
                     <Route path="/login" element={<AuthPage />} />

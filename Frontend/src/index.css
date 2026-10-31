@@ -295,9 +295,10 @@ body {
   overflow: hidden;
 }
 
-/* Marketplace landing page full-width hero banner optimization */
+/* Full-width container layout optimization */
 .main-content:has(.marketplace-page),
 .main-content:has(.create-listing-page),
+.main-content:has(.requests-page-wrapper),
 .main-content.main-content--full-width {
   max-width: 100% !important;
   width: 100% !important;
@@ -970,7 +971,8 @@ body {
 
 .main-content.main-content--full-width,
 .main-content:has(.marketplace-page),
-.main-content:has(.create-listing-page) {
+.main-content:has(.create-listing-page),
+.main-content:has(.requests-page-wrapper) {
   max-width: 100% !important;
   width: 100% !important;
   margin: 0 !important;
@@ -2675,11 +2677,34 @@ body {
    REQUESTS PAGE
    ═══════════════════════════════════════════════════ */
 
+.requests-page-wrapper {
+  min-height: calc(100vh - 64px);
+  width: 100%;
+  background-color: #f0f7ff;
+  background-image: url('/images/Pastel%20CampusConnect%20Abstract%20Background.png');
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
 .requests-page-container {
   max-width: 1240px;
   margin: 0 auto;
-  padding: 32px 28px 64px;
+  padding: 48px 48px 84px;
   box-sizing: border-box;
+}
+
+@media (max-width: 1024px) {
+  .requests-page-container {
+    padding: 36px 32px 64px;
+  }
+}
+
+@media (max-width: 640px) {
+  .requests-page-container {
+    padding: 24px 18px 48px;
+  }
 }
 
 .requests-header {
@@ -2749,8 +2774,46 @@ body {
 
 .requests-types-row {
   display: flex;
-  gap: 8px;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
   margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.req-types-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.req-search-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  padding: 6px 16px;
+  min-width: 250px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  transition: all 0.15s ease;
+}
+
+.req-search-wrapper:focus-within {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.req-search-input {
+  border: none;
+  outline: none;
+  font-size: 13px;
+  color: #0f172a;
+  background: transparent;
+  width: 100%;
+  font-family: inherit;
 }
 
 .req-type-chip {
@@ -2779,7 +2842,7 @@ body {
 .requests-layout-grid {
   display: grid;
   grid-template-columns: 1fr 380px;
-  gap: 28px;
+  gap: 32px;
   align-items: flex-start;
 }
 
@@ -2813,7 +2876,7 @@ body {
 .req-empty-card {
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 16px;
+  border-radius: 18px;
   padding: 32px 24px;
   text-align: center;
   display: flex;
@@ -2881,22 +2944,29 @@ body {
 .req-card {
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  padding: 18px 20px;
+  border-radius: 18px;
+  padding: 22px 24px;
   transition: all 0.15s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
 }
 
 .req-card:hover {
   border-color: #cbd5e1;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+}
+
+.req-card-desc {
+  font-size: 13.5px;
+  color: #334155;
+  margin: 10px 0 14px;
+  line-height: 1.5;
 }
 
 .req-card-top {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .req-card-left {
@@ -2905,14 +2975,42 @@ body {
   align-items: flex-start;
 }
 
+.req-card-right-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.req-icon-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: #64748b;
+  transition: all 0.15s ease;
+}
+
+.req-icon-btn:hover {
+  color: #0f172a;
+  background: #f1f5f9;
+}
+
+.req-heart-btn.active {
+  color: #ef4444;
+}
+
 .req-avatar {
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 700;
   flex-shrink: 0;
   background: #e0f2fe;
@@ -2921,41 +3019,42 @@ body {
 
 .req-card-title {
   font-weight: 700;
-  font-size: 1rem;
+  font-size: 15.5px;
   color: #0f172a;
   margin-bottom: 2px;
 }
 
 .req-card-meta {
-  font-size: 0.8rem;
+  font-size: 12px;
   color: #94a3b8;
 }
 
 .req-type-badge {
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 700;
-  padding: 3px 10px;
+  padding: 3px 12px;
   border-radius: 999px;
+  letter-spacing: 0.02em;
 }
 
 .req-type-badge.req-type-borrow {
-  background: #dbeafe;
-  color: #1d4ed8;
+  background: #e0f2fe;
+  color: #0284c7;
 }
 
 .req-type-badge.req-type-buy {
-  background: #d1fae5;
-  color: #065f46;
+  background: #dcfce7;
+  color: #16a34a;
 }
 
 .req-type-badge.req-type-either {
   background: #fef3c7;
-  color: #92400e;
+  color: #d97706;
 }
 
 .req-type-badge.req-type-rent {
   background: #ede9fe;
-  color: #5b21b6;
+  color: #7c3aed;
 }
 
 .req-card-details {
@@ -2975,7 +3074,7 @@ body {
   font-size: 12px;
   font-weight: 500;
   padding: 4px 10px;
-  border-radius: 999px;
+  border-radius: 8px;
 }
 
 .req-card-actions {
@@ -2984,15 +3083,136 @@ body {
   align-items: center;
 }
 
+.req-ihave-btn {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 999px;
+  padding: 7px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.28);
+  transition: all 0.15s ease;
+}
+
+.req-ihave-btn:hover:not(:disabled) {
+  background: #1d4ed8;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.38);
+  transform: translateY(-1px);
+}
+
+.req-ihave-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.req-chat-btn {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 7px 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.req-chat-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+/* Card footer & layout matching theme */
+.req-card-footer {
+  margin-top: 10px;
+}
+
+.req-card-footer.is-own {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.req-card-footer.is-own .req-card-details {
+  margin-bottom: 0;
+}
+
+.req-card-actions.is-own {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* Request status pill matching theme */
+.req-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+  line-height: 1.4;
+}
+
+.req-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+/* Request cancel button matching theme */
+.req-cancel-btn {
+  background: #ffffff;
+  border: 1px solid #fca5a5;
+  color: #ef4444;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1.4;
+}
+
+.req-cancel-btn:hover {
+  background: #fef2f2;
+  border-color: #f87171;
+  color: #dc2626;
+  box-shadow: 0 1px 4px rgba(239, 68, 68, 0.12);
+}
+
+.req-cancel-btn:active {
+  transform: scale(0.98);
+}
+
 /* Post a Request Form Card (Right sidebar) */
 .req-post-card {
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  border-radius: 18px;
+  padding: 26px 28px;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
   position: sticky;
-  top: 84px;
+  top: 96px;
 }
 
 .req-post-card-title {
@@ -3017,19 +3237,19 @@ body {
 }
 
 .req-suggestion-chip {
-  background: #e0edff;
-  color: #2563eb;
+  background: #e0f2fe;
+  color: #0284c7;
   border: none;
   font-size: 12px;
   font-weight: 600;
-  padding: 5px 12px;
-  border-radius: 6px;
+  padding: 5px 14px;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .req-suggestion-chip:hover {
-  background: #cfe2fe;
+  background: #bae6fd;
 }
 
 .req-form-group {
@@ -3112,26 +3332,26 @@ body {
 
 .req-submit-btn {
   width: 100%;
-  background: #1865f2;
+  background: #2563eb;
   color: #ffffff;
   border: none;
   border-radius: 8px;
   padding: 12px;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  box-shadow: 0 2px 8px rgba(24, 101, 242, 0.28);
+  box-shadow: 0 2px 10px rgba(37, 99, 235, 0.28);
   margin-top: 16px;
   transition: all 0.15s ease;
 }
 
-.req-submit-btn:hover {
-  background: #1455cc;
-  box-shadow: 0 4px 12px rgba(24, 101, 242, 0.35);
+.req-submit-btn:hover:not(:disabled) {
+  background: #1d4ed8;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.38);
 }
 
 .req-submit-btn:disabled {

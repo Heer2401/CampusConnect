@@ -20,8 +20,16 @@ import {
   Send,
   X,
   Check,
+  Search,
+  Heart,
+  MoreVertical,
+  Calendar,
+  Tag,
+  IndianRupee,
+  Trash2,
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
+import { chatApi } from '../api/chatApi';
 import {
   createRentalRequest,
   getMyRentalRequests,
@@ -36,16 +44,55 @@ const fmt = (date) =>
     ? new Date(date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })
     : '—';
 
-const STATUS_STYLES = {
-  open: 'status-active',
-  fulfilled: 'status-completed',
-  cancelled: 'status-cancelled',
+const STATUS_CONFIG = {
+  open: {
+    label: 'Open',
+    dot: '#16a34a',
+    color: '#15803d',
+    bg: '#ecfdf5',
+    border: '#bbf7d0',
+  },
+  fulfilled: {
+    label: 'Fulfilled',
+    dot: '#8b5cf6',
+    color: '#7c3aed',
+    bg: '#ede9fe',
+    border: '#ddd6fe',
+  },
+  cancelled: {
+    label: 'Cancelled',
+    dot: '#94a3b8',
+    color: '#64748b',
+    bg: '#f1f5f9',
+    border: '#e2e8f0',
+  },
+  expired: {
+    label: 'Expired',
+    dot: '#f97316',
+    color: '#c2410c',
+    bg: '#fff7ed',
+    border: '#fed7aa',
+  },
 };
 
-function StatusBadge({ status }) {
+function RequestStatusBadge({ status }) {
+  const key = (status || 'open').toLowerCase();
+  const cfg = STATUS_CONFIG[key] || STATUS_CONFIG.open;
+
   return (
-    <span className={`rd-badge ${STATUS_STYLES[status] || 'status-requested'}`}>
-      {status}
+    <span
+      className="req-status-pill"
+      style={{
+        backgroundColor: cfg.bg,
+        color: cfg.color,
+        borderColor: cfg.border,
+      }}
+    >
+      <span
+        className="req-status-dot"
+        style={{ backgroundColor: cfg.dot }}
+      />
+      {cfg.label}
     </span>
   );
 }
@@ -130,6 +177,8 @@ export default function RequestsPage() {
 
   const [tab, setTab] = useState('all'); // 'all' | 'mine'
   const [typeFilter, setTypeFilter] = useState('All'); // 'All' | 'Rent' | 'Buy' | 'Borrow'
+  const [searchQuery, setSearchQuery] = useState('');
+  const [wishlisted, setWishlisted] = useState({});
   const [myRequests, setMyRequests] = useState([]);
   const [communityRequests, setCommunityRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -207,6 +256,40 @@ export default function RequestsPage() {
     }
   };
 
+  const handleChatWithRequester = async (req) => {
+    try {
+      const recipientId =
+        req.requesterId?._id || req.requesterId?.id || req.requesterId;
+      if (!recipientId) {
+        showToast('Requester information is not available.', 'error');
+        return;
+      }
+      if (recipientId.toString() === userId?.toString()) {
+        showToast('You cannot chat with yourself.', 'error');
+        return;
+      }
+
+      // Create or retrieve conversation thread with this requester
+      const res = await chatApi.createOrGetThread(null, recipientId);
+      const threadId = res?.data?._id;
+
+      const initialDraft = `Hi! I saw your request for "${req.itemName}" on the Campus Requests board.`;
+
+      navigate(threadId ? `/chat?thread=${threadId}` : '/chat', {
+        state: {
+          threadId,
+          recipientId,
+          recipientName:
+            req.requesterId?.profile?.name || req.requesterId?.name || 'Student',
+          itemName: req.itemName,
+          initialDraft,
+        },
+      });
+    } catch (err) {
+      showToast(err.message || 'Failed to open chat.', 'error');
+    }
+  };
+
   // Quick suggestion click
   const handleSuggestionClick = (name) => {
     setPostForm((prev) => ({ ...prev, itemName: name }));
@@ -276,204 +359,289 @@ export default function RequestsPage() {
     (r) => r.requesterId?._id?.toString() !== userId?.toString()
   );
 
+  const toggleWishlist = (id) => {
+    setWishlisted((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
   const baseList = tab === 'all' ? feedRequests : myRequests;
   const filteredList = baseList.filter((req) => {
-    if (typeFilter === 'All') return true;
-    const reqType = (
-      req.requestType ||
-      (req.description?.includes('Type: Buy')
-        ? 'Buy'
-        : req.description?.includes('Type: Either')
-        ? 'Either'
-        : 'Borrow')
-    ).toLowerCase();
-    return reqType.includes(typeFilter.toLowerCase());
+    if (typeFilter !== 'All') {
+      const reqType = (
+        req.requestType ||
+        (req.description?.includes('Type: Buy')
+          ? 'Buy'
+          : req.description?.includes('Type: Either')
+          ? 'Either'
+          : 'Borrow')
+      ).toLowerCase();
+      if (!reqType.includes(typeFilter.toLowerCase())) return false;
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const titleMatch = (req.itemName || '').toLowerCase().includes(q);
+      const descMatch = (req.description || '').toLowerCase().includes(q);
+      const requesterName = (
+        req.requesterId?.profile?.name ||
+        req.requesterId?.name ||
+        req.requesterId?.email ||
+        ''
+      ).toLowerCase();
+      if (!titleMatch && !descMatch && !requesterName.includes(q)) return false;
+    }
+    return true;
   });
 
   const myCount = myRequests.length;
   const isEmpty = !loading && filteredList.length === 0;
 
   return (
-    <div className="requests-page-container">
-      {toast.message && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast({ message: '' })}
-        />
-      )}
+    <div className="requests-page-wrapper">
+      <div className="requests-page-container">
+        {toast.message && (
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            onClose={() => setToast({ message: '' })}
+          />
+        )}
 
-      {/* ── Layout: Left Feed + Right Post Form ──────────────────── */}
-      <div className={`requests-layout-grid ${isEmpty ? 'requests-grid-empty' : ''}`}>
-        {/* Left Column: Requests Feed */}
-        <div className="requests-feed-col">
-          {/* ── Page Header ────────────────────────────────────────── */}
-          <div className="requests-header">
-            <h1 className="requests-header-title">Requests</h1>
-            <p className="requests-header-sub">
-              What students on campus are looking for. Have one of these? Say so.
-            </p>
-          </div>
-
-          {/* Row 1: All requests / My requests */}
-          <div className="requests-tabs-row">
-            <button
-              className={`req-pill-tab ${tab === 'all' ? 'active' : ''}`}
-              onClick={() => setTab('all')}
-            >
-              All requests
-            </button>
-            <button
-              className={`req-pill-tab ${tab === 'mine' ? 'active' : ''}`}
-              onClick={() => setTab('mine')}
-            >
-              My requests
-              <span className="req-pill-badge">{myCount}</span>
-            </button>
-          </div>
-
-          {/* Row 2: Type filter pills */}
-          <div className="requests-types-row">
-            {['All', 'Rent', 'Buy', 'Borrow'].map((t) => (
-              <button
-                key={t}
-                className={`req-type-chip ${typeFilter === t ? 'active' : ''}`}
-                onClick={() => setTypeFilter(t)}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-
-          {/* Feed Content */}
-          {loading ? (
-            <div className="rd-loading" style={{ padding: '60px 0', textAlign: 'center' }}>
-              <div className="rd-spinner" style={{ margin: '0 auto 12px' }} />
-              <span style={{ color: '#64748b', fontSize: 14 }}>Loading requests…</span>
-            </div>
-          ) : filteredList.length === 0 ? (
-            /* Empty State Matching User Screenshot - finishes flush with right panel */
-            <div className="req-empty-card">
-              <RequestEmptyIllustration />
-              <h3 className="req-empty-title">
-                {tab === 'all'
-                  ? 'No open requests from other students yet'
-                  : "You haven't posted any requests yet"}
-              </h3>
-              <p className="req-empty-desc">
-                {tab === 'all'
-                  ? 'When students post item requests they will appear here.'
-                  : 'Can’t find what you need? Tell the campus what item you need.'}
+        {/* ── Layout: Left Feed + Right Post Form ──────────────────── */}
+        <div className={`requests-layout-grid ${isEmpty ? 'requests-grid-empty' : ''}`}>
+          {/* Left Column: Requests Feed */}
+          <div className="requests-feed-col">
+            {/* ── Page Header ────────────────────────────────────────── */}
+            <div className="requests-header">
+              <h1 className="requests-header-title">Requests</h1>
+              <p className="requests-header-sub">
+                What students on campus are looking for. Have one of these? Say so.
               </p>
-              <button className="req-empty-btn" onClick={handleFocusPostForm}>
-                <PlusCircle size={16} /> Post a request
+            </div>
+
+            {/* Row 1: All requests / My requests */}
+            <div className="requests-tabs-row">
+              <button
+                className={`req-pill-tab ${tab === 'all' ? 'active' : ''}`}
+                onClick={() => setTab('all')}
+              >
+                All requests
+              </button>
+              <button
+                className={`req-pill-tab ${tab === 'mine' ? 'active' : ''}`}
+                onClick={() => setTab('mine')}
+              >
+                My requests
+                <span className="req-pill-badge">{myCount}</span>
               </button>
             </div>
-          ) : (
-            /* Cards List */
-            <div className="req-cards-list">
-              {filteredList.map((req) => {
-                const requesterName =
-                  req.requesterId?.profile?.name ||
-                  req.requesterId?.name ||
-                  req.requesterId?.email?.split('@')[0] ||
-                  'Student';
-                const initials = requesterName
-                  .split(' ')
-                  .map((p) => p[0])
-                  .join('')
-                  .toUpperCase()
-                  .slice(0, 2);
-                const isOwn = req.requesterId?._id?.toString() === userId?.toString();
-                const reqType =
-                  req.requestType ||
-                  (req.description?.includes('Type: Buy')
-                    ? 'Buy'
-                    : req.description?.includes('Type: Either')
-                    ? 'Either'
-                    : 'Borrow');
 
-                return (
-                  <div key={req._id} className="req-card">
-                    <div className="req-card-top">
-                      <div className="req-card-left">
-                        <div className="req-avatar">{initials}</div>
-                        <div>
-                          <div className="req-card-title">{req.itemName}</div>
-                          <div className="req-card-meta">
-                            Asked by {requesterName} · Posted{' '}
-                            {new Date(req.createdAt).toLocaleDateString('en-IN', {
-                              day: '2-digit',
-                              month: 'short',
-                            })}
+            {/* Row 2: Type filter pills + Search */}
+            <div className="requests-types-row">
+              <div className="req-types-group">
+                {['All', 'Rent', 'Buy', 'Borrow'].map((t) => (
+                  <button
+                    key={t}
+                    className={`req-type-chip ${typeFilter === t ? 'active' : ''}`}
+                    onClick={() => setTypeFilter(t)}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+
+              <div className="req-search-wrapper">
+                <Search size={15} color="#94a3b8" />
+                <input
+                  type="text"
+                  className="req-search-input"
+                  placeholder="Search requests..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', color: '#94a3b8' }}
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Feed Content */}
+            {loading ? (
+              <div className="rd-loading" style={{ padding: '60px 0', textAlign: 'center' }}>
+                <div className="rd-spinner" style={{ margin: '0 auto 12px' }} />
+                <span style={{ color: '#64748b', fontSize: 14 }}>Loading requests…</span>
+              </div>
+            ) : filteredList.length === 0 ? (
+              /* Empty State Matching User Screenshot - finishes flush with right panel */
+              <div className="req-empty-card">
+                <RequestEmptyIllustration />
+                <h3 className="req-empty-title">
+                  {tab === 'all'
+                    ? 'No open requests from other students yet'
+                    : "You haven't posted any requests yet"}
+                </h3>
+                <p className="req-empty-desc">
+                  {tab === 'all'
+                    ? 'When students post item requests they will appear here.'
+                    : 'Can’t find what you need? Tell the campus what item you need.'}
+                </p>
+                <button className="req-empty-btn" onClick={handleFocusPostForm}>
+                  <PlusCircle size={16} /> Post a request
+                </button>
+              </div>
+            ) : (
+              /* Cards List */
+              <div className="req-cards-list">
+                {filteredList.map((req) => {
+                  const requesterName =
+                    req.requesterId?.profile?.name ||
+                    req.requesterId?.name ||
+                    req.requesterId?.email?.split('@')[0] ||
+                    'Student';
+                  const initials = requesterName
+                    .split(' ')
+                    .map((p) => p[0])
+                    .join('')
+                    .toUpperCase()
+                    .slice(0, 2);
+                  const isOwn = req.requesterId?._id?.toString() === userId?.toString();
+                  const reqType =
+                    req.requestType ||
+                    (req.description?.includes('Type: Buy')
+                      ? 'Buy'
+                      : req.description?.includes('Type: Either')
+                      ? 'Either'
+                      : 'Borrow');
+
+                  const parsedMeetup = (req.description || '').match(/Meetup:\s*([^|]+)/i)?.[1]?.trim() || '';
+                  const cleanDesc = (req.description || '')
+                    .replace(/Meetup:[^|]+/i, '')
+                    .replace(/Type:[^|]+/i, '')
+                    .replace(/\[.*?\]/g, '')
+                    .replace(/\|\s*\|/g, '')
+                    .replace(/^\|\s*|\s*\|$/g, '')
+                    .trim();
+
+                  return (
+                    <div key={req._id} className="req-card">
+                      <div className="req-card-top">
+                        <div className="req-card-left">
+                          <div className="req-avatar">{initials}</div>
+                          <div>
+                            <div className="req-card-title">{req.itemName}</div>
+                            <div className="req-card-meta">
+                              Asked by {requesterName} · Posted{' '}
+                              {new Date(req.createdAt).toLocaleDateString('en-IN', {
+                                day: '2-digit',
+                                month: 'short',
+                              })}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <span className={`req-type-badge req-type-${reqType.toLowerCase()}`}>
-                        {reqType}
-                      </span>
-                    </div>
-
-                    <div className="req-card-details">
-                      {req.dueDate && (
-                        <span className="req-detail-chip">
-                          <Clock size={13} />
-                          Needed by {fmt(req.dueDate)}
-                        </span>
-                      )}
-                      {req.budgetPerDay && (
-                        <span className="req-detail-chip">
-                          <DollarSign size={13} />
-                          Up to ₹{req.budgetPerDay}
-                        </span>
-                      )}
-                      {req.description && (
-                        <span className="req-detail-chip">
-                          <MapPin size={13} />
-                          {req.description.replace(/\[Type:.*?\]/g, '').trim() || 'Campus'}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="req-card-actions">
-                      {isOwn ? (
-                        <>
-                          <StatusBadge status={req.status} />
-                          {req.status === 'open' && (
-                            <button
-                              className="rd-btn rd-btn-danger rd-btn-sm"
-                              onClick={() => handleCancelRequest(req._id)}
-                            >
-                              Cancel
-                            </button>
+                        <div className="req-card-right-actions">
+                          {!isOwn && (
+                            <span className={`req-type-badge req-type-${reqType.toLowerCase()}`}>
+                              {reqType}
+                            </span>
                           )}
-                        </>
-                      ) : (
-                        <>
                           <button
-                            className="rd-btn rd-btn-primary rd-btn-sm"
-                            onClick={() => handleIHaveThis(req)}
-                            disabled={actionLoading === req._id}
+                            type="button"
+                            className={`req-icon-btn req-heart-btn ${wishlisted[req._id] ? 'active' : ''}`}
+                            onClick={() => toggleWishlist(req._id)}
+                            title="Save to wishlist"
                           >
-                            <Sparkles size={13} />
-                            {actionLoading === req._id ? 'Notifying...' : 'I have this'}
+                            <Heart
+                              size={17}
+                              fill={wishlisted[req._id] ? '#ef4444' : 'none'}
+                              color={wishlisted[req._id] ? '#ef4444' : '#64748b'}
+                            />
                           </button>
                           <button
-                            className="rd-btn rd-btn-secondary rd-btn-sm"
-                            onClick={() => navigate('/chat')}
-                            title="Chat with requester"
+                            type="button"
+                            className="req-icon-btn req-more-btn"
+                            title="More options"
                           >
-                            <MessageSquare size={13} />
+                            <MoreVertical size={16} color="#94a3b8" />
                           </button>
-                        </>
+                        </div>
+                      </div>
+
+                      {cleanDesc && (
+                        <p className="req-card-desc">{cleanDesc}</p>
                       )}
+
+                      <div className={`req-card-footer ${isOwn ? 'is-own' : ''}`}>
+                        <div className="req-card-details">
+                          {req.dueDate && (
+                            <span className="req-detail-chip">
+                              <Calendar size={13} />
+                              Needed by {fmt(req.dueDate)}
+                            </span>
+                          )}
+                          {req.budgetPerDay && (
+                            <span className="req-detail-chip">
+                              <IndianRupee size={13} />
+                              Up to ₹{req.budgetPerDay}
+                            </span>
+                          )}
+                          {parsedMeetup && (
+                            <span className="req-detail-chip">
+                              <MapPin size={13} />
+                              Meetup: {parsedMeetup}
+                            </span>
+                          )}
+                          <span className="req-detail-chip">
+                            <Tag size={13} />
+                            Type: {reqType}
+                          </span>
+                        </div>
+
+                        <div className={`req-card-actions ${isOwn ? 'is-own' : ''}`}>
+                          {isOwn ? (
+                            <>
+                              <RequestStatusBadge status={req.status} />
+                              {req.status === 'open' && (
+                                <button
+                                  type="button"
+                                  className="req-cancel-btn"
+                                  onClick={() => handleCancelRequest(req._id)}
+                                >
+                                  <Trash2 size={13} />
+                                  <span>Cancel</span>
+                                </button>
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                className="req-ihave-btn"
+                                onClick={() => handleIHaveThis(req)}
+                                disabled={actionLoading === req._id}
+                              >
+                                <Sparkles size={13} />
+                                {actionLoading === req._id ? 'Notifying...' : 'I have this'}
+                              </button>
+                              <button
+                                className="req-chat-btn"
+                                onClick={() => handleChatWithRequester(req)}
+                                title={`Chat with ${requesterName} about ${req.itemName}`}
+                              >
+                                <MessageSquare size={14} />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
         {/* Right Column: Inline Post a Request Card */}
         <div className="requests-sidebar-col">
@@ -574,5 +742,6 @@ export default function RequestsPage() {
         </div>
       </div>
     </div>
+  </div>
   );
 }
