@@ -120,10 +120,17 @@ const createOrGetThread = async (req, res, next) => {
       });
 
     if (thread) {
+      const threadObj = thread.toObject ? thread.toObject() : thread;
+      const otherParticipant = threadObj.participants?.find(
+        (p) => p._id.toString() !== currentUserId.toString()
+      ) || null;
       return res.status(200).json({
         success: true,
         message: 'Existing conversation found',
-        data: thread
+        data: {
+          ...threadObj,
+          otherParticipant
+        }
       });
     }
 
@@ -145,10 +152,18 @@ const createOrGetThread = async (req, res, next) => {
         populate: { path: 'owner', select: 'name email profile avatar' }
       });
 
+    const populatedObj = populated.toObject ? populated.toObject() : populated;
+    const otherParticipant = populatedObj.participants?.find(
+      (p) => p._id.toString() !== currentUserId.toString()
+    ) || null;
+
     res.status(201).json({
       success: true,
       message: 'Conversation started',
-      data: populated
+      data: {
+        ...populatedObj,
+        otherParticipant
+      }
     });
   } catch (error) {
     next(error);
@@ -198,7 +213,18 @@ const getThreadById = async (req, res, next) => {
       });
     }
 
-    res.json({ success: true, data: thread });
+    const threadObj = thread.toObject ? thread.toObject() : thread;
+    const otherParticipant = threadObj.participants?.find(
+      (p) => p._id.toString() !== userId.toString()
+    ) || null;
+
+    res.json({
+      success: true,
+      data: {
+        ...threadObj,
+        otherParticipant
+      }
+    });
   } catch (error) {
     next(error);
   }

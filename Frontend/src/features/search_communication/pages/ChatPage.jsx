@@ -87,31 +87,170 @@ function getUserInitials(u) {
   return name.slice(0, 2).toUpperCase();
 }
 
-// Safely finds the conversation partner (other participant)
-function getOtherParticipant(thread, currentUserId) {
+// Safely retrieves user ID from multiple sources (Auth context, cc_user, devUser, JWT token)
+function getResolvedUserId(user) {
+  const directId = user?._id || user?.id || user?.userId || user?.user?._id || user?.user?.id;
+  if (directId) return directId.toString();
+
+  try {
+    const raw = localStorage.getItem('cc_user');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      const parsedId = parsed?._id || parsed?.id || parsed?.userId || parsed?.user?._id || parsed?.user?.id;
+      if (parsedId) return parsedId.toString();
+    }
+  } catch {}
+
+  try {
+    const rawDev = localStorage.getItem('devUser');
+    if (rawDev) {
+      const parsed = JSON.parse(rawDev);
+      const devId = parsed?._id || parsed?.id;
+      if (devId) return devId.toString();
+    }
+  } catch {}
+
+  try {
+    const token = localStorage.getItem('cc_token') || localStorage.getItem('token');
+    if (token && typeof token === 'string' && token.includes('.')) {
+      const parts = token.trim().split('.');
+      if (parts.length === 3) {
+        const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(
+          atob(base64)
+            .split('')
+            .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+            .join('')
+        );
+        const decoded = JSON.parse(jsonPayload);
+        const tokenId = decoded?.id || decoded?._id || decoded?.userId;
+        if (tokenId) return tokenId.toString();
+      }
+    }
+  } catch {}
+
+  return null;
+}
+
+function getResolvedUserEmail(user) {
+  if (user?.email) return user.email.toLowerCase().trim();
+  if (user?.user?.email) return user.user.email.toLowerCase().trim();
+  try {
+    const raw = localStorage.getItem('cc_user');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed?.email) return parsed.email.toLowerCase().trim();
+    }
+  } catch {}
+  return '';
+}
+
+// Safely finds the conversation partner (other participant / receiver)
+function getOtherParticipant(thread, currentUserId, currentUserEmail = '') {
   if (!thread) return null;
   const myId = (currentUserId?._id || currentUserId?.id || currentUserId)?.toString();
+  const myEmail = (currentUserEmail || currentUserId?.email || '')?.toString().toLowerCase().trim();
 
-  if (Array.isArray(thread.participants) && thread.participants.length > 0) {
-    const found = thread.participants.find((p) => {
-      const pid = (p?._id || p?.id || p)?.toString();
-      return pid && pid !== myId;
-    });
-    if (found && typeof found === 'object') return found;
-  }
-
+  // 1. Thread already has otherParticipant attached (from backend getThreads / getThreadById)
   if (thread.otherParticipant && typeof thread.otherParticipant === 'object') {
-    return thread.otherParticipant;
-  }
-
-  if (thread.listingId?.owner && typeof thread.listingId.owner === 'object') {
-    const ownerId = (thread.listingId.owner._id || thread.listingId.owner.id || thread.listingId.owner)?.toString();
-    if (ownerId && ownerId !== myId) {
-      return thread.listingId.owner;
+    const otherId = (thread.otherParticipant._id || thread.otherParticipant.id)?.toString();
+    if (!myId || otherId !== myId) {
+      return thread.otherParticipant;
     }
   }
 
+  // 2. Search participants array
+  if (Array.isArray(thread.participants) && thread.participants.length > 0) {
+    if (myId) {
+      const found = thread.participants.find((p) => {
+        const pid = (p?._id || p?.id || p)?.toString();
+        return pid && pid !== myId;
+      });
+      if (found && typeof found === 'object') return found;
+    }
+
+    if (myEmail) {
+      const found = thread.participants.find((p) => {
+        const pEmail = (p?.email || '')?.toString().toLowerCase().trim();
+        return pEmail && pEmail !== myEmail;
+      });
+      if (found && typeof found === 'object') return found;
+    }
+
+    const ownerId = (thread.listingId?.owner?._id || thread.listingId?.owner?.id || thread.listingId?.owner)?.toString();
+    if (myId && ownerId) {
+      if (ownerId === myId) {
+        const buyer = thread.participants.find((p) => {
+          const pid = (p?._id || p?.id || p)?.toString();
+          return pid && pid !== ownerId;
+        });
+        if (buyer && typeof buyer === 'object') return buyer;
+      } else {
+        if (thread.listingId?.owner && typeof thread.listingId.owner === 'object') {
+          return thread.listingId.owner;
+        }
+      }
+    }
+
+    if (thread.participants.length > 1) {
+      const p0Id = (thread.participants[0]?._id || thread.participants[0]?.id)?.toString();
+      if (myId && p0Id === myId) return thread.participants[1];
+      return thread.participants[0];
+    }
+    return thread.participants[0] || null;
+  }
+
+  if (thread.listingId?.owner && typeof thread.listingId.owner === 'object') {
+    return thread.listingId.owner;
+  }
+
   return null;
+}
+
+// Determines if a message was sent by the authenticated current user (Sender -> Right)
+// or by the conversation counterpart (Receiver -> Left)
+function isMessageFromMe(msg, activeThread, currentUserId, currentUserEmail = '') {
+  if (!msg) return false;
+
+  const myId = (currentUserId?._id || currentUserId?.id || currentUserId)?.toString();
+  const myEmail = (currentUserEmail || currentUserId?.email || '')?.toString().toLowerCase().trim();
+
+  const senderObj = msg.senderId || msg.sender;
+  const senderId = (senderObj?._id || senderObj?.id || senderObj)?.toString();
+  const senderEmail = (senderObj?.email || '')?.toString().toLowerCase().trim();
+
+  // 1. Direct ID match
+  if (myId && senderId && senderId === myId) {
+    return true;
+  }
+
+  // 2. Direct email match
+  if (myEmail && senderEmail && senderEmail === myEmail) {
+    return true;
+  }
+
+  // 3. Counterpart comparison in a 2-person conversation
+  const otherUser = getOtherParticipant(activeThread, myId, myEmail);
+  const otherId = (otherUser?._id || otherUser?.id || otherUser)?.toString();
+  const otherEmail = (otherUser?.email || '')?.toString().toLowerCase().trim();
+
+  // If sender matches the other participant, it is DEFINITELY not from me (it is incoming)
+  if (otherId && senderId && senderId === otherId) {
+    return false;
+  }
+  if (otherEmail && senderEmail && senderEmail === otherEmail) {
+    return false;
+  }
+
+  // If other participant is known and sender is different, in a 2-person conversation it is from me
+  if (otherId && senderId && senderId !== otherId) {
+    return true;
+  }
+  if (otherEmail && senderEmail && senderEmail !== otherEmail) {
+    return true;
+  }
+
+  return false;
 }
 
 function formatThreadTime(dateStr) {
@@ -134,7 +273,8 @@ export const ChatPage = () => {
 
   const { user } = useAuth();
   const navigate = useNavigate();
-  const currentUserId = user?._id || user?.id;
+  const currentUserId = getResolvedUserId(user);
+  const currentUserEmail = getResolvedUserEmail(user);
   const { socket, isConnected } = useSocket();
 
   const [threads, setThreads] = useState([]);
@@ -392,7 +532,7 @@ export const ChatPage = () => {
   const filteredThreads = threads.filter((t) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
-    const other = getOtherParticipant(t, currentUserId);
+    const other = getOtherParticipant(t, currentUserId, currentUserEmail);
     const name = getUserDisplayName(other).toLowerCase();
     const title = (t.listingId?.title || '').toLowerCase();
     const lastMsg = (t.lastMessagePreview || '').toLowerCase();
@@ -490,7 +630,7 @@ export const ChatPage = () => {
             ) : (
               filteredThreads.map((thread) => {
                 const isSelected = thread._id === activeThreadId;
-                const otherUser = getOtherParticipant(thread, currentUserId);
+                const otherUser = getOtherParticipant(thread, currentUserId, currentUserEmail);
                 const otherUserName = getUserDisplayName(otherUser);
                 const otherUserInitials = getUserInitials(otherUser);
                 const listing = thread.listingId;
@@ -547,7 +687,7 @@ export const ChatPage = () => {
               <div className="chat-window-header">
                 {/* Peer Info */}
                 {(() => {
-                  const activeOtherUser = getOtherParticipant(activeThread, currentUserId);
+                  const activeOtherUser = getOtherParticipant(activeThread, currentUserId, currentUserEmail);
                   const activeName = getUserDisplayName(activeOtherUser);
                   const activeInitials = getUserInitials(activeOtherUser);
                   const programOrTag = activeOtherUser?.profile?.program || 'MSc IT';
@@ -643,14 +783,13 @@ export const ChatPage = () => {
                   </div>
                 ) : (
                   messages.map((msg) => {
-                    const isMe =
-                      (msg.senderId?._id || msg.senderId)?.toString() === currentUserId?.toString();
+                    const isMe = isMessageFromMe(msg, activeThread, currentUserId, currentUserEmail);
                     const timeStr = formatThreadTime(msg.createdAt);
                     const orderInfo = parseOrderMessage(msg.content, msg.metadata);
 
                     // Structured Order / Meetup Card
                     if (orderInfo && (orderInfo.item || orderInfo.orderId)) {
-                      const isBuyer = (msg.senderId?._id || msg.senderId)?.toString() === currentUserId?.toString();
+                      const isBuyer = isMe;
                       const isSeller = !isBuyer;
                       const isPendingRequest = orderInfo.isRental && orderInfo.status === 'requested';
 
@@ -783,10 +922,21 @@ export const ChatPage = () => {
                       );
                     }
 
-                    // Standard message bubble
+                    // Standard message bubble - SENDER (Right side)
                     if (isMe) {
                       return (
-                        <div key={msg._id} className="chat-bubble-outgoing-row">
+                        <div
+                          key={msg._id}
+                          className="chat-bubble-outgoing-row"
+                          style={{
+                            alignSelf: 'flex-end',
+                            marginLeft: 'auto',
+                            marginRight: 0,
+                            display: 'flex',
+                            alignItems: 'flex-end',
+                            justifyContent: 'flex-end',
+                          }}
+                        >
                           <div className="chat-bubble-outgoing">{msg.content}</div>
                           <div className="chat-bubble-time">
                             <span>{timeStr}</span>
@@ -798,12 +948,23 @@ export const ChatPage = () => {
                       );
                     }
 
-                    // Incoming message
-                    const otherUser = getOtherParticipant(activeThread, currentUserId);
+                    // Standard message bubble - RECEIVER (Left side)
+                    const otherUser = getOtherParticipant(activeThread, currentUserId, currentUserEmail);
                     const otherInitials = getUserInitials(otherUser);
 
                     return (
-                      <div key={msg._id} className="chat-bubble-incoming-row">
+                      <div
+                        key={msg._id}
+                        className="chat-bubble-incoming-row"
+                        style={{
+                          alignSelf: 'flex-start',
+                          marginRight: 'auto',
+                          marginLeft: 0,
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          justifyContent: 'flex-start',
+                        }}
+                      >
                         <div className="chat-bubble-avatar">{otherInitials}</div>
                         <div className="chat-bubble-incoming">{msg.content}</div>
                         <div className="chat-bubble-time">
