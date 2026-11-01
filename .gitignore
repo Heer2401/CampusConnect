@@ -9,3 +9,5 @@ Frontend/dist/
 Frontend/.vite/
 *.rar
 *.zip
+
+backend/uploads/

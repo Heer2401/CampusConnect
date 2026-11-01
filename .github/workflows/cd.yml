@@ -1,0 +1,80 @@
+name: CampusConnect CD Pipeline (Railway)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+concurrency:
+  group: deployment-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── 1. QUALITY GATE: Run Full Automated Test Suite ──
+  quality-gate:
+    name: Run Automated Tests & Syntax Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js (v20)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'backend/package-lock.json'
+
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          npm ci
+
+      - name: Run cross-module & unit tests
+        run: |
+          cd backend
+          npm test
+
+      - name: Setup Python (v3.11)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install AI dependencies & verify syntax
+        run: |
+          cd ai
+          pip install -r requirements.txt
+          python -m py_compile main.py
+
+  # ── 2. AUTOMATED DEPLOYMENT: Direct Railway Staging ──
+  deploy-railway:
+    name: Deploy to Railway
+    needs: quality-gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check Railway Deployment Readiness
+        id: check_token
+        run: |
+          if [ -n "${{ secrets.RAILWAY_TOKEN }}" ]; then
+            echo "has_token=true" >> $GITHUB_OUTPUT
+            echo "Railway token found in GitHub Secrets. Triggering automated deployment."
+          else
+            echo "has_token=false" >> $GITHUB_OUTPUT
+            echo "=================================================================="
+            echo "ℹ️  CD Pipeline is READY for Railway!"
+            echo "   When your team is ready for live deployment, you only need to:"
+            echo "   1. Create a project on Railway (https://railway.app)."
+            echo "   2. Generate a Railway Account/Project Token."
+            echo "   3. Add it as 'RAILWAY_TOKEN' in GitHub Repo -> Settings -> Secrets."
+            echo "   Once added, this CD pipeline will automatically deploy all services."
+            echo "=================================================================="
+          fi
+
+      - name: Deploy to Railway
+        if: steps.check_token.outputs.has_token == 'true'
+        uses: railwayapp/railway-action@v2
+        with:
+          railway_token: ${{ secrets.RAILWAY_TOKEN }}
