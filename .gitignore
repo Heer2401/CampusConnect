@@ -11,3 +11,5 @@ Frontend/.vite/
 *.zip
 
 backend/uploads/
+~$*.docx
+*.tmp
