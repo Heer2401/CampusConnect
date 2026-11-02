@@ -18,6 +18,7 @@ import {
   Plus,
 } from 'lucide-react';
 import { NotificationBell } from '../features/search_communication/components/NotificationBell';
+import { useNotifications } from '../features/search_communication/context/NotificationContext';
 
 function getInitials(user) {
   const name = user?.profile?.name || user?.name;
@@ -32,6 +33,7 @@ function getInitials(user) {
 
 export default function Navbar() {
   const { user, logout } = useAuth();
+  const { unreadChatCount } = useNotifications();
   const navigate = useNavigate();
   const location = useLocation();
   const [profileOpen, setProfileOpen] = useState(false);
@@ -148,8 +150,14 @@ export default function Navbar() {
                     `nav-icon-btn ${isActive ? 'nav-icon-btn--active' : ''}`
                   }
                   title="Messages"
+                  style={{ position: 'relative' }}
                 >
                   <MessageSquare size={18} />
+                  {unreadChatCount > 0 && (
+                    <span className="notif-badge">
+                      {unreadChatCount > 9 ? '9+' : unreadChatCount}
+                    </span>
+                  )}
                 </NavLink>
 
                 {/* Notification Bell */}

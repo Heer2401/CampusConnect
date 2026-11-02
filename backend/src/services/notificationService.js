@@ -34,7 +34,9 @@ async function sendNotification(app, {
     // Push real-time event if socket.io is available on express app
     const io = app ? app.get('io') : null;
     if (io) {
-      io.to(`user:${userId.toString()}`).emit('notification', notification);
+      const uStr = userId.toString();
+      io.to(`user:${uStr}`).emit('notification', notification);
+      io.to(uStr).emit('notification', notification);
     }
 
     return notification;

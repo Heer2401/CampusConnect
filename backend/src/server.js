@@ -20,9 +20,12 @@ const startServer = async () => {
   // Initialize Socket.io
   const io = new Server(server, {
     cors: {
-      origin: process.env.CLIENT_URL || '*',
-      methods: ['GET', 'POST']
-    }
+      origin: (origin, callback) => callback(null, true),
+      methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'],
+      credentials: true
+    },
+    pingTimeout: 30000,
+    pingInterval: 25000
   });
 
   // Attach io instance to express app for controller access

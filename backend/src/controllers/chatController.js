@@ -365,13 +365,22 @@ const sendMessage = async (req, res, next) => {
     // Push real-time event via Socket.IO
     const io = req.app.get('io');
     if (io) {
-      // Broadcast to thread room
-      io.to(`thread:${id}`).emit('chat_message', populatedMessage);
+      const threadRoom = `thread:${id}`;
+      const rawThreadRoom = id.toString();
+      io.to(threadRoom).emit('chat_message', populatedMessage);
+      io.to(rawThreadRoom).emit('chat_message', populatedMessage);
 
-      // Also deliver to recipient's personal room in case they don't have the thread open
+      // Deliver to recipient's personal rooms so notification & thread list update live
       if (recipientId) {
-        io.to(`user:${recipientId.toString()}`).emit('chat_message', populatedMessage);
+        const recipStr = recipientId.toString();
+        io.to(`user:${recipStr}`).emit('chat_message', populatedMessage);
+        io.to(recipStr).emit('chat_message', populatedMessage);
       }
+
+      // Also notify sender's own user rooms for multi-tab sync
+      const senderStr = senderId.toString();
+      io.to(`user:${senderStr}`).emit('chat_message', populatedMessage);
+      io.to(senderStr).emit('chat_message', populatedMessage);
     }
 
     // Dispatch persistent in-app notification to recipient
@@ -439,6 +448,13 @@ const markThreadRead = async (req, res, next) => {
     const io = req.app.get('io');
     if (io) {
       io.to(`thread:${id}`).emit('messages_read', { threadId: id, readBy: userId });
+      io.to(id.toString()).emit('messages_read', { threadId: id, readBy: userId });
+      const otherParticipant = thread.participants.find(p => p.toString() !== userId.toString());
+      if (otherParticipant) {
+        const otherStr = otherParticipant.toString();
+        io.to(`user:${otherStr}`).emit('messages_read', { threadId: id, readBy: userId });
+        io.to(otherStr).emit('messages_read', { threadId: id, readBy: userId });
+      }
     }
 
     res.json({ success: true, message: 'Thread marked as read' });

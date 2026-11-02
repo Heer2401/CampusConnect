@@ -4,18 +4,31 @@ import { useAuth } from '../../../context/AuthContext';
 
 const SocketContext = createContext(null);
 
+const getSocketServerUrl = () => {
+  if (import.meta.env.VITE_SOCKET_URL) {
+    return import.meta.env.VITE_SOCKET_URL;
+  }
+  // In browser, dynamically resolve backend host on port 5000 or same origin
+  if (typeof window !== 'undefined' && window.location) {
+    return `${window.location.protocol}//${window.location.hostname}:5000`;
+  }
+  return 'http://localhost:5000';
+};
+
 export const SocketProvider = ({ children }) => {
   const { user, token } = useAuth();
   const [socket, setSocket] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const socketRef = useRef(null);
 
+  const resolvedUserId = user?._id || user?.id || user?.userId;
+
   useEffect(() => {
     // Connect with JWT token or devUser fallback
     const authToken = token || localStorage.getItem('cc_token') || localStorage.getItem('token');
     const devUser = localStorage.getItem('devUser');
 
-    if (!user && !authToken && !devUser) {
+    if (!resolvedUserId && !authToken && !devUser) {
       if (socketRef.current) {
         socketRef.current.disconnect();
         socketRef.current = null;
@@ -25,19 +38,22 @@ export const SocketProvider = ({ children }) => {
       return;
     }
 
-    const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+    const socketUrl = getSocketServerUrl();
 
     const newSocket = io(socketUrl, {
       auth: {
         token: authToken,
-        userId: user?._id || user?.id,
+        userId: resolvedUserId,
         devUser: user
-          ? { id: user._id || user.id, role: user.role, name: user.profile?.name || user.name }
+          ? { id: resolvedUserId, role: user.role, name: user.profile?.name || user.name }
           : (devUser ? JSON.parse(devUser) : null)
       },
       transports: ['websocket', 'polling'],
-      reconnectionAttempts: 10,
-      reconnectionDelay: 1000
+      withCredentials: true,
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000
     });
 
     socketRef.current = newSocket;
@@ -63,7 +79,7 @@ export const SocketProvider = ({ children }) => {
         newSocket.disconnect();
       }
     };
-  }, [user?._id, token]);
+  }, [resolvedUserId, token]);
 
   return (
     <SocketContext.Provider value={{ socket, isConnected }}>

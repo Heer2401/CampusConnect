@@ -474,11 +474,26 @@ export const ChatPage = () => {
       });
     };
 
+    const handleMessagesRead = ({ threadId }) => {
+      const incomingThreadId = threadId?.toString();
+      const currentActiveId = activeThreadId?.toString();
+      if (incomingThreadId && currentActiveId && incomingThreadId === currentActiveId) {
+        setMessages((prev) =>
+          prev.map((m) => (!m.readAt ? { ...m, readAt: new Date().toISOString() } : m))
+        );
+      }
+    };
+
     socket.on('chat_message', handleIncomingMessage);
+    socket.on('messages_read', handleMessagesRead);
 
     const handleReconnect = () => {
       if (activeThreadId) {
-        socket.emit('join_thread', { threadId: activeThreadId });
+        socket.emit('join_thread', { threadId: activeThreadId }, (ack) => {
+          if (ack && !ack.success) {
+            console.warn('[Socket] join_thread rejected on reconnect:', ack.error);
+          }
+        });
       }
       fetchThreads();
     };
@@ -486,9 +501,34 @@ export const ChatPage = () => {
 
     return () => {
       socket.off('chat_message', handleIncomingMessage);
+      socket.off('messages_read', handleMessagesRead);
       socket.off('connect', handleReconnect);
     };
   }, [socket, activeThreadId, fetchThreads]);
+
+  // Gentle fallback polling for active thread in case of temporary socket interruptions
+  useEffect(() => {
+    if (!activeThreadId) return;
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        chatApi.getMessages(activeThreadId).then((res) => {
+          if (res && res.data) {
+            setMessages((prev) => {
+              if (
+                res.data.length !== prev.length ||
+                (res.data.length > 0 &&
+                  res.data[res.data.length - 1]._id !== prev[prev.length - 1]?._id)
+              ) {
+                return res.data;
+              }
+              return prev;
+            });
+          }
+        }).catch(() => {});
+      }
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [activeThreadId]);
 
   const handleSelectThread = (threadId) => {
     setActiveThreadId(threadId);
