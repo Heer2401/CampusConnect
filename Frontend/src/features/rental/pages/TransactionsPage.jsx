@@ -1,4 +1,4 @@
-/**
+﻿﻿﻿﻿﻿/**
  * Charmi Bhayani (202512028) — Transactions Page
  * TransactionsPage.jsx
  *
@@ -118,11 +118,48 @@ function ShowPinModal({ transaction, onSuccess, onClose }) {
       <div className="rd-modal" style={{ maxWidth: 440, textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
         <button className="rd-modal-close" onClick={onClose}><X size={16} /></button>
         <ShieldCheck size={40} style={{ color: '#20c997', marginBottom: 8 }} />
-        <h3 className="rd-modal-title">In-Person Handover PIN</h3>
+        <h3 className="rd-modal-title">Your Handover PIN</h3>
         <p className="rd-modal-sub" style={{ marginBottom: 14 }}>
-          Item: <strong>{transaction?.listingId?.title || 'Listing'}</strong><br />
-          Show this 6-digit code to the buyer during your meetup:
+          Item: <strong>{transaction?.listingId?.title || 'Listing'}</strong>
         </p>
+
+        {/* Owner Warning Banner */}
+        <div style={{
+          background: 'linear-gradient(135deg, #fff7ed, #fef3c7)',
+          border: '1.5px solid #fbbf24',
+          borderRadius: 12,
+          padding: '14px 16px',
+          marginBottom: 18,
+          textAlign: 'left',
+          display: 'flex',
+          gap: 12,
+          alignItems: 'flex-start',
+        }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: 8,
+            background: '#fef3c7', border: '1.5px solid #fbbf24',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          }}>
+            <Info size={16} style={{ color: '#d97706' }} />
+          </div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 13, color: '#92400e', marginBottom: 6 }}>
+              Owner Instructions � Read Before Sharing PIN
+            </div>
+            <ol style={{ margin: 0, paddingLeft: 16, fontSize: 12, color: '#78350f', lineHeight: 1.7 }}>
+              <li><strong>Meet the renter/buyer</strong> at the agreed campus exchange point.</li>
+              <li><strong>Collect your payment first</strong> (cash or any agreed method) before handing over the item.</li>
+              <li><strong>Hand over the item</strong> to the other person once payment is received.</li>
+              <li><strong>Only then, share this PIN</strong> so they can confirm the handover on their device.</li>
+            </ol>
+            <div style={{
+              marginTop: 10, padding: '6px 10px', background: '#dc2626', borderRadius: 6,
+              fontSize: 11, fontWeight: 700, color: '#fff', display: 'inline-block', letterSpacing: 0.3,
+            }}>
+              DO NOT share this PIN before receiving payment &amp; handing over the item.
+            </div>
+          </div>
+        </div>
         {loading ? (
           <div className="rd-spinner" style={{ margin: '20px auto' }} />
         ) : error ? (
@@ -182,11 +219,53 @@ function VerifyPinModal({ transaction, onSuccess, onClose }) {
       <div className="rd-modal" style={{ maxWidth: 440, textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
         <button className="rd-modal-close" onClick={onClose}><X size={16} /></button>
         <KeyRound size={40} style={{ color: '#3b82f6', marginBottom: 8 }} />
-        <h3 className="rd-modal-title">Verify Meetup Handover</h3>
+        <h3 className="rd-modal-title">Confirm Item Handover</h3>
         <p className="rd-modal-sub" style={{ marginBottom: 14 }}>
-          Item: <strong>{transaction?.listingId?.title || 'Listing'}</strong><br />
-          Enter the 6-digit PIN shown on the seller screen after inspecting the item:
+          Item: <strong>{transaction?.listingId?.title || 'Listing'}</strong>
         </p>
+
+        {/* Buyer Instructions Banner */}
+        <div style={{
+          background: 'linear-gradient(135deg, #eff6ff, #dbeafe)',
+          border: '1.5px solid #93c5fd',
+          borderRadius: 12,
+          padding: '14px 16px',
+          marginBottom: 18,
+          textAlign: 'left',
+          display: 'flex',
+          gap: 12,
+          alignItems: 'flex-start',
+        }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: 8,
+            background: '#dbeafe', border: '1.5px solid #93c5fd',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          }}>
+            <Info size={16} style={{ color: '#2563eb' }} />
+          </div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 13, color: '#1e3a8a', marginBottom: 6 }}>
+              Buyer / Renter Instructions
+            </div>
+            <ol style={{ margin: 0, paddingLeft: 16, fontSize: 12, color: '#1e40af', lineHeight: 1.7 }}>
+              <li><strong>Meet the owner</strong> at the agreed campus exchange point.</li>
+              <li><strong>Inspect the item</strong> carefully to confirm it matches the listing description.</li>
+              <li><strong>Make your payment</strong> to the owner (cash or the agreed method).</li>
+              <li><strong>Receive the item</strong> from the owner after payment.</li>
+              <li><strong>Get the 6-digit PIN</strong> from the owner and enter it below to confirm handover.</li>
+            </ol>
+            <div style={{
+              marginTop: 10, padding: '6px 10px', background: '#2563eb', borderRadius: 6,
+              fontSize: 11, fontWeight: 700, color: '#fff', display: 'inline-block', letterSpacing: 0.3,
+            }}>
+              Pay first. Receive the item. Then enter the PIN to complete.
+            </div>
+          </div>
+        </div>
+
+        <div style={{ fontSize: 12, color: '#64748b', marginBottom: 8, fontWeight: 600 }}>
+          Enter the 6-digit PIN given by the owner:
+        </div>
         <form onSubmit={handleVerify}>
           <input
             className="rd-pin-input"
@@ -802,7 +881,7 @@ export default function TransactionsPage() {
                 Meetup PIN ready: {pinReadyTxn.listingId?.title || 'Listing'}
               </div>
               <div style={{ fontSize: 12, color: '#b45309' }}>
-                Share it only after you have inspected the item in person.
+                Collect payment from the buyer/renter first. Hand over the item. <strong>Only then share this PIN.</strong>
               </div>
             </div>
           </div>
@@ -1049,7 +1128,7 @@ export default function TransactionsPage() {
                             className="txn-btn-pin-action"
                             onClick={() => setVerifyPinFor(t)}
                           >
-                            <KeyRound size={12} /> Enter PIN
+                            <KeyRound size={12} /> Confirm Handover
                           </button>
                         ) : (
                           <button
