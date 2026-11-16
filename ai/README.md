@@ -1,6 +1,6 @@
 # CampusConnect AI Services Module
 
-The **AI Services Module** is a high-performance microservice powering automated listing generation, price estimation, wanted-post semantic matching, and OCR duplicate detection for CampusConnect.
+The **AI Services Module** powers automated listing suggestions, price estimation, campus-request matching, and OCR duplicate detection for CampusConnect.
 
 Built with **FastAPI**, **Groq Vision API** (`qwen/qwen3.8-27b`), and integrated with the project's **Express + MongoDB/Mongoose** backend and **React** frontend.
 
@@ -42,12 +42,12 @@ cd ai
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-uvicorn main:app --reload --port 8001
+uvicorn main:app --reload --port 8000
 ```
 
 Once running:
-- **Interactive Swagger Documentation:** [http://localhost:8001/docs](http://localhost:8001/docs)
-- **Service Health Check:** [http://localhost:8001/api/v1/health](http://localhost:8001/api/v1/health)
+- **Interactive Swagger Documentation:** [http://localhost:8000/docs](http://localhost:8000/docs)
+- **Service Health Check:** [http://localhost:8000/api/v1/health](http://localhost:8000/api/v1/health)
 
 ### 3. Run Backend & Frontend
 
@@ -77,7 +77,7 @@ npm.cmd run dev
 | `POST` | `/api/v1/listings/suggest`<br>`/api/v1/listings/generate` | Generates listing details from `image_base64` or `image_url` + optional seller hints. |
 | `POST` | `/api/v1/listings/generate-upload` | Multipart form endpoint accepting direct image file upload and optional hints. |
 | `POST` | `/api/v1/pricing/estimate` | Estimates price using same-category comparables, IQR outlier filtering, and condition adjustment. |
-| `POST` | `/api/v1/matching/evaluate` | Evaluates and ranks open wanted posts against a newly published listing. |
+| `POST` | `/api/v1/matching/evaluate` | Evaluates and ranks open campus requests against a listing. |
 | `POST` | `/api/v1/ocr/check-upload` | Ingests PDF or image documents and extracts canonical text via OCR. |
 | `POST` | `/api/v1/ocr/check` | Compares extracted document text against an existing corpus for duplicates. |
 
@@ -122,7 +122,7 @@ npm.cmd run dev
 
 **curl command:**
 ```powershell
-curl -X POST "http://localhost:8001/api/v1/listings/generate-upload" `
+curl -X POST "http://localhost:8000/api/v1/listings/generate-upload" `
   -F "file=@sample_item.jpg;type=image/jpeg" `
   -F "name_or_brand=Casio FX-991EX" `
   -F "age=6 months" `

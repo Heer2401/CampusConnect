@@ -8,7 +8,7 @@ const getListingSuggestions = async ({
   condition = '',
 }) => {
   if (!file || !file.buffer) throw new Error('A listing image is required');
-  const baseUrl = process.env.AI_SERVICE_URL || 'http://localhost:8001';
+  const baseUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
 
   const payload = {
     image_base64: file.buffer.toString('base64'),
@@ -29,7 +29,7 @@ const getListingSuggestions = async ({
 };
 
 const estimateListingPrice = async ({ title, category, condition, comparableItems = [] }) => {
-  const baseUrl = process.env.AI_SERVICE_URL || 'http://localhost:8001';
+  const baseUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
   const response = await axios.post(
     `${baseUrl.replace(/\/$/, '')}/api/v1/pricing/estimate`,
     { title, category, condition, comparable_items: comparableItems },
@@ -39,7 +39,7 @@ const estimateListingPrice = async ({ title, category, condition, comparableItem
 };
 
 const evaluateListingMatches = async ({ listing, wantedPosts }) => {
-  const baseUrl = process.env.AI_SERVICE_URL || 'http://localhost:8001';
+  const baseUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
   const response = await axios.post(
     `${baseUrl.replace(/\/$/, '')}/api/v1/matching/evaluate`,
     { listing, wanted_posts: wantedPosts },
@@ -49,7 +49,7 @@ const evaluateListingMatches = async ({ listing, wantedPosts }) => {
 };
 
 const extractUploadedDocument = async ({ file }) => {
-  const baseUrl = process.env.AI_SERVICE_URL || 'http://localhost:8001';
+  const baseUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
   const form = new FormData();
   form.append('file', new Blob([file.buffer], { type: file.mimetype }), file.originalname);
 
@@ -62,7 +62,7 @@ const extractUploadedDocument = async ({ file }) => {
 };
 
 const compareDocumentText = async ({ documentText, candidates = [], threshold = 0.82 }) => {
-  const baseUrl = process.env.AI_SERVICE_URL || 'http://localhost:8001';
+  const baseUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
   const response = await axios.post(
     `${baseUrl.replace(/\/$/, '')}/api/v1/ocr/check`,
     { document_text: documentText, candidates, threshold },
