@@ -4,6 +4,10 @@ CampusConnect is a campus peer-to-peer marketplace. Students can list items to s
 
 This repository contains the React frontend, Express/Mongoose backend, and a FastAPI AI service.
 
+## Live deployment
+
+The deployed frontend sign-in page is available at [CampusConnect on Railway](https://campusconnect-frontend-production-78dd975d.up.railway.app/login). The complete application also depends on the availability and configuration of its backend API, MongoDB database, AI service, and image storage.
+
 ## Features
 
 - **Accounts and roles:** student registration/login, protected pages, and administrator tools.
