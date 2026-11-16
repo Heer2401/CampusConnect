@@ -38,6 +38,8 @@ import { WishlistButton } from '../../search_communication/components/WishlistBu
 import { chatApi } from '../../search_communication/api/chatApi';
 import { createTransaction, createRental, getListingReservedDates } from '../../rental/api/rentalApi';
 
+const API_URL = import.meta.env.VITE_API_URL || '';
+
 function formatTimeAgo(date) {
   if (!date) return 'Recently';
   const seconds = Math.floor((new Date() - new Date(date)) / 1000);
@@ -445,7 +447,7 @@ export const ListingDetailPage = () => {
         payload.relatedListing = listing._id;
         payload.reportedUser = sellerId;
       }
-      const res = await fetch('/api/admin/disputes', {
+      const res = await fetch(`${API_URL}/api/admin/disputes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload)

@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
+const API_URL = import.meta.env.VITE_API_URL || '';
+
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
@@ -37,7 +39,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       try {
-        const res = await fetch('/api/users/me', {
+        const res = await fetch(`${API_URL}/api/users/me`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -63,20 +65,20 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     let res;
     try {
-      res = await fetch('/api/auth/login', {
+      res = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
     } catch (err) {
-      throw new Error('Cannot connect to backend server. Make sure the backend is running on port 5000.');
+      throw new Error('Cannot connect to backend server. Make sure the backend is running.');
     }
 
     let data;
     try {
       data = await res.json();
     } catch {
-      throw new Error('Backend server is unreachable or offline (Port 5000). Please start the backend.');
+      throw new Error('Backend server is unreachable or offline. Please check connection.');
     }
 
     if (!res.ok) {
@@ -91,20 +93,20 @@ export const AuthProvider = ({ children }) => {
   const register = async ({ email, password, name, program, year, contactNumber }) => {
     let res;
     try {
-      res = await fetch('/api/auth/register', {
+      res = await fetch(`${API_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, name, program, year, contactNumber }),
       });
     } catch (err) {
-      throw new Error('Cannot connect to backend server. Make sure the backend is running on port 5000.');
+      throw new Error('Cannot connect to backend server. Make sure the backend is running.');
     }
 
     let data;
     try {
       data = await res.json();
     } catch {
-      throw new Error('Backend server is unreachable or offline (Port 5000). Please start the backend.');
+      throw new Error('Backend server is unreachable or offline. Please check connection.');
     }
 
     if (!res.ok) {
@@ -123,7 +125,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const updateProfile = async (profileData) => {
-    const res = await fetch('/api/users/me', {
+    const res = await fetch(`${API_URL}/api/users/me`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',

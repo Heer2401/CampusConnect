@@ -6,6 +6,8 @@
  * Proxy: Vite proxies /api -> http://localhost:5000 (vite.config.js)
  */
 
+const API_URL = import.meta.env.VITE_API_URL || '';
+
 // ─── helper: read JWT stored by AuthContext ─────────────────────────────────
 function authHeaders() {
   const token = localStorage.getItem('cc_token');
@@ -13,7 +15,8 @@ function authHeaders() {
 }
 
 async function request(url, options = {}) {
-  const res = await fetch(url, {
+  const fullUrl = url.startsWith('http') ? url : `${API_URL}${url}`;
+  const res = await fetch(fullUrl, {
     ...options,
     headers: {
       'Content-Type': 'application/json',

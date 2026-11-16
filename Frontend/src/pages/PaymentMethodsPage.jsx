@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { CreditCard, Plus, Trash2, CheckCircle, Smartphone, Building, ShieldCheck, AlertCircle } from 'lucide-react';
 
+const API_URL = import.meta.env.VITE_API_URL || '';
+
 export default function PaymentMethodsPage() {
   const { token } = useAuth();
   const [methods, setMethods] = useState([]);
@@ -18,7 +20,7 @@ export default function PaymentMethodsPage() {
 
   const fetchMethods = async () => {
     try {
-      const res = await fetch('/api/users/me/payment-methods', {
+      const res = await fetch(`${API_URL}/api/users/me/payment-methods`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
@@ -54,7 +56,7 @@ export default function PaymentMethodsPage() {
     }
 
     try {
-      const res = await fetch('/api/users/me/payment-methods', {
+      const res = await fetch(`${API_URL}/api/users/me/payment-methods`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -82,7 +84,7 @@ export default function PaymentMethodsPage() {
 
   const handleSetDefault = async (id) => {
     try {
-      const res = await fetch(`/api/users/me/payment-methods/${id}/default`, {
+      const res = await fetch(`${API_URL}/api/users/me/payment-methods/${id}/default`, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -97,7 +99,7 @@ export default function PaymentMethodsPage() {
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to remove this payment method?')) return;
     try {
-      const res = await fetch(`/api/users/me/payment-methods/${id}`, {
+      const res = await fetch(`${API_URL}/api/users/me/payment-methods/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });

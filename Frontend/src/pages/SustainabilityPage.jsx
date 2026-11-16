@@ -15,6 +15,8 @@ import {
   ArrowRight,
 } from 'lucide-react';
 
+const API_URL = import.meta.env.VITE_API_URL || '';
+
 export default function SustainabilityPage() {
   const { token } = useAuth();
   const [stats, setStats] = useState(null);
@@ -24,7 +26,7 @@ export default function SustainabilityPage() {
   useEffect(() => {
     const fetchSustainability = async () => {
       try {
-        const res = await fetch('/api/sustainability/me', {
+        const res = await fetch(`${API_URL}/api/sustainability/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.ok) {
