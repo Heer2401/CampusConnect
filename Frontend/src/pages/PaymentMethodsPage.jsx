@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { CreditCard, Plus, Trash2, CheckCircle, Smartphone, Building, ShieldCheck, AlertCircle } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+const rawApiUrl = (import.meta.env.VITE_API_URL || '').trim();
+const API_URL = rawApiUrl && !rawApiUrl.startsWith('http') ? `https://${rawApiUrl}` : rawApiUrl;
 
 export default function PaymentMethodsPage() {
   const { token } = useAuth();

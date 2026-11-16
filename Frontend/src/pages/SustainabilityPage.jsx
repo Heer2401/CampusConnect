@@ -15,7 +15,8 @@ import {
   ArrowRight,
 } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+const rawApiUrl = (import.meta.env.VITE_API_URL || '').trim();
+const API_URL = rawApiUrl && !rawApiUrl.startsWith('http') ? `https://${rawApiUrl}` : rawApiUrl;
 
 export default function SustainabilityPage() {
   const { token } = useAuth();
@@ -174,13 +175,12 @@ export default function SustainabilityPage() {
           {/* Step 2: Contributor */}
           <div className="sustainability-step">
             <div
-              className={`sustainability-step-circle ${
-                currentLevel >= 2
-                  ? 'sustainability-step-completed'
-                  : currentLevel === 1
+              className={`sustainability-step-circle ${currentLevel >= 2
+                ? 'sustainability-step-completed'
+                : currentLevel === 1
                   ? 'sustainability-step-active'
                   : 'sustainability-step-upcoming'
-              }`}
+                }`}
             >
               {currentLevel >= 2 ? <Check size={14} strokeWidth={3} /> : null}
             </div>
@@ -191,11 +191,10 @@ export default function SustainabilityPage() {
           {/* Step 3: Ambassador */}
           <div className="sustainability-step">
             <div
-              className={`sustainability-step-circle ${
-                currentLevel >= 3
-                  ? 'sustainability-step-completed'
-                  : 'sustainability-step-upcoming'
-              }`}
+              className={`sustainability-step-circle ${currentLevel >= 3
+                ? 'sustainability-step-completed'
+                : 'sustainability-step-upcoming'
+                }`}
             >
               {currentLevel >= 3 ? <Check size={14} strokeWidth={3} /> : null}
             </div>

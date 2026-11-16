@@ -38,7 +38,8 @@ import { WishlistButton } from '../../search_communication/components/WishlistBu
 import { chatApi } from '../../search_communication/api/chatApi';
 import { createTransaction, createRental, getListingReservedDates } from '../../rental/api/rentalApi';
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+const rawApiUrl = (import.meta.env.VITE_API_URL || '').trim();
+const API_URL = rawApiUrl && !rawApiUrl.startsWith('http') ? `https://${rawApiUrl}` : rawApiUrl;
 
 function formatTimeAgo(date) {
   if (!date) return 'Recently';

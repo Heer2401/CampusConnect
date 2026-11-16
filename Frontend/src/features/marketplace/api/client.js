@@ -1,6 +1,8 @@
+const rawApiUrl = (import.meta.env.VITE_API_URL || '').trim();
+const normalizedApiUrl = rawApiUrl && !rawApiUrl.startsWith('http') ? `https://${rawApiUrl}` : rawApiUrl;
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
-  (import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api/v1` : 'http://localhost:5000/api/v1');
+  (normalizedApiUrl ? `${normalizedApiUrl}/api/v1` : 'http://localhost:5000/api/v1');
 
 export const apiClient = async (endpoint, { method = 'GET', body, headers = {}, isFormData = false } = {}) => {
   const token = localStorage.getItem('token') || localStorage.getItem('cc_token');

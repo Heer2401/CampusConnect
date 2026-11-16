@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+const rawApiUrl = (import.meta.env.VITE_API_URL || '').trim();
+const API_URL = rawApiUrl && !rawApiUrl.startsWith('http') ? `https://${rawApiUrl}` : rawApiUrl;
 
 const AuthContext = createContext(null);
 
@@ -78,7 +79,7 @@ export const AuthProvider = ({ children }) => {
     try {
       data = await res.json();
     } catch {
-      throw new Error('Backend server is unreachable or offline. Please check connection.');
+      throw new Error(`Server returned HTTP ${res.status}. Please check backend logs.`);
     }
 
     if (!res.ok) {
@@ -106,7 +107,7 @@ export const AuthProvider = ({ children }) => {
     try {
       data = await res.json();
     } catch {
-      throw new Error('Backend server is unreachable or offline. Please check connection.');
+      throw new Error(`Server returned HTTP ${res.status}. Please check backend logs.`);
     }
 
     if (!res.ok) {

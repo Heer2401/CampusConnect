@@ -4,7 +4,8 @@
  * Handles JWT authorization, auto-login handshake, and full CRUD operations.
  */
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+const rawApiUrl = (import.meta.env.VITE_API_URL || '').trim();
+const API_URL = rawApiUrl && !rawApiUrl.startsWith('http') ? `https://${rawApiUrl}` : rawApiUrl;
 const API_BASE = `${API_URL}/api`;
 const TOKEN_KEY = 'cc_admin_token';
 const USER_KEY = 'cc_admin_user';

@@ -5,8 +5,9 @@ import { useAuth } from '../../../context/AuthContext';
 const SocketContext = createContext(null);
 
 const getSocketServerUrl = () => {
-  if (import.meta.env.VITE_SOCKET_URL) {
-    return import.meta.env.VITE_SOCKET_URL;
+  const raw = (import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || '').trim();
+  if (raw) {
+    return raw.startsWith('http') ? raw : `https://${raw}`;
   }
   // In browser, dynamically resolve backend host on port 5000 or same origin
   if (typeof window !== 'undefined' && window.location) {

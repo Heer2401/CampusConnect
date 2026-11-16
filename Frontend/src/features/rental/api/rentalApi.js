@@ -6,7 +6,8 @@
  * Proxy: Vite proxies /api -> http://localhost:5000 (vite.config.js)
  */
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+const rawApiUrl = (import.meta.env.VITE_API_URL || '').trim();
+const API_URL = rawApiUrl && !rawApiUrl.startsWith('http') ? `https://${rawApiUrl}` : rawApiUrl;
 
 // ─── helper: read JWT stored by AuthContext ─────────────────────────────────
 function authHeaders() {
